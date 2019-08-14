@@ -56,8 +56,12 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
 
         $this->_entGWHelper = $entGWHelper;
         if ($this->_entGWHelper==NULL) {
-            if (class_exists("Enterprise_GiftWrapping_Helper_Data", false)) {
-                $this->_entGWHelper = Mage::helper('enterprise_giftwrapping');
+            $this->_entGWHelper = $moduleHelper; // entGWHelper only used as a transaltor, if different GW is used than Magento, it will just not translate it
+            try {
+                if (class_exists("Enterprise_GiftWrapping_Helper_Data", true)) {
+                    $this->_entGWHelper = Mage::helper('enterprise_giftwrapping');
+                }
+            } catch (Exception $e) {
             }
         }
         $this->_salesHelper = $salesHelper;

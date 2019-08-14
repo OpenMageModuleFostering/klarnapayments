@@ -112,6 +112,17 @@ class Vaimo_Klarna_Model_Klarnacheckout extends Vaimo_Klarna_Model_Klarnacheckou
         return $this->_api->getActualKlarnaOrder();
     }
     
+    /*
+     * Will return the klarna order or null, if it doesn't find it
+     * Not used by this module, but as a service for others.
+     *
+     */
+    public function getKlarnaOrderRaw($checkoutId)
+    {
+        $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_KCODISPLAY_ORDER);
+        return $this->_api->getKlarnaOrderRaw($checkoutId);
+    }
+    
     public function validateQuote($checkoutId)
     {
         /** @var Mage_Sales_Model_Quote $quote */

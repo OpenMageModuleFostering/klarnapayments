@@ -364,7 +364,22 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
     {
         $this->_useKlarnaOrderSessionCache = $value;
     }
-
+    
+    /*
+     * Will return the klarna order or null, if it doesn't find it
+     * Not used by this module, but as a service for others.
+     *
+     */
+    public function getKlarnaOrderRaw($checkoutId)
+    {
+        if ($checkoutId) {
+            $this->_klarnaOrder = new Klarna_Checkout_Order($this->_getConnector(), Klarna_Checkout_Order::$baseUri . '/' . $checkoutId);
+            $this->_klarnaOrder->fetch();
+            return $this->_klarnaOrder;
+        }
+        return NULL;
+    }
+    
     /**
      * Get Klarna checkout order
      *
