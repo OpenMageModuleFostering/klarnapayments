@@ -25,6 +25,12 @@
 
 class Vaimo_Klarna_Adminhtml_Klarna_MassactionController extends Mage_Adminhtml_Controller_Action
 {
+
+    protected function _isAllowed()
+    {
+        return true;
+    }
+
     /**
      * @param Mage_Sales_Model_Order $order
      * @return array

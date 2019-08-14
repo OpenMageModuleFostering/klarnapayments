@@ -40,7 +40,10 @@ class Vaimo_Klarna_Block_Klarnacheckout_Klarnacheckout extends Mage_Core_Block_T
         try {
             $klarna = Mage::getModel('klarna/klarnacheckout');
             $klarna->setQuote($this->getQuote(), Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
-            $html = $klarna->getKlarnaOrderHtml(null, true, true);
+            // Want to send down kco id here, but then it will not call updateOrder
+            // in initKlarnaOrder, which is just ugly code... Need to fix that!
+            // $klarna->getQuote()->getKlarnaCheckoutId()
+            $html = $klarna->getKlarnaOrderHtml(NULL, true, true);
         } catch (Exception $e) {
             Mage::helper('klarna')->logKlarnaException($e);
             $html = $e->getMessage();

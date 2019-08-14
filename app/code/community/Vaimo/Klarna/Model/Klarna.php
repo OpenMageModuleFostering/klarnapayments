@@ -290,7 +290,10 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
                  * in this function. Authorize will attempt to use the value and give an error message, which means
                  * it will be checked and reported anyway
                  */
-                if (!$this->_getHelper()->isOneStepCheckout() && !$this->_getHelper()->isQuickCheckout()) {
+                if (!$this->_getHelper()->isOneStepCheckout() &&
+                    !$this->_getHelper()->isFireCheckout() &&
+                    !$this->_getHelper()->isVaimoCheckout() &&
+                    !$this->_getHelper()->isQuickCheckout()) {
                     Mage::throwException($this->_getHelper()->__(
                         'Unknown address, please specify correct personal id in the payment selection and press Fetch again, or use another payment method'
                         )
@@ -308,7 +311,10 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
                     /*
                      * No error message here if using OneStepCheckout
                      */
-                    if (!$this->_getHelper()->isOneStepCheckout() && !$this->_getHelper()->isQuickCheckout()) {
+                    if (!$this->_getHelper()->isOneStepCheckout() &&
+                        !$this->_getHelper()->isFireCheckout() &&
+                        !$this->_getHelper()->isVaimoCheckout() &&
+                        !$this->_getHelper()->isQuickCheckout()) {
                         Mage::throwException($this->_getHelper()->__(
                             'Unknown address, please specify correct personal id in the payment selection and press Fetch again, or use another payment method'
                             )
@@ -554,8 +560,8 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
     {
         $id = $this->getPostValues(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_PAYMENT_PLAN);
         // @todo read from checkoutService to find new details for Sweden and Norway and store them
-        $method = $this->getPostValues('method');
-        if ($id) {
+        $method = $this->getMethod();
+        if ($id && $method==Vaimo_Klarna_Helper_Data::KLARNA_METHOD_ACCOUNT) {
             $pclassArray = $this->_getSpecificPClass($id);
             if (!$pclassArray) {
                 Mage::throwException($this->_getHelper()->__('Unexpected error, pclass does not exist, please reload page and try again'));
@@ -570,9 +576,11 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
                         Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_PAYMENT_PLAN_TYPE         => $pclassArray['type'],
                         ));
         } else {
+/*
             if ($method==Vaimo_Klarna_Helper_Data::KLARNA_METHOD_ACCOUNT || $method==Vaimo_Klarna_Helper_Data::KLARNA_METHOD_SPECIAL ) {
                 Mage::throwException($this->_getHelper()->__('You must choose a payment plan'));
             }
+*/
             $this->addPostValues(array(
                         Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_PAYMENT_PLAN_DESCRIPTION  => '',
                         Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_PAYMENT_PLAN_MONTHLY_COST => '',
@@ -627,6 +635,9 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
             if ($this->_checkGender()==false) {
                 Mage::throwException($this->_getHelper()->__('You need to enter your gender to be able to continue'));
             }
+        }
+        if ($this->_checkPaymentPlan()==false) {
+            Mage::throwException($this->_getHelper()->__('You must choose a payment plan'));
         }
     }
 

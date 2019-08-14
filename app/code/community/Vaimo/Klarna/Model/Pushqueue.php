@@ -23,39 +23,32 @@
  * @copyright   Copyright (c) 2009-2014 Vaimo AB
  */
 
-class Vaimo_Klarna_Adminhtml_Klarna_PclassController extends Mage_Adminhtml_Controller_Action
+class Vaimo_Klarna_Model_Pushqueue extends Mage_Core_Model_Abstract
 {
-    protected function _isAllowed()
+    protected function _construct()
     {
-        return true;
+        parent::_construct();
+        $this->_init('klarna/pushqueue');
     }
 
-    public function dispatchAction()
+    /**
+     * Register queue creation date
+     *
+     * @return Mage_Core_Model_Abstract|void
+     */
+    protected function _beforeSave()
     {
-    }
+        parent::_beforeSave();
 
-    public function updateAction()
-    {
-        $result = array('error' => '', 'message' => '');
-        try {
-            $request = $this->getRequest();
-
-            $klarna = Mage::getModel('klarna/klarna');
-            $klarna->setStoreInformation();
-            $klarna->setMethod(Vaimo_Klarna_Helper_Data::KLARNA_METHOD_ACCOUNT);
-            $klarna->reloadAllPClasses();
-
-            $block = Mage::getSingleton('core/layout')
-                        ->createBlock('klarna/adminhtml_pclass_list');;
-
-            $result['html'] = $block->toHtml();
-        } catch (Mage_Core_Exception $e) {
-            $result['error'] = true;
-            $result['message'] = $e->getMessage();
+        if (!$this->getCreatedAt()) {
+            $this->setCreatedAt(Mage::getSingleton('core/date')->gmtDate());
         }
-
-        $result = Mage::helper('core')->jsonEncode($result);
-        Mage::app()->getResponse()->setBody($result);
     }
-    
+
+    public function loadByKlarnaOrderNumber($klarnaOrderNumber)
+    {
+        $this->_getResource()->loadByKlarnaOrderNumber($this, $klarnaOrderNumber);
+        return $this;
+    }
+
 }

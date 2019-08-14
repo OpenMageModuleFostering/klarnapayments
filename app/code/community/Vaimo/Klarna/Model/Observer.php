@@ -126,6 +126,13 @@ class Vaimo_Klarna_Model_Observer extends Mage_Core_Model_Abstract
                     $order->setStatus($klarna->getConfigData('order_status'));
                 }
             }
+            if ($orderOriginal->getState()==Mage_Sales_Model_Order::STATE_HOLDED) {
+                if ($order->getState()==Mage_Sales_Model_Order::STATE_NEW) {
+                    $klarna = Mage::getModel('klarna/klarna');
+                    $klarna->setOrder($order);
+                    $order->setStatus($klarna->getConfigData('order_status'));
+                }
+            }
         }
     }
 
@@ -160,11 +167,13 @@ class Vaimo_Klarna_Model_Observer extends Mage_Core_Model_Abstract
             $klarna = Mage::getModel('klarna/klarnacheckout');
             $klarna->setQuote($quote, Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
             if ($klarna->getKlarnaCheckoutEnabled()) {
-                $controllerAction = $observer->getControllerAction();
-                $controllerAction->getResponse()
-                    ->setRedirect(Mage::getUrl('checkout/klarna'))
-                    ->sendResponse();
-                exit;
+                if (!$klarna->getConfigData('explicit_usage')) {
+                    $controllerAction = $observer->getControllerAction();
+                    $controllerAction->getResponse()
+                        ->setRedirect(Mage::getUrl('checkout/klarna'))
+                        ->sendResponse();
+                    exit;
+                }
             }
         }
     }
@@ -198,7 +207,7 @@ class Vaimo_Klarna_Model_Observer extends Mage_Core_Model_Abstract
                     $clearFlag = false;
                 }
                 if ($clearFlag) {
-                    Mage::helper('klarna')->logKlarnaDebug('checkDisableUseOtherMethods clearFlag is true. class = ' . $class . ' and action = ' . $action);
+                    Mage::helper('klarna')->logDebugInfo('checkDisableUseOtherMethods clearFlag is true. class = ' . $class . ' and action = ' . $action);
                     $this->_getSession()->setKlarnaUseOtherMethods(false);
                     $payment = $quote->getPayment();
                     $payment->setMethod(Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);

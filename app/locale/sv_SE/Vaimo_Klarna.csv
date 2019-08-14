@@ -114,6 +114,7 @@
 "If checkbox for newsletter should be shown in checkout page.","Om checkboxen för nyhetsbrev ska visas i checkout"
 "Checked by default","Checkbox ifylld automatiskt"
 "A/B Testing settings","A/B testning inställningar"
+"Activate A/B Testing","Aktivera A/B testning"
 "Enable for IP range","Aktivera för IP intervall"
 "Specify 2 numbers between 0 and 255, separated by dash. Example: '0-50'. Empty value enables all IP addresses","Två siffror, separerade med minus tecken. Till exempel 0-50"
 "Enable for logged in Customers","Aktivera för inloggade kunder"

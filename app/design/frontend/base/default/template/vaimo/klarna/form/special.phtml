@@ -42,6 +42,8 @@ $_showServiceMethods = false;
             <?php if (Mage::helper('klarna')->showTitleAsTextOnly()): ?>
                 <?php if (Mage::helper('klarna')->isOneStepCheckout()): ?>
                     <?php echo $this->useServiceLogotypes($serviceMethod, 90); ?>
+                <?php elseif (Mage::helper('klarna')->isFireCheckout()): ?>
+                    <?php echo $this->useServiceLogotypes($serviceMethod, 90); ?>
                 <?php else: ?>
                     <li>
                         <?php echo $this->useServiceLogotypes($serviceMethod, 125); ?>
@@ -53,6 +55,8 @@ $_showServiceMethods = false;
         <?php else: ?>
             <?php if (Mage::helper('klarna')->showTitleAsTextOnly()): ?>
                 <?php if (Mage::helper('klarna')->isOneStepCheckout()): ?>
+                    <?php echo '<img src="' . $this->getKlarnaLogotype(90) . '" />'; ?>
+                <?php elseif (Mage::helper('klarna')->isFireCheckout()): ?>
                     <?php echo '<img src="' . $this->getKlarnaLogotype(90) . '" />'; ?>
                 <?php else: ?>
                     <li>

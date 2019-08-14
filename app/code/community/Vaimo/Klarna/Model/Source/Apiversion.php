@@ -36,7 +36,7 @@ class Vaimo_Klarna_Model_Source_Apiversion extends Vaimo_Klarna_Model_Source_Abs
         return array(
             array('value' => Vaimo_Klarna_Helper_Data::KLARNA_KCO_API_VERSION_STD, 'label' => $this->_getHelper()->__('KCO V.2')),
             array('value' => Vaimo_Klarna_Helper_Data::KLARNA_KCO_API_VERSION_UK,  'label' => $this->_getHelper()->__('KCO V.3 (UK)')),
-            array('value' => Vaimo_Klarna_Helper_Data::KLARNA_KCO_API_VERSION_USA, 'label' => $this->_getHelper()->__('KCO V.3.1')),
+            array('value' => Vaimo_Klarna_Helper_Data::KLARNA_KCO_API_VERSION_USA, 'label' => $this->_getHelper()->__('KCO V.3.1 (US)')),
         );
     }
 
@@ -50,7 +50,7 @@ class Vaimo_Klarna_Model_Source_Apiversion extends Vaimo_Klarna_Model_Source_Abs
         return array(
             Vaimo_Klarna_Helper_Data::KLARNA_KCO_API_VERSION_STD => $this->_getHelper()->__('KCO V.2'),
             Vaimo_Klarna_Helper_Data::KLARNA_KCO_API_VERSION_UK  => $this->_getHelper()->__('KCO V.3 (UK)'),
-            Vaimo_Klarna_Helper_Data::KLARNA_KCO_API_VERSION_USA => $this->_getHelper()->__('KCO V.3.1'),
+            Vaimo_Klarna_Helper_Data::KLARNA_KCO_API_VERSION_USA => $this->_getHelper()->__('KCO V.3.1 (US)'),
         );
     }
 }

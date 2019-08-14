@@ -114,6 +114,7 @@
 "If checkbox for newsletter should be shown in checkout page.","Jos uutiskirjeen valintaruudun tulisi näkyä kassasivulla."
 "Checked by default","Oletuksena valittu"
 "A/B Testing settings","A/B-Testausasetukset"
+"Activate A/B Testing","Activate A/B Testing"
 "Enable for IP range","Salli IP-alue"
 "Specify 2 numbers between 0 and 255, separated by dash. Example: '0-50'. Empty value enables all IP addresses","Valitse kaksi numeroa välillä 0 ja 255, viivalla erotettuna. Esimerkiksi: '0-50'. Tyhjä arvo sallii kaikki IP-osoitteet"
 "Enable for logged in Customers","Salli sisäänkirjautuneet asiakkaat"
@@ -171,3 +172,4 @@
 "Please note that your official address will be used for shipping address when you place your order","Please note that your official address will be used for shipping address when you place your order"
 "Shopping Cart","Ostoskori"
 "Choose shipping method","Valitse toimitustapa"
+"Quantity","Määrä"

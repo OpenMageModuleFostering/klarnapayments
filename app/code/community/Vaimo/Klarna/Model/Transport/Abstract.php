@@ -974,7 +974,7 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
         try {
             if (!$this->getConfigData('active')) {
                 if ($this->getMethod()!=Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT) {
-                    Mage::throwException($this->_getHelper()->__('Current payment method not available'));
+//                    throw new Exception($this->_getHelper()->__('Current payment method not available'));
                 }
             }
             $res = new Varien_Object(

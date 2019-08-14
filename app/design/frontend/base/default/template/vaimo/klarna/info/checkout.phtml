@@ -29,6 +29,16 @@
         <tr>
             <th align="left"><?php echo '<img src="' . $this->getKlarnaLogotype(125) . '" alt="' . Mage::helper('klarna')->__($this->getMethodTitle()) . '"/>'; ?></th>
         </tr>
+        <tr>
+            <td><?php echo Mage::helper('klarna')->__($this->getMethodTitle()); ?></td>
+        </tr>
+
         <?php echo $this->getInvoicesHtml(); ?>
+
+        <?php echo $this->getReservationHtml(); ?>
+
+        <?php echo $this->getReferenceHtml(); ?>
+
+        <?php echo $this->getNoticesHtml(); ?>
     </tbody>
 </table>

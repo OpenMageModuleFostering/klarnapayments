@@ -33,9 +33,11 @@ $info = $this->getPaymentInfo();
 
         <?php if ($info->getKlarnaInvoiceList()): ?>
             <?php foreach ($info->getKlarnaInvoiceList() as $invoice): ?>
-                <tr>
-                    <td><?php echo Mage::helper('klarna')->__('Invoice') . ' <a href="' . $this->getKlarnaInvoiceLink($invoice['invoice_id']) . '">' . $invoice['invoice_id'] . '</a>'; ?></td>
-                </tr>
+                <?php if (!isset($invoice[Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_INVOICE_LIST_KCO_ID])): ?>
+                    <tr>
+                        <td><?php echo Mage::helper('klarna')->__('Invoice') . ' <a href="' . $this->getKlarnaInvoiceLink($invoice['invoice_id']) . '">' . $invoice['invoice_id'] . '</a>'; ?></td>
+                    </tr>
+                <?php endif; ?>
             <?php endforeach; ?>
         <?php endif; ?>
 

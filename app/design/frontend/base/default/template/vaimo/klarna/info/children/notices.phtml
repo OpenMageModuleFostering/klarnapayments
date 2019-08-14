@@ -22,18 +22,19 @@
  * @package     Vaimo_Klarna
  * @copyright   Copyright (c) 2009-2014 Vaimo AB
  */
+
+$info = $this->getPaymentInfo();
+
 ?>
-<?php
-$_helper = Mage::helper('klarna');
-?>
 
+    <?php if ($info): ?>
 
-<div id="klarna_loader" class="klarna_loader"><img src="<?php echo $this->getSkinUrl('images/opc-ajax-loader.gif')?>" alt="" id="klarna_loader_img" /></div>
+        <?php if ($info->getKlarnaNotice()): ?>
+            <?php foreach ($info->getKlarnaNotice() as $notice): ?>
+            <tr>
+                <td><?php echo Mage::helper('klarna')->__('Notice') . ': ' . '<strong style="color:orange">' . $notice . '</strong>';?></td>
+            </tr>
+            <?php endforeach; ?>
+        <?php endif; ?>
 
-<div class="page-title">
-    <h1 class="klarna_page-title"><?php echo $_helper->__('Shopping Cart') ?></h1>
-</div>
-
-<?php echo $this->getChildHtml('klarna_msg'); ?>
-
-<?php echo $this->getMessagesBlock()->getGroupedHtml() ?>
+    <?php endif; ?>

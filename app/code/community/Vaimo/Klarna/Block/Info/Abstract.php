@@ -156,6 +156,12 @@ class Vaimo_Klarna_Block_Info_Abstract extends Mage_Payment_Block_Info
         return $this->toHtml();
     }
 
+    public function getNoticesHtml()
+    {
+        $this->setTemplate('vaimo/klarna/info/children/notices.phtml');
+        return $this->toHtml();
+    }
+
     public function getPaymentPlanHtml()
     {
         $this->setTemplate('vaimo/klarna/info/children/paymentplan.phtml');

@@ -41,11 +41,14 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
 
     const KLARNA_API_CALL_KCODISPLAY_ORDER = 'kco_display_order';
     const KLARNA_API_CALL_KCOCREATE_ORDER  = 'kco_create_order';
-    
+    const KLARNA_API_CALL_KCOVALIDATE_ORDER = 'kco_validate_order';
+
+    const KLARNA_KCO_QUEUE_RETRY_ATTEMPTS = 10;
+
     const KLARNA_STATUS_ACCEPTED = 'accepted';
     const KLARNA_STATUS_PENDING  = 'pending';
     const KLARNA_STATUS_DENIED   = 'denied';
-    
+
     const KLARNA_INFO_FIELD_FEE                         = 'vaimo_klarna_fee';
     const KLARNA_INFO_FIELD_FEE_TAX                     = 'vaimo_klarna_fee_tax';
     const KLARNA_INFO_FIELD_BASE_FEE                    = 'vaimo_klarna_base_fee';
@@ -64,6 +67,7 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     const KLARNA_INFO_FIELD_INVOICE_LIST_KCO_ID = 'invoice_kco_id';
     const KLARNA_INFO_FIELD_HOST                = 'klarna_reservation_host';
     const KLARNA_INFO_FIELD_MERCHANT_ID         = 'merchant_id';
+    const KLARNA_INFO_FIELD_NOTICE              = 'klarna_notice';
 
     const KLARNA_INFO_FIELD_PAYMENT_PLAN              = 'payment_plan';
     const KLARNA_INFO_FIELD_PAYMENT_PLAN_TYPE         = 'payment_plan_type';
@@ -83,7 +87,7 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     const KLARNA_FORM_FIELD_CONSENT     = 'consent';
     const KLARNA_FORM_FIELD_GENDER      = 'gender';
     const KLARNA_FORM_FIELD_EMAIL       = 'email';
-    
+
     const KLARNA_API_RESPONSE_STATUS         = 'response_status';
     const KLARNA_API_RESPONSE_TRANSACTION_ID = 'response_transaction_id';
     const KLARNA_API_RESPONSE_FEE_REFUNDED   = 'response_fee_refunded';
@@ -108,12 +112,12 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     const KLARNA_LOGOTYPE_POSITION_FRONTEND = 'frontend';
     const KLARNA_LOGOTYPE_POSITION_PRODUCT  = 'product';
     const KLARNA_LOGOTYPE_POSITION_CHECKOUT = 'checkout';
-    
+
     const KLARNA_DISPATCH_RESERVED = 'vaimo_paymentmethod_order_reserved';
     const KLARNA_DISPATCH_CAPTURED = 'vaimo_paymentmethod_order_captured';
     const KLARNA_DISPATCH_REFUNDED = 'vaimo_paymentmethod_order_refunded';
     const KLARNA_DISPATCH_CANCELED = 'vaimo_paymentmethod_order_canceled';
-    
+
     const KLARNA_LOG_START_TAG = '---------------START---------------';
     const KLARNA_LOG_END_TAG = '----------------END----------------';
 
@@ -124,6 +128,8 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     const KLARNA_KCO_API_VERSION_STD = 2;
     const KLARNA_KCO_API_VERSION_UK  = 3;
     const KLARNA_KCO_API_VERSION_USA = 4;
+
+    public static $isEnterprise;
 
 
     protected $_supportedMethods = array(
@@ -170,12 +176,12 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
         self::KLARNA_FORM_FIELD_CONSENT,
         self::KLARNA_FORM_FIELD_GENDER,
         self::KLARNA_FORM_FIELD_EMAIL,
-        
+
     );
 
     const KLARNA_CHECKOUT_ENABLE_NEWSLETTER          = 'payment/vaimo_klarna_checkout/enable_newsletter';
     const KLARNA_CHECKOUT_EXTRA_ORDER_ATTRIBUTE      = 'payment/vaimo_klarna_checkout/extra_order_attribute';
-    const KLARNA_CHECKOUT_ENABLE_CART_ABOVE_KCO     = 'payment/vaimo_klarna_checkout/enable_cart_above_kco';
+    const KLARNA_CHECKOUT_ENABLE_CART_ABOVE_KCO      = 'payment/vaimo_klarna_checkout/enable_cart_above_kco';
 
     const KLARNA_CHECKOUT_NEWSLETTER_DISABLED       = 0;
     const KLARNA_CHECKOUT_NEWSLETTER_SUBSCRIBE      = 1;
@@ -251,7 +257,7 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
         }
         return false;
     }
-    
+
     public function getInvoiceLink($order, $transactionId)
     {
         $link = "";
@@ -269,6 +275,10 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     public function shouldItemBeIncluded($item)
     {
         if ($item->getParentItemId()>0 && $item->getPriceInclTax()==0) return false;
+        if ($item->getOrderItemId()) {
+            $orderItem = Mage::getModel('sales/order_item')->load($item->getOrderItemId());
+            if ($orderItem->getParentItemId()>0 && $item->getPriceInclTax()==0) return false;
+        }
         return true;
     }
 
@@ -300,6 +310,34 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     }
 
     /**
+     * Check if FireCheckout is activated or not
+     *
+     * @return bool
+     */
+    public function isFireCheckout($store = null)
+    {
+        $res = false;
+        if (Mage::getStoreConfig('firecheckout/general/enabled', $store)) {
+            $res = true;
+        }
+        return $res;
+    }
+
+    /**
+     * Check if VaimoCheckout is activated or not
+     *
+     * @return bool
+     */
+    public function isVaimoCheckout($store = null)
+    {
+        $res = false;
+        if (Mage::getStoreConfig('checkout/options/vaimo_checkout_enabled', $store)) {
+            $res = true;
+        }
+        return $res;
+    }
+
+    /**
      * Check if Vaimo_QuickCheckout is activated or not
      *
      * @return bool
@@ -308,8 +346,11 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     {
         $res = false;
         try {
-            if (class_exists('Icommerce_QuickCheckout_Helper_Data', true)) {
-                $res = true;
+            $node = Mage::getConfig()->getNode("modules/Icommerce_QuickCheckout");
+            if ($node) {
+                if ($node->active=='true'){
+                    $res = true;
+                }
             }
         } catch (Exception $e) {
         }
@@ -501,7 +542,7 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
      * Either I have done something wrong or the versions have changed how they work...
      *
      */
-     
+
     /*
      * Add tax to grand total on invoice collect or not
      */
@@ -514,7 +555,7 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
             return true;
         }
     }
-    
+
     /*
      * Call parent of quote collect or not
      */
@@ -528,7 +569,7 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
             return false;
         }
     }
-    
+
     /*
      * Use extra tax in quote instead of adding to Tax, I don't know why this has to be
      * different in EE, but it clearly seems to be...
@@ -626,7 +667,7 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     }
 
     /*
-     * 
+     *
      *
      */
     public function dispatchReserveInfo($order, $pno)
@@ -638,7 +679,7 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
             'pno' => $pno
             ));
     }
-    
+
     /*
      * Whenever a refund, capture, reserve or cancel is performed, we send out an event
      * This can be listened to for financial reconciliation
@@ -653,7 +694,7 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
             'method' => $method,
             'amount' => $amount
             ));
-        
+
         // Vaimo specific dispatch
         $event_name = NULL;
         switch ($eventcode) {
@@ -725,7 +766,7 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
         }
        return $res;
     }
-    
+
     public function getTermsUrlLink($url)
     {
         if ($url) {
@@ -765,7 +806,7 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     {
         $_SESSION[self::LOG_FUNCTION_SESSION_NAME] = $functionName;
     }
-    
+
     /**
      * Returns the function name set by the constructors in each class
      *
@@ -775,7 +816,7 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     {
         return array_key_exists(self::LOG_FUNCTION_SESSION_NAME, $_SESSION) ? $_SESSION[self::LOG_FUNCTION_SESSION_NAME] : '';
     }
-    
+
     /**
      * Log function that does the writing to log file
      *
@@ -788,7 +829,7 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     {
         Mage::log('PID(' . getmypid() . '): ' . $this->getFunctionNameForLog() . ': ' . $msg, null, $filename, true);
     }
-    
+
     /**
      * Log function that does the writing to log file
      *
@@ -819,7 +860,7 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
             return;
         }
     }
-    
+
     /**
      * Log function that logs all Klarna API calls and replies, this to see what functions are called and what reply they get
      *
@@ -832,7 +873,7 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
         $this->_log('klarnaapi.log', $comment);
         $this->logDebugInfo($comment);
     }
-    
+
     /**
      * Log function used for various debug log information, array is optional
      *
@@ -843,22 +884,23 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
      */
     public function logDebugInfo($info, $arr = NULL)
     {
-        if (!$arr) {
-            $this->_log('klarnadebug.log', $info);
-        } else {
+        $this->_log('klarnadebug.log', $info);
+        if ($arr) {
             if (is_array($arr)) {
                 $this->_log('klarnadebug.log', print_r($arr, true));
             } elseif (is_object($arr)) {
                 $this->_log('klarnadebug.log', print_r(array($arr), true));
+            } elseif (is_string($arr)) {
+                $this->_log('klarnadebug.log', $arr);
             }
         }
     }
-    
+
     protected function _logMagentoException($e)
     {
         Mage::logException($e);
     }
-    
+
     /**
      * If there is an exception, this log function should be used
      * This is mainly meant for exceptions concerning klarna API calls, but can be used for any exception
@@ -877,7 +919,7 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
         if ($e->getFile()) $errstr = $errstr . ' File: ' . $e->getFile();
         $this->_logAlways('klarnaerror.log', $errstr);
     }
-    
+
     public function getDefaultCountry($store = NULL)
     {
 /* For shipping this should be called...
@@ -893,6 +935,103 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
             $res = Mage::getStoreConfig(Mage_Core_Model_Locale::XML_PATH_DEFAULT_COUNTRY, $store);
         }
         return $res;
+    }
+
+    public function isEnterpriseAndHasClass($class = null)
+    {
+        $res = false;
+        try {
+            $isEE = self::isEnterprise();
+
+            if ($class && $isEE) {
+                if (class_exists($class, true)) {
+                    $res = true;
+                }
+            }
+        } catch (Exception $e) {
+        }
+        return $res;
+    }
+
+    /**
+     * Escape quotes inside html attributes
+     * Use $addSlashes = false for escaping js that inside html attribute (onClick, onSubmit etc)
+     *
+     * @param string $data
+     * @param bool $addSlashes
+     * @return string
+     */
+    public function quoteEscape($data, $addSlashes = false)
+    {
+        if ($addSlashes === true) {
+            $data = addslashes($data);
+        }
+        return htmlspecialchars($data, ENT_QUOTES, null, false);
+    }
+
+    public function findQuote($klarna_id)
+    {
+        /** @var Mage_Core_Model_Resource $resource */
+        $resource = Mage::getSingleton('core/resource');
+        /** @var Varien_Db_Adapter_Interface $read */
+        $read = $resource->getConnection('core_read');
+        /** @var Varien_Db_Select $select */
+        $select = $read->select()->from($resource->getTableName('sales/quote'), Array('entity_id', 'store_id'))
+            ->where('klarna_checkout_id=?', $klarna_id);
+        $r = $read->fetchAll($select);
+        if (count($r) < 1) {
+            Mage::helper('klarna')->logKlarnaApi('findQuote no checkout quote found!' . $klarna_id);
+            return null;
+        }
+        else if (count($r) > 1) {
+            Mage::helper('klarna')->logKlarnaApi('findQuote more than one quote found!' . $klarna_id);
+        }
+        $r = $r[0];
+        $quote = Mage::getModel('sales/quote')
+            ->setStoreId($r['store_id'])
+            ->load($r['entity_id']);
+
+        return $quote;
+    }
+
+    /**
+     * Check if a product is a dynamic bundle product and reset a price.
+     *
+     * @param $item // Might not be Mage_Sales_Model_Quote_Item...
+     * @param  Mage_Catalog_Model_Product|null $product
+     * @return bool
+     */
+    public function checkBundles(&$item, $product = null)
+    {
+        $res = false;
+        if (!$product) {
+            $product = Mage::getModel('catalog/product')->load($item->getProductId());
+        }
+        $productType = $item->getProductType();
+        if ($productType===NULL) {
+            if ($item->getOrderItemId()) {
+                $orderItem = Mage::getModel('sales/order_item')->load($item->getOrderItemId());
+                $productType = $orderItem->getProductType();
+            }
+        }
+        if ($productType == Mage_Catalog_Model_Product_Type::TYPE_BUNDLE
+            && $product->getPriceType() == Mage_Bundle_Model_Product_Price::PRICE_TYPE_DYNAMIC) {
+            $res = true;
+        }
+        return $res;
+    }
+
+    public static function isEnterprise()
+    {
+        if (!isset(self::$isEnterprise)) {
+            if (method_exists('Mage', 'getEdition')) {
+                self::$isEnterprise = Mage::getEdition() == Mage::EDITION_ENTERPRISE;
+            } else {
+                self::$isEnterprise = (boolean) Mage::getConfig()->getModuleConfig('Enterprise_Enterprise');
+            }
+        }
+
+        return self::$isEnterprise;
     }
 
 }

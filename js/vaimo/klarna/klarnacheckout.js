@@ -14,7 +14,7 @@ function refreshCheckout(data) {
     klarnaLoader               = document.getElementById("klarna_loader"),
     klarnaMsg                   = document.getElementById("klarna_msg"),
     klarnaMsgContent           = document.getElementById("klarna_msg_content"),
-    klarnaCartHtml             = document.getElementById("klarna_cart_reload"),
+    klarnaCartHtml             = document.getElementById("klarna_cart_reload"), // Will now exist, even if cart is disabled
     klarnaHtml                 = document.getElementById("klarna_checkout_reload"),
     klarnaQtyInput             = typeof window.klarnaQtyInput != 'undefined'    ? window.klarnaQtyInput : null,
     klarnaQty                  = typeof window.klarnaQtyInputQuantity != 'undefined' ? window.klarnaQtyInputQuantity : null;;
@@ -36,11 +36,15 @@ function refreshCheckout(data) {
             klarnaCartValue = klarnaCartHtml.value;
         }
         
-        vanillaAjax(
-            klarnaCartValue,
-            '',
-            updateSections, '', '', false
-        );
+        if (klarnaCartValue) {
+            vanillaAjax(
+                klarnaCartValue,
+                '',
+                updateSections, '', '', false
+            );
+        } else {
+            hideLoader();
+        }
     } else if (obj.error) {
         window.reloadKlarnaIFrameFlag = false;
         klarnaMsgContent.innerHTML = obj.error;
@@ -430,7 +434,7 @@ function registerKlarnaApiChange()
         _klarnaCheckout(function(api) {
             api.on({
                 'change': function(data) {
-                    showLoader();
+//                    showLoader();
                     var url = document.getElementById('klarna-checkout-shipping-update').value;
                     vanillaAjax(url, 'email=' + data.email + 
                             '&firstname=' + data.given_name +
@@ -452,7 +456,7 @@ function registerKlarnaApiChange()
         _klarnaCheckout(function(api) {
             api.on({
                 'shipping_address_change': function(data) {
-                    showLoader();
+//                    showLoader();
                     var url = document.getElementById('klarna-checkout-shipping-update-postcode').value;
                     vanillaAjax(url, 'email=' + data.email + 
                             '&firstname=' + data.given_name +

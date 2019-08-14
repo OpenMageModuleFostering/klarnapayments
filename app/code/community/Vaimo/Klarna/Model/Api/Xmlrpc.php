@@ -538,7 +538,7 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
         if (method_exists('Mage', 'getEdition')) {
             $magentoEdition = Mage::getEdition();
         } else {
-            if (class_exists("Enterprise_UrlRewrite_Model_Redirect", false)) {
+            if (Mage::helper('klarna')->isEnterpriseAndHasClass()) {
                 $magentoEdition = "Enterprise";
             } else {
                 $magentoEdition = "Community";
@@ -975,11 +975,11 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
      */
     public function setGoodsListCapture($amount)
     {
-        foreach (array_reverse($this->_getTransport()->getExtras()) as $extra) {
-            $this->_addArtNo($extra);
-        }
-        foreach (array_reverse($this->_getTransport()->getGoodsList()) as $item) {
+        foreach ($this->_getTransport()->getGoodsList() as $item) {
             $this->_addArtNo($item);
+        }
+        foreach ($this->_getTransport()->getExtras() as $extra) {
+            $this->_addArtNo($extra);
         }
     }
     

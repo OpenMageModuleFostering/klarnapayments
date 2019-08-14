@@ -251,7 +251,8 @@
     </checkout_klarna_success>
 
     <default>
-        <reference name="google_analytics">
+        <reference name="head">
+            <action method="unsetChild"><name>google_analytics</name></action>
             <block type="klarna/klarnacheckout_ga" name="google_analytics" as="google_analytics" template="googleanalytics/ga.phtml" />
         </reference>
     </default>

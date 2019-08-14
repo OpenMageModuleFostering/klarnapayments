@@ -114,6 +114,7 @@
 "If checkbox for newsletter should be shown in checkout page.","If checkbox for newsletter should be shown in checkout page."
 "Checked by default","Checked by default"
 "A/B Testing settings","A/B Testing settings"
+"Activate A/B Testing","Activate A/B Testing"
 "Enable for IP range","Enable for IP range"
 "Specify 2 numbers between 0 and 255, separated by dash. Example: '0-50'. Empty value enables all IP addresses","Specify 2 numbers between 0 and 255, separated by dash. Example: '0-50'. Empty value enables all IP addresses"
 "Enable for logged in Customers","Enable for logged in Customers"

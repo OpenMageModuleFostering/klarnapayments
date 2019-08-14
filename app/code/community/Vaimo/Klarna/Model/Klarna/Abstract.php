@@ -57,11 +57,8 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
         $this->_entGWHelper = $entGWHelper;
         if ($this->_entGWHelper==NULL) {
             $this->_entGWHelper = $moduleHelper; // entGWHelper only used as a transaltor, if different GW is used than Magento, it will just not translate it
-            try {
-                if (class_exists("Enterprise_GiftWrapping_Helper_Data", true)) {
-                    $this->_entGWHelper = Mage::helper('enterprise_giftwrapping');
-                }
-            } catch (Exception $e) {
+            if ($this->_getHelper()->isEnterpriseAndHasClass('Enterprise_GiftWrapping_Helper_Data')) {
+                $this->_entGWHelper = Mage::helper('enterprise_giftwrapping');
             }
         }
         $this->_salesHelper = $salesHelper;
@@ -215,15 +212,6 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
         );
         return $calculation->getRate($request->setProductClassId($taxClass));
     }
-    
-    protected function _checkBundles(&$item, $product)
-    {
-        if ($item->getProductType()==Mage_Catalog_Model_Product_Type::TYPE_BUNDLE) {
-            if ($product->getPriceType()==Mage_Bundle_Model_Product_Price::PRICE_TYPE_DYNAMIC) {
-                $item->setPriceInclTax(0);
-            }
-        }
-    }
 
     /**
      * Create the goods list for Reservations
@@ -252,18 +240,27 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
             $id = $item->getProductId();
             $product = $this->_loadProductById($id);
 
-            $this->_checkBundles($item, $product);
+            $shouldSumsBeZero = $this->_getHelper()->checkBundles($item, $product);
 
             $taxRate = $this->_getTaxRate($product->getTaxClassId());
+
+            $price = $item->getPriceInclTax();
+            $totalInclTax = $item->getRowTotalInclTax();
+            $taxAmount = $item->getTaxAmount();
+            if ($shouldSumsBeZero) {
+                $price = 0;
+                $totalInclTax = 0;
+                $taxAmount = 0;
+            }
 
             $this->_goods_list[] =
                 array(
                     "qty" => $qty,
                     "sku" => $item->getSku(),
                     "name" => $item->getName(),
-                    "price" => $item->getPriceInclTax(),
-                    "total_amount" => $item->getRowTotalInclTax(),
-                    "total_tax_amount" => $item->getTaxAmount(),
+                    "price" => $price,
+                    "total_amount" => $totalInclTax,
+                    "total_tax_amount" => $taxAmount,
                     "tax" => $taxRate,
                     "discount" => 0,
                     "flags" => Vaimo_Klarna_Helper_Data::KLARNA_FLAG_ITEM_NORMAL,
@@ -859,6 +856,33 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
             if ((!$data->getAdditionalInformation("consent"))
                 || ($data->getAdditionalInformation("consent") !== "consent")) {
                 return false;
+            }
+        } catch (Mage_Core_Exception $e) {
+            $this->_getHelper()->logKlarnaException($e);
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Check payment plan, that one was chosen if using account method
+     *
+     * @return bool
+     */
+    protected function _checkPaymentPlan()
+    {
+        try {
+            if ($this->getMethod()==Vaimo_Klarna_Helper_Data::KLARNA_METHOD_ACCOUNT) {
+                $data = $this->getInfoInstance();
+                if (!$data->getAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_PAYMENT_PLAN)) {
+                    return false;
+                } else {
+                    $id = $data->getAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_PAYMENT_PLAN);
+                    $paymentType = $this->_getSpecificPClass($id);
+                    if (!$paymentType) {
+                        return false;
+                    }
+                }
             }
         } catch (Mage_Core_Exception $e) {
             $this->_getHelper()->logKlarnaException($e);

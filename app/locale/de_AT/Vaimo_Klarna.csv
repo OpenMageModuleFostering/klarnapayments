@@ -114,6 +114,7 @@
 "If checkbox for newsletter should be shown in checkout page.","Wenn Kontrollbox für den Newsletter auf der Checkout Seite angezeigt werden soll."
 "Checked by default","Per Voreinstellung geprüft"
 "A/B Testing settings","A/B Testing Einstellungen"
+"Activate A/B Testing","Activate A/B Testing"
 "Enable for IP range","Für IP-Bereich aktiveren"
 "Specify 2 numbers between 0 and 255, separated by dash. Example: '0-50'. Empty value enables all IP addresses","SSpezifiziert Zahlen zwischen 2 und 255, durch “-” getrennt. Beispiel: '0-50'. Keine Eingabe ermöglicht alle IP Adressen"
 "Enable for logged in Customers","Für eingeloggte Kunden ermöglichen"

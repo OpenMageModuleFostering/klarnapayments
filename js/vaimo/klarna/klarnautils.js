@@ -262,6 +262,7 @@ HTMLFormElement.prototype.serialize = function(asObject) {
                         /* Omit this types */
                         break;
                     case 'radio':
+                    case 'checkbox':
                         if (element.checked) {
                             add(element.name, element.value);
                         }

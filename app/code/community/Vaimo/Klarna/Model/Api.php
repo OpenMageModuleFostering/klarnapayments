@@ -51,9 +51,9 @@ class Vaimo_Klarna_Model_Api extends Varien_Object
     /**
      * @return Vaimo_Klarna_Model_Api_Kco
      */
-    protected function _getKlarnaCheckOutOriginalApi()
+    protected function _getKlarnaCheckOutOriginalApi($apiVersion)
     {
-        return Mage::getSingleton('klarna/api_kco');
+        return Mage::getSingleton('klarna/api_kco')->setApiVersion($apiVersion);
     }
 
     /**
@@ -91,7 +91,8 @@ class Vaimo_Klarna_Model_Api extends Varien_Object
                         case Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_RESERVE:
                         case Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_KCODISPLAY_ORDER:
                         case Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_KCOCREATE_ORDER:
-                            return $this->_getKlarnaCheckOutOriginalApi();
+                        case Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_KCOVALIDATE_ORDER:
+                            return $this->_getKlarnaCheckOutOriginalApi(Vaimo_Klarna_Helper_Data::KLARNA_KCO_API_VERSION_STD);
                             break;
                         default:
                             return $this->_getKlarnaPaymentMethodXmlRpcApi();

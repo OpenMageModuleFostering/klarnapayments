@@ -31,6 +31,8 @@ $klarnaSetup = $this->getKlarnaSetup();
     <li>
         <?php if (Mage::helper('klarna')->isOneStepCheckout()): ?>
             <?php $width = '100%'; ?>
+        <?php elseif (Mage::helper('klarna')->isFireCheckout()): ?>
+            <?php $width = '100%'; ?>
         <?php else: ?>
             <?php $width = '40%'; ?>
         <?php endif; ?>

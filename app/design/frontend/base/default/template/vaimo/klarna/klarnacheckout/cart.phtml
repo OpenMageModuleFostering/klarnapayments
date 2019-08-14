@@ -35,7 +35,7 @@
 	<?php if (Mage::helper('klarna')->excludeCartInKlarnaCheckout()) : ?>
 		<form id="klarna_cart" action="<?php echo $this->getUrl('checkout/klarna/cartUpdatePost') ?>" method="post">
 			<input type="hidden" name="return_url" value="<?php echo $this->getUrl('checkout/klarna') ?>"/>
-			<!-- <input type="hidden" id="klarna_cart_reload" name="klarna_cart_reload" value="<?php //echo $this->getUrl('checkout/klarna/getKlarnaWrapperHtml') ?>"/> -->
+			<input type="hidden" id="klarna_cart_reload" name="klarna_cart_reload" value="<?php echo $this->getUrl('checkout/klarna/getKlarnaWrapperHtml', $cartUpdateParams) ?>"/>
 			<input type="hidden" id="klarna_checkout_reload" name="klarna_checkout_reload" value="<?php echo $this->getUrl('checkout/klarna/getKlarnaCheckout') ?>"/>
 		</form>
 	<?php else: ?>
@@ -105,7 +105,7 @@
 						<tfoot>
 						<tr>
 							<td colspan="6">
-								<a href="<?php echo $this->getContinueShoppingUrl() ?>" title="<?php echo $this->__('Continue Shopping') ?>">&lt;&lt; <?php echo $this->__('Continue Shopping') ?></a>
+								<a href="<?php echo $this->getContinueShoppingUrl() ?>" title="<?php echo Mage::helper('klarna')->quoteEscape($this->__('Continue Shopping')) ?>">&lt;&lt; <?php echo $this->__('Continue Shopping') ?></a>
 							</td>
 						</tr>
 						</tfoot>

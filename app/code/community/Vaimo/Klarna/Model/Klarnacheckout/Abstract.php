@@ -107,6 +107,34 @@ abstract class Vaimo_Klarna_Model_Klarnacheckout_Abstract extends Vaimo_Klarna_M
         Mage::getModel('newsletter/subscriber')->subscribe($email);
     }
 
+    protected function _prepareGuestCustomerQuote(Mage_Sales_Model_Quote $quote)
+    {
+        $billing    = $quote->getBillingAddress();
+        $shipping   = $quote->isVirtual() ? null : $quote->getShippingAddress();
+
+        /** @var $customer Mage_Customer_Model_Customer */
+        $customer = $quote->getCustomer();
+        $customerBilling = $billing->exportCustomerAddress();
+        $customer->addAddress($customerBilling);
+        $billing->setCustomerAddress($customerBilling);
+        $customerBilling->setIsDefaultBilling(true);
+
+        if ($shipping && !$shipping->getSameAsBilling()) {
+            $customerShipping = $shipping->exportCustomerAddress();
+            $customer->addAddress($customerShipping);
+            $shipping->setCustomerAddress($customerShipping);
+            $customerShipping->setIsDefaultShipping(true);
+        } else {
+            $customerBilling->setIsDefaultShipping(true);
+        }
+
+        $customer->setFirstname($customerBilling->getFirstname());
+        $customer->setLastname($customerBilling->getLastname());
+        $customer->setEmail($customerBilling->getEmail());
+
+        $quote->setCustomer($customer);
+    }
+
     protected function _prepareNewCustomerQuote(Mage_Sales_Model_Quote $quote)
     {
         $billing    = $quote->getBillingAddress();

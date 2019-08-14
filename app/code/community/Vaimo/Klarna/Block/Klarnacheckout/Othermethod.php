@@ -93,6 +93,8 @@ class Vaimo_Klarna_Block_Klarnacheckout_Othermethod extends Mage_Core_Block_Temp
      */
     public function triggerChangedJSInputId()
     {
+        $res = false;
+
         try {
             $klarna = Mage::getModel('klarna/klarnacheckout');
             $klarna->setQuote($this->getQuote(), Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);

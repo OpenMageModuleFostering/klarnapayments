@@ -46,7 +46,7 @@ class Vaimo_Klarna_AddressController extends Mage_Core_Controller_Front_Action
             $request = $this->getRequest();
             $pno = $request->getParam('pno');
             if (!$pno) {
-                Mage::throwException(Mage::helper('klarna')->__('Please enter your personal ID and try again'));
+                throw new Exception(Mage::helper('klarna')->__('Please enter your personal ID and try again'));
             }
             $method = $request->getParam('method');
             $klarna = Mage::getModel('klarna/klarna');
@@ -58,7 +58,7 @@ class Vaimo_Klarna_AddressController extends Mage_Core_Controller_Front_Action
             $block->setAddresses($addresses);
             $block->setMethodCode($method);
             $result['html'] = $block->toHtml();
-        } catch (Mage_Core_Exception $e) {
+        } catch (Exception $e) {
             $result['error'] = true;
             $result['message'] = $e->getMessage();
         }

@@ -139,7 +139,8 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
                             $presetTitle = $serviceMethod['group']['title'];
                             if ($serviceMethod['vaimo_klarna_method']==Vaimo_Klarna_Helper_Data::KLARNA_METHOD_INVOICE ||
                                 $serviceMethod['vaimo_klarna_method']==Vaimo_Klarna_Helper_Data::KLARNA_METHOD_SPECIAL) {
-                                $presetTitle .= ' ' . $serviceMethod['title'];
+                                $presetTitle =  $serviceMethod['title'];
+//                                $presetTitle .= ' ' . $serviceMethod['title'];
                             }
                             break;
                         }
@@ -287,7 +288,9 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
 
             // We cannot perform basic tests with OneStepCheckout because they try
             // to save the payment method as soon as the customer views the checkout
-            if ($this->_getHelper()->isOneStepCheckout()) {
+            if ($this->_getHelper()->isOneStepCheckout() ||
+                $this->_getHelper()->isVaimoCheckout() ||
+                $this->_getHelper()->isFireCheckout()) {
                 return $this;
             }
 
@@ -315,7 +318,9 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
              * we do them here instead
              */
             $klarna = $this->_getKlarnaModel();
-            if ($this->_getHelper()->isOneStepCheckout()) {
+            if ($this->_getHelper()->isOneStepCheckout() ||
+                $this->_getHelper()->isVaimoCheckout() ||
+                $this->_getHelper()->isFireCheckout()) {
                 $klarna->setInfoInstance($this->getInfoInstance());
                 $klarna->setPayment($payment);
                 $klarna->doBasicTests();
@@ -325,7 +330,11 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
             $klarna->setPayment($payment);
             $klarna->updateAuthorizeAddress();
 
-            if ($this->_getHelper()->isOneStepCheckout() && $klarna->shippingSameAsBilling()) {
+            if (($this->_getHelper()->isOneStepCheckout() || 
+                $this->_getHelper()->isVaimoCheckout() ||
+                $this->_getHelper()->isFireCheckout()
+                ) &&
+                $klarna->shippingSameAsBilling()) {
                 $klarna->updateBillingAddress();
             }
         

@@ -114,6 +114,7 @@
 "If checkbox for newsletter should be shown in checkout page.","Hvis afkrydsningsboksen til nyhedsbrev skal vises i kassen"
 "Checked by default","Markeret som standardindstilling"
 "A/B Testing settings","A/B testindstillinger"
+"Activate A/B Testing","Activate A/B Testing"
 "Enable for IP range","Aktiver for IP-rækkevidde"
 "Specify 2 numbers between 0 and 255, separated by dash. Example: '0-50'. Empty value enables all IP addresses","Specificer to cifre mellem 0 og 255, adskilt med bindestreg. Eksempel: ”0-50”. En tom værdi aktiverer alle IP-adresser"
 "Enable for logged in Customers","Aktiver for kunder som er logget ind"

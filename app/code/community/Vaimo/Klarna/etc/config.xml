@@ -25,7 +25,7 @@
 --><config>
     <modules>
         <Vaimo_Klarna>
-            <version>5.3.1</version>
+            <version>5.3.24</version>
             <name>Vaimo Klarna Module</name>
             <depends>
                 <Mage_Payment/>
@@ -42,7 +42,16 @@
         <models>
             <klarna>
                 <class>Vaimo_Klarna_Model</class>
+                <resourceModel>klarna_resource</resourceModel>
             </klarna>
+            <klarna_resource>
+                <class>Vaimo_Klarna_Model_Resource</class>
+                <entities>
+                    <pushqueue>
+                        <table>vaimo_klarna_pushqueue</table>
+                    </pushqueue>  
+                </entities>
+            </klarna_resource>
         </models>
         <helpers>
             <klarna>
@@ -259,14 +268,22 @@
 
     <crontab>
         <jobs>
-            <update_transactions>
+            <update_klarna_transactions>
                 <schedule>
-                    <cron_expr>0 */2 * * *</cron_expr>
+                    <cron_expr>0 * * * *</cron_expr>
                 </schedule>
                 <run>
                     <model>klarna/cron::statusUpdateOfPendingOrders</model>
                 </run>
-            </update_transactions>
+            </update_klarna_transactions>
+            <check_klarna_pushqueue>
+                <schedule>
+                    <cron_expr>0 * * * *</cron_expr>
+                </schedule>
+                <run>
+                    <model>klarna/cron::treatPushQueue</model>
+                </run>
+            </check_klarna_pushqueue>
         </jobs>
     </crontab>
 
@@ -379,6 +396,9 @@
                 <enable_other_button>1</enable_other_button>
                 <enable_auto_focus>1</enable_auto_focus>
                 <shipping_countries>US,MX,CA,GL</shipping_countries>
+                <auto_register_guest>1</auto_register_guest>
+                <create_order_on_validation>1</create_order_on_validation>
+                <other_countries>1</other_countries>
             </vaimo_klarna_checkout>
         </payment>
     </default>
