@@ -95,6 +95,27 @@ class Vaimo_Klarna_Model_Observer extends Mage_Core_Model_Abstract
                     }
                 }
             }
+            if ($quote->getKlarnaCheckoutId()) {
+                $oldQuote = Mage::getModel('sales/quote');
+                if ((version_compare(Mage::getVersion(), '1.7.0', '>=') && (version_compare(Mage::getVersion(), '1.10.0', '<'))) ||
+                    (version_compare(Mage::getVersion(), '1.12.0', '>='))) {
+                    $oldQuote->preventSaving();
+                }
+                $oldQuote = $oldQuote->load($quote->getId());
+                if ($oldQuote && $oldQuote->getId()) {
+                    if (($quote->getKlarnaCheckoutId()!=$oldQuote->getKlarnaCheckoutId()) && $oldQuote->getKlarnaCheckoutId()) {
+                        $message = 'POTENTIAL ERROR. _setKlarnaCheckoutId: Old checkout id: ' .
+                            $oldQuote->getKlarnaCheckoutId() . ' new checkout id: ' . 
+                            $quote->getKlarnaCheckoutId();
+                        Mage::helper('klarna')->logKlarnaDebugBT($message);
+                        Mage::helper('klarna')->updateKlarnacheckoutHistory(
+                            $oldQuote->getKlarnaCheckoutId(),
+                            $message,
+                            $quote->getId()
+                        );
+                    }
+                }
+            }
         }
     }
 
@@ -220,6 +241,7 @@ class Vaimo_Klarna_Model_Observer extends Mage_Core_Model_Abstract
                     $quote->collectTotals()->save();
                 }
             }
+            Mage::helper('klarna')->logKlarnaClearFunctionName();
         }
     }
 
@@ -247,4 +269,5 @@ class Vaimo_Klarna_Model_Observer extends Mage_Core_Model_Abstract
         $source =  $observer->getEvent()->getSource();
         $quote->setKlarnaCheckoutId($source->getKlarnaCheckoutId());
     }
+
 }

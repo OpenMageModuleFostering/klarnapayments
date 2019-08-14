@@ -27,6 +27,32 @@ function refreshCheckout(data) {
             //klarnaMsgContent.innerHTML = obj.success;
             //fadeIn(klarnaMsg);
             console.log(obj.success);
+
+            // JS HOOKS IE5 - 11 Fallback
+            var createCustomEvent = function(name) {
+                return new Event(name);
+            };
+
+            try {
+                new Event('supported');
+            } catch (e) {
+                // does not support `new Event()`
+                console.log('Event fallback for IE used');
+                createCustomEvent = function (name) {
+                    var event = document.createEvent('Event');
+                    event.initEvent(name, true, false);
+                    return event;
+                };
+            }
+
+            if (obj.shipping_method) {
+                var customEvent = createCustomEvent('klarna:shippingMethodSaved');
+                klarnaContainer.dispatchEvent(customEvent);
+            }
+            if (!obj.shipping_method && obj.success) {
+                var customEvent = createCustomEvent('klarna:shippingCartUpdated');
+                klarnaContainer.dispatchEvent(customEvent);
+            }
         } else {
             document.cookie = 'klarnaAddShipping=0; expires=-1;';
         }
@@ -129,16 +155,17 @@ function reloadKlarnaIFrame(results) {
 };
 
 function updateCartKlarna(type) {
-    var klarnaCart                 = document.getElementById("klarna_sidebar"),
+    var klarnaCart              = document.getElementById("klarna_sidebar"),
         klarnaContainer         = document.getElementById("klarna_container"),
-        klarnaLoader               = document.getElementById("klarna_loader"),
-        klarnaMsg                   = document.getElementById("klarna_msg"),
-        klarnaMsgContent           = document.getElementById("klarna_msg_content"),
-        klarnaCartHtml             = document.getElementById("klarna_cart_reload"),
-        klarnaHtml                 = document.getElementById("klarna_checkout_reload"),
-        klarnaCheckout             = document.getElementById("klarna_checkout"),
-        klarnaTotals               = document.getElementById("klarna_totals"),
-        klarnaCheckoutContainer = document.getElementById('klarna-checkout-container');
+        klarnaLoader            = document.getElementById("klarna_loader"),
+        klarnaMsg               = document.getElementById("klarna_msg"),
+        klarnaMsgContent        = document.getElementById("klarna_msg_content"),
+        klarnaCartHtml          = document.getElementById("klarna_cart_reload"),
+        klarnaHtml              = document.getElementById("klarna_checkout_reload"),
+        klarnaCheckout          = document.getElementById("klarna_checkout"),
+        klarnaTotals            = document.getElementById("klarna_totals"),
+        klarnaCheckoutContainer = document.getElementById('klarna-checkout-container'),
+        klarnaGiftcardRemove    = document.getElementById('klarna-giftcard-remove');
 
     klarnaMsg.style.display = 'none';
     klarnaMsg.className = klarnaMsg.className.replace( /(?:^|\s)error(?!\S)/g , '' );
@@ -160,7 +187,7 @@ function updateCartKlarna(type) {
             break;
         case 'giftcard-remove':
             formID = document.getElementById('giftcard-form');
-            ajaxUrl = input;
+            ajaxUrl = klarnaGiftcardRemove.getAttribute('href');
             break;
         case 'reward':
             formID = document.getElementById('klarna-checkout-reward');
@@ -329,7 +356,7 @@ function bindCheckoutControls() {
                     fadeIn(giftcardInput);
                 }
                 setTimeout(function() {
-                    giftcardInput.className = couponInput.className.replace(
+                    giftcardInput.className = giftcardInput.className.replace(
                             /(?:^|\s)error(?!\S)/g, '')
                 }, 6000)
             } else {

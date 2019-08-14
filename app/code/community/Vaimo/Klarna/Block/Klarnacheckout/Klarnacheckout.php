@@ -37,12 +37,18 @@ class Vaimo_Klarna_Block_Klarnacheckout_Klarnacheckout extends Mage_Core_Block_T
 
     protected function _getKlarnaOrderHtml()
     {
+        /** @var Vaimo_Klarna_Helper_Data $helper */
+        $helper = Mage::helper('klarna');
         try {
+            $helper->logDebugInfo('getKlarnaOrderHtml');
+            /** @var Vaimo_Klarna_Model_Klarnacheckout $klarna */
             $klarna = Mage::getModel('klarna/klarnacheckout');
             $klarna->setQuote($this->getQuote(), Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
-            $html = $klarna->getKlarnaOrderHtml($klarna->getQuote()->getKlarnaCheckoutId(), true, true);
+            $checkoutId = $klarna->getQuote()->getKlarnaCheckoutId();
+            $helper->setCheckoutId($checkoutId);
+            $html = $klarna->getKlarnaOrderHtml($checkoutId, true, true);
         } catch (Exception $e) {
-            $quote = Mage::helper('klarna')->findQuote($klarna->getQuote()->getKlarnaCheckoutId());
+            $quote = $helper->findQuote($checkoutId);
             $orderCreated = false;
             if ($quote && $quote->getId()) {
                 $order = Mage::getModel('sales/order')->load($quote->getId(), 'quote_id');
@@ -50,27 +56,27 @@ class Vaimo_Klarna_Block_Klarnacheckout_Klarnacheckout extends Mage_Core_Block_T
                     $orderCreated = true;
                 }
             }
-            if ($quote && ($quote->getId()!=$klarna->getQuote()->getId() || !$quote->getIsActive() || $orderCreated)) {
+            if ($quote && ($quote->getId() != $klarna->getQuote()->getId() || !$quote->getIsActive() || $orderCreated)) {
                 if (!$quote->getIsActive()) {
-                    Mage::helper('klarna')->logKlarnaApi('getKlarnaOrderHtml failed with checkout id: ' . $klarna->getQuote()->getKlarnaCheckoutId() . '. ' . $e->getMessage() . '. ' . 'Exiting since quote is inactive ' . $quote->getId());
+                    $helper->logDebugInfo('getKlarnaOrderHtml failed. ' . $e->getMessage() . '. Exiting since quote is inactive ' . $quote->getId(), null, $checkoutId);
                 } elseif ($order->getId()) {
-                    Mage::helper('klarna')->logKlarnaApi('getKlarnaOrderHtml failed with checkout id: ' . $klarna->getQuote()->getKlarnaCheckoutId() . '. ' . $e->getMessage() . '. ' . 'Exiting since quote has already created an order ' . $order->getIncrementId());
+                    $helper->logDebugInfo('getKlarnaOrderHtml failed. ' . $e->getMessage() . '. Exiting since quote has already created an order ' . $order->getIncrementId(), null, $checkoutId);
                 } else {
-                    Mage::helper('klarna')->logKlarnaApi('getKlarnaOrderHtml failed with checkout id: ' . $klarna->getQuote()->getKlarnaCheckoutId() . '. ' . $e->getMessage() . '. ' . 'Exiting since quote is wrong' . $quote->getId());
+                    $helper->logDebugInfo('getKlarnaOrderHtml failed. ' . $e->getMessage() . '. Exiting since quote is wrong' . $quote->getId(), null, $checkoutId);
                 }
                 if ($quote->getIsActive()) {
                     $quote->setIsActive(false);
                     $quote->save();
                 }
-                Mage::helper('klarna')->logKlarnaException($e);
-                Mage::throwException(Mage::helper('klarna')->__('Current cart is not active. Please try again'));
+                $helper->logKlarnaException($e);
+                Mage::throwException($helper->__('Current cart is not active. Please try again'));
             } else {
-                Mage::helper('klarna')->logKlarnaApi('getKlarnaOrderHtml failed with checkout id: ' . $klarna->getQuote()->getKlarnaCheckoutId() . '. Trying with null.');
+                $helper->logDebugInfo('getKlarnaOrderHtml failed with checkout id: ' . $checkoutId . '. Trying with null.', null, $checkoutId);
                 $klarna->getQuote()->setKlarnaCheckoutId(null);
                 $html = $klarna->getKlarnaOrderHtml(null, true, true);
-                Mage::helper('klarna')->logKlarnaApi('getKlarnaOrderHtml succeeded with null');
             }
         }
+        $helper->logDebugInfo('getKlarnaOrderHtml succeeded', null, $checkoutId);
         return $html;
     }
 

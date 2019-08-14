@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2009-2014 Vaimo AB
+ * Copyright (c) 2009-2016 Vaimo AB
  *
  * Vaimo reserves all rights in the Program as delivered. The Program
  * or any portion thereof may not be reproduced in any form whatsoever without
@@ -20,26 +20,14 @@
  *
  * @category    Vaimo
  * @package     Vaimo_Klarna
- * @copyright   Copyright (c) 2009-2014 Vaimo AB
+ * @copyright   Copyright (c) 2009-2016 Vaimo AB
  */
 
-class Vaimo_Klarna_Model_Resource_Pushqueue_Collection extends Mage_Core_Model_Resource_Db_Collection_Abstract
+class Vaimo_Klarna_Model_Resource_Klarnacheckout_History_Collection extends Mage_Core_Model_Resource_Db_Collection_Abstract
 {
     protected function _construct()
     {
         parent::_construct();
-        $this->_init('klarna/pushqueue');
+        $this->_init('klarna/klarnacheckout_history');
     }
-
-    /**
-     * Apply retry filter
-     *
-     * @return Vaimo_Klarna_Model_Resource_Pushqueue_Collection
-     */
-    public function applyRetryFilter($maxCnt)
-    {
-        $this->getSelect()->where('retry_attempts < ?', $maxCnt);
-        return $this;
-    }
-
 }

@@ -21,6 +21,10 @@
     background-color: #ededed;
 }
 
+.payment-methods .form-list li.klarna_notification li.error {
+    background-color: #ff0000;
+}
+
 .klarna_notification{
     background-image: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4NCjwhLS0gR2VuZXJhdG9yOiBBZG9iZSBJbGx1c3RyYXRvciAxNy4xLjAsIFNWRyBFeHBvcnQgUGx1Zy1JbiAuIFNWRyBWZXJzaW9uOiA2LjAwIEJ1aWxkIDApICAtLT4NCjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+DQo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IllvdXJfSWNvbiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeD0iMHB4IiB5PSIwcHgiDQoJIHZpZXdCb3g9IjExLjUgMTEuNSAyMCAyMCIgZW5hYmxlLWJhY2tncm91bmQ9Im5ldyAxMS41IDExLjUgMjAgMjAiIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPGc+DQoJPHBhdGggZD0iTTIxLjUsMzEuNWMtNS41LDAtMTAtNC41LTEwLTEwYzAtNS41LDQuNS0xMCwxMC0xMHMxMCw0LjUsMTAsMTBDMzEuNSwyNywyNywzMS41LDIxLjUsMzEuNXogTTIxLjUsMTIuNA0KCQljLTUsMC05LjEsNC4xLTkuMSw5LjFzNC4xLDkuMSw5LjEsOS4xczkuMS00LjEsOS4xLTkuMUMzMC42LDE2LjUsMjYuNiwxMi40LDIxLjUsMTIuNHoiLz4NCjwvZz4NCjxwYXRoIGQ9Ik0yMS41LDI1LjJjMC42LDAsMS4xLDAuNSwxLjEsMS4xYzAsMC42LTAuNSwxLjEtMS4xLDEuMWMtMC42LDAtMS4xLTAuNS0xLjEtMS4xQzIwLjQsMjUuNywyMC45LDI1LjIsMjEuNSwyNS4yeiIvPg0KPGc+DQoJPHBhdGggZD0iTTIxLjUsMjMuNmMtMC42LDAtMS4xLTAuNS0xLjEtMS4xdi01LjdjMC0wLjYsMC41LTEuMSwxLjEtMS4xYzAuNiwwLDEuMSwwLjUsMS4xLDEuMXY1LjdDMjIuNiwyMy4xLDIyLjEsMjMuNiwyMS41LDIzLjZ6Ig0KCQkvPg0KPC9nPg0KPC9zdmc+DQo=);
     background-size: 16px;
@@ -39,11 +43,42 @@ ul#vaimo_klarna_invoice_input_fields {
 ul#payment_form_vaimo_klarna_invoice,
 ul#payment_form_vaimo_klarna_account,
 ul#payment_form_vaimo_klarna_special {
+    margin-top: 15px;
+}
+
+ul#payment_form_vaimo_klarna_account {
+    position: relative;
+}
+
+ul#payment_form_vaimo_klarna_account > li:first-child {
+    margin-bottom: 15px;
+}
+
+ul#payment_form_vaimo_klarna_account > li.klarna_readme {
+    position: absolute;
+    top: 18px;
+    right: 10px;
+}
+
+ul#payment_form_vaimo_klarna_account .payment_plan_wrapper {
     margin-top: 5px;
 }
 
-.payment_plan_wrapper {
-    margin-top: 5px;
+ul#payment_form_vaimo_klarna_account .payment_plan_wrapper {
+    margin-left: 20px;
+}
+
+ul#payment_form_vaimo_klarna_account .payment_plan_wrapper .payment_plan label {
+    margin-left: -20px;
+}
+
+ul#payment_form_vaimo_klarna_account > li.klarna_input_wrapper {
+    border-top: 1px solid #ededed;
+    padding-top: 15px;
+}
+
+ul#payment_form_vaimo_klarna_account .klarna-input-box > li {
+    margin: 0 0 10px;
 }
 
 .payment-method .form-list li.payment_plan_wrapper {
@@ -59,13 +94,23 @@ ul#payment_form_vaimo_klarna_special {
     border: 1px solid #B6B6B6;
 }
 
-.payment_plan_details dt {
+.payment_plan_info_wrapper .payment_plan_details dt {
     float: left;
     clear: both;
-    margin: 0px 10px 3px 0px;
+    padding: 0 0 3px 0;
     min-width: 100px;
     font-weight: normal;
     font-size: 11px;
+}
+
+.payment_plan_info_wrapper .payment_plan_details dt:first-child {
+    margin-bottom: 0;
+}
+
+.payment_plan_details dt:last-of-type {
+    font-weight: normal;
+    padding: 0;
+    width: 100%;
 }
 
 .payment_plan_details dd {
@@ -117,9 +162,10 @@ ul.payment_plan li {
     -webkit-transition: all 0.1s ease-in;
     transition: all 0.1s ease-in;
 }
-#vaimo_klarna_account_pno, #vaimo_klarna_account_phonenumber,
+#vaimo_klarna_account_pno,
+#vaimo_klarna_account_phonenumber,
 .klarna-input-box input[type="text"] {
-    width: 100px;
+    width: 140px;
     border: 1px solid #eee;
     padding: 7px;
     text-align: center;
@@ -127,7 +173,7 @@ ul.payment_plan li {
 }
 
 .klarna_dob input[type="text"] {
-    width: 40px !important; padding: 7px; text-align: center; border: 1px solid #eee;
+    width: 60px !important; padding: 7px; text-align: center; border: 1px solid #eee;
 }
 
 .input_combo label {
@@ -166,6 +212,10 @@ ul.payment_plan li {
     margin-right: 5px;
 }
 
+.payment-methods .payment_plan_details dd {
+    padding: 0 0 0 0;
+}
+
 #klarna_invoice_readme,
 #klarna_account_readme,
 #klarna_special_readme {
@@ -184,7 +234,15 @@ label[for=vaimo_klarna_special_consent] {
     display: inline-block;
     margin-left: 5px;
     margin-top: -2px;
+    width: calc(100% - 30px);
     max-width: 200px;
+}
+
+.sp-methods label[for=vaimo_klarna_invoice_consent] a,
+.sp-methods label[for=vaimo_klarna_account_consent] a,
+.sp-methods label[for=vaimo_klarna_special_consent] a {
+    float: none;
+    margin-left: 0;
 }
 
 .klarna-input-box address {

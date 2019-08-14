@@ -24,6 +24,12 @@
  */
 
 ?>
+        <?php if ($this->addressesAreTheSame()): ?>
+            <?php $extraClassStr = ''; ?>
+        <?php else: ?>
+            <?php $extraClassStr = ' error'; ?>
+        <?php endif; ?>
+
         <?php if ($this->needDateOfBirth()==false): ?>
             <?php if ($this->needAddressSearch()): ?>
 
@@ -32,22 +38,32 @@
                     <span id="<?php echo $this->getMethodCode(); ?>_update_address_message" class="klarna_msg_txt"></span>
                 </li>
 
+                <?php if ($this->shippingSameAsBilling()): ?>
+                    <li class="klarna_notification<?php echo $extraClassStr; ?>"><?php echo Mage::helper('klarna')->__('Please note that your official address will be used for shipping and billing address when you place your order'); ?></li>
+                <?php else: ?>
+                    <li class="klarna_notification<?php echo $extraClassStr; ?>"><?php echo Mage::helper('klarna')->__('Please note that your official address will be used for shipping address when you place your order'); ?></li>
+                <?php endif; ?>
+
             <?php else: ?>
 
-                <?php if ($this->shippingSameAsBilling()): ?>
-                    <li class="klarna_notification"><?php echo Mage::helper('klarna')->__('Please note that your official address will be used for shipping and billing address when you place your order'); ?></li>
+                <?php if (!$this->validShippingAndBillingAddress()): ?>
+                    <li class="klarna_notification error"><?php echo Mage::helper('klarna')->__('Name and country must be the same for shipping and billing address!'); ?></li>
                 <?php else: ?>
-                    <li class="klarna_notification"><?php echo Mage::helper('klarna')->__('Please note that your official address will be used for shipping and billing address when you place your order'); ?></li>
+                    <?php if ($this->shippingSameAsBilling()): ?>
+                        <li class="klarna_notification<?php echo $extraClassStr; ?>"><?php echo Mage::helper('klarna')->__('Please note that the shipping address will be used for both shipping and billing address when you place your order'); ?></li>
+                    <?php endif; ?>
                 <?php endif; ?>
 
             <?php endif; ?>
 
         <?php else: ?>
 
-            <?php if ($this->shippingSameAsBilling()): ?>
-                <li class="klarna_notification"><?php echo Mage::helper('klarna')->__('Please note that your official address will be used for shipping and billing address when you place your order'); ?></li>
+            <?php if (!$this->validShippingAndBillingAddress()): ?>
+                <li class="klarna_notification error"><?php echo Mage::helper('klarna')->__('Name and country must be the same for shipping and billing address!'); ?></li>
             <?php else: ?>
-                <li class="klarna_notification"><?php echo Mage::helper('klarna')->__('Please note that your official address will be used for shipping and billing address when you place your order'); ?></li>
+                <?php if ($this->shippingSameAsBilling()): ?>
+                    <li class="klarna_notification<?php echo $extraClassStr; ?>"><?php echo Mage::helper('klarna')->__('Please note that the shipping address will be used for both shipping and billing address when you place your order'); ?></li>
+                <?php endif; ?>
             <?php endif; ?>
 
         <?php endif; ?>

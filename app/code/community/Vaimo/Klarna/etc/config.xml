@@ -25,7 +25,7 @@
 --><config>
     <modules>
         <Vaimo_Klarna>
-            <version>5.3.55</version>
+            <version>5.5.1</version>
             <name>Vaimo Klarna Module</name>
             <depends>
                 <Mage_Payment/>
@@ -47,9 +47,18 @@
             <klarna_resource>
                 <class>Vaimo_Klarna_Model_Resource</class>
                 <entities>
-                    <pushqueue>
-                        <table>vaimo_klarna_pushqueue</table>
-                    </pushqueue>  
+                    <klarnacheckout_semaphore>
+                        <table>vaimo_klarna_semaphore</table>
+                    </klarnacheckout_semaphore>
+                    <klarnacheckout_history>
+                        <table>vaimo_klarna_history</table>
+                    </klarnacheckout_history>
+                    <log>
+                        <table>vaimo_klarna_log</table>
+                    </log>
+                    <log_data>
+                        <table>vaimo_klarna_log_data</table>
+                    </log_data>
                 </entities>
             </klarna_resource>
         </models>
@@ -89,6 +98,20 @@
                     <to_customer_address>*</to_customer_address>
                 </care_of>
             </sales_convert_quote_address>
+            <sales_convert_quote>
+                <vaimo_klarna_fee>
+                    <to_order>*</to_order>
+                </vaimo_klarna_fee>
+                <vaimo_klarna_fee_tax>-
+                    <to_order>*</to_order>
+                </vaimo_klarna_fee_tax>
+                <vaimo_klarna_base_fee>
+                    <to_order>*</to_order>
+                </vaimo_klarna_base_fee>
+                <vaimo_klarna_base_fee_tax>
+                    <to_order>*</to_order>
+                </vaimo_klarna_base_fee_tax>
+            </sales_convert_quote>
         </fieldsets>
 
         <events>
@@ -284,14 +307,14 @@
                     <model>klarna/cron::statusUpdateOfPendingOrders</model>
                 </run>
             </update_klarna_transactions>
-            <check_klarna_pushqueue>
+            <purge_logs>
                 <schedule>
-                    <cron_expr>0 * * * *</cron_expr>
+                    <cron_expr>37 18 * * *</cron_expr>
                 </schedule>
                 <run>
-                    <model>klarna/cron::treatPushQueue</model>
+                    <model>klarna/cron::purgeLogs</model>
                 </run>
-            </check_klarna_pushqueue>
+            </purge_logs>
         </jobs>
     </crontab>
 
@@ -359,6 +382,7 @@
                 <host>BETA</host>
                 <allow_separate_address>1</allow_separate_address>
                 <show_extended_error_message>1</show_extended_error_message>
+                <allow_part_capture_with_discount>0</allow_part_capture_with_discount>
             </vaimo_klarna_invoice>
             <vaimo_klarna_account>
                 <title>Klarna Account</title>
@@ -373,6 +397,7 @@
                 <host>BETA</host>
                 <allow_separate_address>1</allow_separate_address>
                 <show_extended_error_message>1</show_extended_error_message>
+                <allow_part_capture_with_discount>0</allow_part_capture_with_discount>
             </vaimo_klarna_account>
             <vaimo_klarna_special>
                 <title>Klarna Campaign</title>
@@ -387,6 +412,7 @@
                 <host>BETA</host>
                 <allow_separate_address>1</allow_separate_address>
                 <show_extended_error_message>1</show_extended_error_message>
+                <allow_part_capture_with_discount>0</allow_part_capture_with_discount>
             </vaimo_klarna_special>
             <vaimo_klarna_checkout>
                 <title>Klarna Checkout</title>
@@ -400,19 +426,29 @@
                 <host>BETA</host>
                 <allow_when_logged_in>1</allow_when_logged_in>
                 <allow_customer_group>99</allow_customer_group>
-                <klarna_layout>0</klarna_layout>
+                <klarna_layout>1</klarna_layout>
                 <auto_prefil>1</auto_prefil>
                 <allow_separate_address>2</allow_separate_address>
                 <enable_cart_above_kco>1</enable_cart_above_kco>
-                <enable_other_button>1</enable_other_button>
+                <enable_other_button>0</enable_other_button>
                 <enable_auto_focus>1</enable_auto_focus>
                 <shipping_countries>US,MX,CA,GL</shipping_countries>
                 <auto_register_guest>1</auto_register_guest>
                 <create_order_on_validation>1</create_order_on_validation>
-                <other_countries>1</other_countries>
+                <create_order_on_success>1</create_order_on_success>
+                <recreate_cart_on_failed_validate>1</recreate_cart_on_failed_validate>
+                <other_countries>0</other_countries>
                 <show_extended_error_message>1</show_extended_error_message>
+                <enable_validation>0</enable_validation>
+                <activate_ab_testing>0</activate_ab_testing>
+                <allow_part_capture_with_discount>0</allow_part_capture_with_discount>
             </vaimo_klarna_checkout>
         </payment>
+        <dev>
+            <vaimo_klarna_debug>
+                <vaimo_klarna_log_level>0</vaimo_klarna_log_level>
+            </vaimo_klarna_debug>
+        </dev>
         <icorder>
             <excluded_payment_methods>
                 <vaimo_klarna_checkout/>

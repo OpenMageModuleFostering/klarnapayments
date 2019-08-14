@@ -26,11 +26,13 @@
 
 class Vaimo_Klarna_Model_Cron extends Mage_Core_Model_Abstract
 {
+
     public function statusUpdateOfPendingOrders()
     {
         $orders = Mage::getModel("sales/order")->getCollection()
             ->addFieldToFilter("state", array('eq' => Mage_Sales_Model_Order::STATE_PAYMENT_REVIEW))
             ->addFieldToFilter("updated_at", array('gteq' => date("Y-m-d H:i:s", time() - 172800))); // 2 Days
+        /* @var Mage_Sales_Model_Order $order */
         foreach ($orders as $order) {
             try {
                 $payment = $order->getPayment();
@@ -44,79 +46,13 @@ class Vaimo_Klarna_Model_Cron extends Mage_Core_Model_Abstract
         }
     }
 
-    /**
-     * Basically a copy of the KlarnaController pushAction
-     * This will be unified later
-     */
-    public function treatPushQueue()
+    public function purgeLogs()
     {
-        $collection = Mage::getModel('klarna/pushqueue')
-            ->getCollection()
-            ->applyRetryFilter(Vaimo_Klarna_Helper_Data::KLARNA_KCO_QUEUE_RETRY_ATTEMPTS);
-        if ($collection->count()>0) {
-            $helper = Mage::helper('klarna');
-            $helper->setFunctionNameForLog('cron treatPushQueue');
-            $helper->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_START_TAG);
-            foreach ($collection as $pushQueue) {
-                $helper->logKlarnaApi('Queue id: ' . $pushQueue->getId());
-                $checkoutId = $pushQueue->getKlarnaOrderNumber();
-                $quote = $helper->findQuote($checkoutId);
-                if (!$quote || !$quote->getId()) {
-                    $pushQueue->setMessage('Quote missing, skipping');
-                    $attempt = $pushQueue->getRetryAttempts();
-                    $pushQueue->setRetryAttempts($attempt + 1);
-                    $pushQueue->save();
-                    $helper->logKlarnaApi('Quote missing, skipping');
-                    continue;
-                }
-
-                /** @var Vaimo_Klarna_Model_Klarnacheckout $klarna */
-                $klarna = Mage::getModel('klarna/klarnacheckout');
-                $klarna->setQuote($quote, Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
-                if (substr($checkoutId, -1, 1) == '/') {
-                    $checkoutId = substr($checkoutId, 0, strlen($checkoutId) - 1);
-                }
-
-                if ($checkoutId) {
-                    try {
-                        // createOrder returns the order if successful, otherwise an error string
-                        $helper->logKlarnaApi('Calling create order with id: ' . $checkoutId);
-                        $result = $klarna->createOrder($checkoutId);
-
-                        if (is_array($result)) {
-                            if ($result['status']=='success') {
-                                $pushQueue->delete();
-                                $helper->logKlarnaApi('Klarna cron order created successfully, order id: ' . $result['order']->getId());
-                            } elseif ($result['status']=='fail') {
-                                $pushQueue->delete();
-                                $helper->logKlarnaApi($result['message']);
-                            } else {
-                                $pushQueue->setMessage($result['message']);
-                                $attempt = $pushQueue->getRetryAttempts();
-                                $pushQueue->setRetryAttempts($attempt + 1);
-                                $pushQueue->save();
-                                $helper->logKlarnaApi($result['message']);
-                            }
-                        } else {
-                            $pushQueue->setMessage('Unkown error from createOrder');
-                            $attempt = $pushQueue->getRetryAttempts();
-                            $pushQueue->setRetryAttempts($attempt + 1);
-                            $pushQueue->save();
-                            $helper->logKlarnaApi('Unkown error from createOrder');
-                        }
-
-                    } catch (Exception $e) {
-                        $pushQueue->setMessage($e->getMessage());
-                        $attempt = $pushQueue->getRetryAttempts();
-                        $pushQueue->setRetryAttempts($attempt + 1);
-                        $pushQueue->save();
-                        $helper->logKlarnaException($e);
-                        $helper->logKlarnaApi('Exception ' . $e->getMessage());
-                    }
-                }
-            }
-            $helper->setFunctionNameForLog('cron treatPushQueue');
-            $helper->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_END_TAG);
-        }
+        /** @var Vaimo_Klarna_Model_Resource_Log $logs */
+        $logs = Mage::getResourceModel('klarna/log');
+        $logs->purgeLog(-180);
+        /** @var Vaimo_Klarna_Model_Resource_Log_Data $log_data */
+        $log_data = Mage::getResourceModel('klarna/log_data');
+        $log_data->purgeLog(-30);
     }
 }

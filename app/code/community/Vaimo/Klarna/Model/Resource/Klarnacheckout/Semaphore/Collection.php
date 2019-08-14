@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2009-2014 Vaimo AB
+ * Copyright (c) 2009-2016 Vaimo AB
  *
  * Vaimo reserves all rights in the Program as delivered. The Program
  * or any portion thereof may not be reproduced in any form whatsoever without
@@ -20,33 +20,25 @@
  *
  * @category    Vaimo
  * @package     Vaimo_Klarna
- * @copyright   Copyright (c) 2009-2014 Vaimo AB
+ * @copyright   Copyright (c) 2009-2016 Vaimo AB
  */
 
-class Vaimo_Klarna_Model_Resource_Pushqueue extends Mage_Core_Model_Resource_Db_Abstract
+class Vaimo_Klarna_Model_Resource_Klarnacheckout_Semaphore_Collection extends Mage_Core_Model_Resource_Db_Collection_Abstract
 {
     protected function _construct()
     {
-        $this->_init('klarna/pushqueue', 'id');
+        parent::_construct();
+        $this->_init('klarna/klarnacheckout_semaphore');
     }
 
-    public function loadByKlarnaOrderNumber(Vaimo_Klarna_Model_Pushqueue $pushqueue, $klarnaOrderNumber)
+    /**
+     * Apply retry filter
+     *
+     * @return Vaimo_Klarna_Model_Resource_Klarnacheckout_Semaphore_Collection
+     */
+    public function applyRetryFilter($maxCnt)
     {
-        $adapter = $this->_getReadAdapter();
-        $pushqueueTable   = $this->getTable('klarna/pushqueue');
-        $bind    = array('klarna_order_number' => $klarnaOrderNumber);
-        $select  = $adapter->select()
-            ->from($pushqueueTable)
-            ->where('klarna_order_number = :klarna_order_number');
-
-        $pushQueueId = $adapter->fetchOne($select, $bind);
-        if ($pushQueueId) {
-            $this->load($pushqueue, $pushQueueId);
-        } else {
-            $pushqueue->setData(array());
-        }
-
+        $this->getSelect()->where('retry_attempts < ?', $maxCnt);
         return $this;
     }
-
 }

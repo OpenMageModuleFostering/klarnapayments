@@ -692,6 +692,46 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
         }
     }
 
+    /**
+     * Germany has special hardcoded usecase... which includes links etc
+     *
+     * @param $useCaseText
+     * @return mixed
+     */
+    public function formatUseCase($useCaseText)
+    {
+        switch ($this->_getCountryCode()) {
+            case 'DE':
+                $fee = Mage::getStoreConfig('payment/vaimo_klarna_invoice/invoice_fee', $this->_getStoreId());
+                $merchantId = $this->getKlarnaSetup()->getMerchantId();
+                $linkWeiter = '<a href="https://cdn.klarna.com/1.0/shared/content/legal/terms/' . $merchantId .'/de_de/account" target="_blank">'
+                    . $this->_getHelper()->__('weitere Informationen')
+                    . '</a>';
+                $linkAGB = '<a href="https://cdn.klarna.com/1.0/shared/content/legal/de_de/account/terms.pdf" target="_blank">'
+                    . $this->_getHelper()->__('AGB mit Widerrufsbelehrung')
+                    . '</a>';
+                $linkStandard = '<a href="https://cdn.klarna.com/1.0/shared/content/legal/de_de/consumer_credit.pdf" target="_blank">'
+                    . $this->_getHelper()->__('Standardinformationen für Verbraucherkredite')
+                    . '</a>';
+                $linkRechnung = '<a href="https://cdn.klarna.com/1.0/shared/content/legal/terms/' . $merchantId .'/de_de/invoice?fee=' . $fee . '" target="_blank">'
+                    . $this->_getHelper()->__('Rechnungskauf')
+                    . '</a>';
+
+                $partOne = $this->_getHelper()->__('German specific hardcoded usecase with links (part one)');
+                $partTwo = $this->_getHelper()->__('German specific hardcoded usecase with links (part two), weitere Informationen link %s AGB link %s Standardinformationen link %s',
+                    $linkWeiter,
+                    $linkAGB,
+                    $linkStandard
+                );
+                $partThree = $this->_getHelper()->__('German specific hardcoded usecase with links (part three), Rechnungskauf link %s',
+                    $linkRechnung
+                );
+                return $partOne . ' ' . $partTwo . '<br/><br/>' . $partThree;
+            default:
+                return $useCaseText;
+        }
+    }
+
     public function getAvailableMethods()
     {
         $res = array();
@@ -788,7 +828,93 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
         }
         return $res;
     }
+
+    /**
+     * Checks if one field is the same in both addresses
+     *
+     * @param $shipping
+     * @param $billing
+     * @param $fieldname
+     * @return bool
+     */
+    protected function _AddressFieldIsDifferent($shipping, $billing, $fieldname)
+    {
+        if ($shipping->getData($fieldname) && $billing->getData($fieldname)) {
+            if ($shipping->getData($fieldname) != $billing->getData($fieldname)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    /**
+     * Check that shipping and billing have the same first and lastname, and the same country
+     * According to Klarna, this is a requirement for all countries.
+     *
+     * This function does not apply for Sweden, since it does address search.
+     *
+     * @return bool
+     */
+    public function validShippingAndBillingAddress()
+    {
+        if (!$this->useGetAddresses()) {
+//            if (!$this->shippingSameAsBilling()) {
+                if ($this->getQuote()) {
+                    $billing = $this->getQuote()->getBillingAddress();
+                    $shipping = $this->getQuote()->isVirtual() ? null : $this->getQuote()->getShippingAddress();
+                    if ($shipping && $billing) {
+                        if ($this->_AddressFieldIsDifferent($shipping, $billing, 'firstname')) {
+                            return false;
+                        }
+                        if ($this->_AddressFieldIsDifferent($shipping, $billing, 'lastname')) {
+                            return false;
+                        }
+                        if ($this->_AddressFieldIsDifferent($shipping, $billing, 'country_id')) {
+                            return false;
+                        }
+                    }
+                }
+//            }
+        }
+        return true;
+    }
     
+    /**
+     * Check if shipping and billing are the same
+     *
+     * @return bool
+     */
+    public function addressesAreTheSame()
+    {
+        if ($this->getQuote()) {
+            $billing = $this->getQuote()->getBillingAddress();
+            $shipping = $this->getQuote()->isVirtual() ? null : $this->getQuote()->getShippingAddress();
+            if ($shipping && $billing) {
+                if ($this->_AddressFieldIsDifferent($shipping, $billing, 'firstname')) {
+                    return false;
+                }
+                if ($this->_AddressFieldIsDifferent($shipping, $billing, 'lastname')) {
+                    return false;
+                }
+                if ($this->_AddressFieldIsDifferent($shipping, $billing, 'country_id')) {
+                    return false;
+                }
+                if ($this->_AddressFieldIsDifferent($shipping, $billing, 'street')) {
+                    return false;
+                }
+                if ($this->_AddressFieldIsDifferent($shipping, $billing, 'city')) {
+                    return false;
+                }
+                if ($this->_AddressFieldIsDifferent($shipping, $billing, 'region_id')) {
+                    return false;
+                }
+                if ($this->_AddressFieldIsDifferent($shipping, $billing, 'telephone')) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     /**
      * Returns this class country code
      *
@@ -957,6 +1083,19 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
             if ($fee) {
                 $res .= ' (' . $this->_formatPrice($fee) . ')';
             }
+        }
+        return $res;
+    }
+
+    public function orderHasDiscount()
+    {
+        $res = false;
+        $discount_amount = 0;
+        foreach ($this->getOrder()->getItemsCollection() as $item) {
+            $discount_amount += $item->getDiscountAmount();
+        }
+        if ($discount_amount) {
+            $res = true;
         }
         return $res;
     }

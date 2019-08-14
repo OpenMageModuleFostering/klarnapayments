@@ -866,6 +866,11 @@
 		*/
 		var $user_agent;
 
+		function __construct($path, $server='', $port='', $method='')
+		{
+			$this->xmlrpc_client($path, $server, $port, $method);
+		}
+
 		/**
 		* @param string $path either the complete server URL or the PATH part of the xmlrc server URL, e.g. /xmlrpc/server.php
 		* @param string $server the server name / ip address
@@ -1933,6 +1938,11 @@
 		var $content_type = 'text/xml';
 		var $raw_data = '';
 
+		function __construct($val, $fcode = 0, $fstr = '', $valtyp='')
+		{
+			$this->xmlrpcresp($val, $fcode, $fstr, $valtyp);
+		}
+
 		/**
 		* @param mixed $val either an xmlrpcval obj, a php value or the xml serialization of an xmlrpcval (a string)
 		* @param integer $fcode set it to anything but 0 to create an error response
@@ -2086,6 +2096,11 @@ xmlrpc_encode_entitites($this->errstr, $GLOBALS['xmlrpc_internalencoding'], $cha
 		var $params=array();
 		var $debug=0;
 		var $content_type = 'text/xml';
+
+		function __construct($meth, $pars=0)
+		{
+			$this->xmlrpcmsg($meth, $pars);
+		}
 
 		/**
 		* @param string $meth the name of the method to invoke
@@ -2709,6 +2724,11 @@ xmlrpc_encode_entitites($this->errstr, $GLOBALS['xmlrpc_internalencoding'], $cha
 		var $me=array();
 		var $mytype=0;
 		var $_php_class=null;
+
+		function __construct($val=-1, $type='')
+		{
+			$this->xmlrpcval($val, $type);
+		}
 
 		/**
 		* @param mixed $val

@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2009-2014 Vaimo AB
+ * Copyright (c) 2009-2016 Vaimo AB
  *
  * Vaimo reserves all rights in the Program as delivered. The Program
  * or any portion thereof may not be reproduced in any form whatsoever without
@@ -20,35 +20,35 @@
  *
  * @category    Vaimo
  * @package     Vaimo_Klarna
- * @copyright   Copyright (c) 2009-2014 Vaimo AB
+ * @copyright   Copyright (c) 2009-2016 Vaimo AB
  */
 
-class Vaimo_Klarna_Model_Pushqueue extends Mage_Core_Model_Abstract
+class Vaimo_Klarna_Model_Resource_Klarnacheckout_Semaphore extends Mage_Core_Model_Resource_Db_Abstract
 {
     protected function _construct()
     {
-        parent::_construct();
-        $this->_init('klarna/pushqueue');
+        $this->_init('klarna/klarnacheckout_semaphore', 'id');
     }
 
-    /**
-     * Register queue creation date
-     *
-     * @return Mage_Core_Model_Abstract|void
-     */
-    protected function _beforeSave()
+    public function loadActiveSemaphore(Vaimo_Klarna_Model_Klarnacheckout_Semaphore $semaphore, $klarnaCheckoutId)
     {
-        parent::_beforeSave();
+        $adapter = $this->_getReadAdapter();
+        $semaphoreTable = $this->getTable('klarna/klarnacheckout_semaphore');
+        $bind = array('klarna_checkout_id' => $klarnaCheckoutId,
+            'status' => 'active'
+        );
+        $select = $adapter->select()
+            ->from($semaphoreTable)
+            ->where('status = :status')
+            ->where('klarna_checkout_id = :klarna_checkout_id');
 
-        if (!$this->getCreatedAt()) {
-            $this->setCreatedAt(Mage::getSingleton('core/date')->gmtDate());
+        $semaphoreId = $adapter->fetchOne($select, $bind);
+        if ($semaphoreId) {
+            $this->load($semaphore, $semaphoreId);
+        } else {
+            $semaphore->setData(array());
         }
-    }
 
-    public function loadByKlarnaOrderNumber($klarnaOrderNumber)
-    {
-        $this->_getResource()->loadByKlarnaOrderNumber($this, $klarnaOrderNumber);
         return $this;
     }
-
 }

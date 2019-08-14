@@ -142,8 +142,8 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
                 && (array_key_exists("dob_month", $this->_getAdditionalInformation()))
                 && (array_key_exists("dob_year", $this->_getAdditionalInformation()))
             ) {
-                return $this->_getAdditionalInformation("dob_day")
-                    . $this->_getAdditionalInformation("dob_month")
+                return str_pad($this->_getAdditionalInformation("dob_day"), 2, '0', STR_PAD_LEFT)
+                    . str_pad($this->_getAdditionalInformation("dob_month"), 2, '0', STR_PAD_LEFT)
                     . $this->_getAdditionalInformation("dob_year");
             }
         } elseif (array_key_exists("pno", $this->_getAdditionalInformation())
@@ -220,7 +220,7 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
      *
      * @return void
      */
-    protected function _createGoodsList($items = null)
+    protected function _createGoodsList($items = null, $forReservation = true)
     {
         if ($items === null) {
             $items = $this->getOrder()->getAllVisibleItems();
@@ -228,6 +228,7 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
 
         $taxRate = NULL;
 
+        /** @var Mage_Sales_Model_Order_Invoice_Item $item */
         foreach ($items as $item) {
 
             if ($this->_getHelper()->shouldItemBeIncluded($item)==false) continue;
@@ -252,11 +253,20 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
                 $totalInclTax = 0;
                 $taxAmount = 0;
             }
-
+            // $item can be either order or invoice item...
+            if ($forReservation) {
+                $additionalData = $item->getAdditionalData();
+            } else {
+                $additionalData = $item->getOrderItem()->getAdditionalData();
+            }
+            $reference = $this->_getHelper()->getProductReference(
+                $item->getSku(),
+                $additionalData
+            );
             $this->_goods_list[] =
                 array(
                     "qty" => $qty,
-                    "sku" => $item->getSku(),
+                    "sku" => $reference,
                     "name" => $item->getName(),
                     "price" => $price,
                     "total_amount" => $totalInclTax,
@@ -274,6 +284,18 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
     }
 
     /**
+     * Create the goods list for Invoices, separate function to make it easier to read
+     *
+     * @param array $items The items to add to the goods list
+     *
+     * @return void
+     */
+    protected function _createInvoiceGoodsList($items = null)
+    {
+        $this->_createGoodsList($items, false);
+    }
+    
+    /**
      * Create the goods list for Refunds
      *
      * @param array $items The items to add to the goods list
@@ -289,17 +311,21 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
         $taxRate = NULL;
 
         if ($items) {
+            /** @var Mage_Sales_Model_Order_Creditmemo_Item $item */
             foreach ($items as $item) {
                 $qty = $item->getQty();
                 $id = $item->getProductId();
                 $product = $this->_loadProductById($id);
 
                 $taxRate = $this->_getTaxRate($product->getTaxClassId());
-
+                $reference = $this->_getHelper()->getProductReference(
+                    $item->getSku(),
+                    $item->getOrderItem()->getAdditionalData()
+                );
                 $this->_goods_list[] =
                     array(
                         "qty" => $qty,
-                        "sku" => $item->getSku(),
+                        "sku" => $reference,
                         "name" => $item->getName(),
                         "price" => $item->getPriceInclTax(),
                         "total_amount" => $item->getRowTotalInclTax(),
@@ -958,8 +984,8 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
             }
             if ($this->_getHelper()->isKlarnaField($key)) {
                 $this->_postValues[$key] = $value;
-            } else {
-                $this->_getHelper()->logDebugInfo('Field ignored: ' . $key);
+//            } else {
+//                $this->_getHelper()->logDebugInfo('Field ignored: ' . $key);
             }
         }
     }

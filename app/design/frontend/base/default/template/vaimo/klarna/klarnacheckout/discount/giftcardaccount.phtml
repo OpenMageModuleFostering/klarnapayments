@@ -47,7 +47,7 @@
                 <?php echo $this->__('Gift Card (%s)', $_c['c']); ?>
                 <?php $_url = Mage::getUrl('checkout/klarna/removeGiftCard', array('code'=>$_c['c'])); ?>
                 <?php $_title = $this->__('Remove'); ?>
-                <a href="<?php echo $_url ?>" title="<?php echo $_title; ?>" class="btn-remove"><img src="<?php echo $this->getSkinUrl('images/btn_remove.gif') ?>" alt="<?php echo $this->__('Remove')?>" /></a>
+                <a href="<?php echo $_url ?>" title="<?php echo $_title; ?>" class="btn-remove" id="klarna-giftcard-remove"><img src="<?php echo $this->getSkinUrl('images/btn_remove.gif') ?>" alt="<?php echo $this->__('Remove')?>" /></a>
             </span>
             <span class="right">
                 -<?php echo $this->helper('checkout')->formatPrice($_c['a']) ?>

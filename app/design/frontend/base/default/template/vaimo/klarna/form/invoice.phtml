@@ -81,6 +81,14 @@ $_showServiceMethods = false;
     <li class="klarna_input_wrapper">
         <ul id="<?php echo $this->getMethodCode(); ?>_input_fields" class="klarna-input-box">
 
+            <?php if (!$_showServiceMethods): ?>
+                <li>
+                    <label>
+                        <?php echo $this->getInvoiceSubTitle(); ?>
+                    </label>
+                </li>
+            <?php endif; ?>
+
             <?php echo $this->getNotificationsHtml(); ?>
 
             <?php echo $this->getPersonalNumberHtml(); ?>

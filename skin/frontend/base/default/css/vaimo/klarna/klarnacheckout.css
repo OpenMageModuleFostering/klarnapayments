@@ -141,7 +141,7 @@
 }
 
 .klarna_block a:hover,
-.klarna_block a:active, {
+.klarna_block a:active {
     color: #3eb728;
 }
 

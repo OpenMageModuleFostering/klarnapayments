@@ -85,12 +85,21 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
     protected function _setKlarnaCheckoutId($checkoutId)
     {
         $quote = $this->_getQuote();
+        $message = null;
 
         if ($quote->getId() && $quote->getKlarnaCheckoutId() != $checkoutId) {
-            Mage::helper('klarna')->logDebugInfo('SET checkout id: ' . $checkoutId);
-            Mage::helper('klarna')->logDebugInfo('Quote Id: ' . $quote->getId());
+            if ($quote->getKlarnaCheckoutId()) {
+                if (!$quote->getIsActive()) {
+                    Mage::throwException(Mage::helper('klarna')->__('Attempting to change checkout id on closed quote') . ' ' . $quote->getId());
+                } else {
+                    $message = 'POTENTIAL ERROR. _setKlarnaCheckoutId: Old checkout id: ' . $quote->getKlarnaCheckoutId();
+                    Mage::helper('klarna')->logDebugInfo($message, null, $checkoutId);
+                }
+            }
+            Mage::helper('klarna')->logDebugInfo('Quote Id: ' . $quote->getId(), null, $checkoutId);
             $quote->setKlarnaCheckoutId($checkoutId);
             $quote->save();
+            Mage::helper('klarna')->updateKlarnacheckoutHistory($checkoutId, $message, $quote->getId());
         }
 
         Mage::getSingleton('checkout/session')->setKlarnaCheckoutId($checkoutId);
@@ -107,6 +116,7 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
         $items = array();
         $qtyMultiplierArray = array();
 
+        /** @var Mage_Sales_Model_Quote_Item $quoteItem */
         foreach ($quote->getAllItems() as $quoteItem) {
             if (Mage::helper('klarna')->shouldItemBeIncluded($quoteItem)==false) {
                 continue;
@@ -119,8 +129,10 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
 
             if ($quoteItem->getTaxPercent() > 0) {
                 $taxRate = $quoteItem->getTaxPercent();
-            } else {
+            } elseif ($quoteItem->getRowTotal() != 0) {
                 $taxRate = $quoteItem->getTaxAmount() / $quoteItem->getRowTotal() * 100;
+            } else {
+                $taxRate = 0;
             }
 
             $price = $quoteItem->getPriceInclTax();
@@ -135,9 +147,21 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
             if (isset($qtyMultiplierArray[$quoteItem->getParentItemId()])) {
                 $qty = $qty * $qtyMultiplierArray[$quoteItem->getParentItemId()];
             }
+            
+            $reference = $quoteItem->getSku();
+            if ($this->_skuNotUnique($quote->getAllItems(), $quoteItem)) {
+                $reference = substr($quoteItem->getSku(), 0, 53) . ':' . str_pad($quoteItem->getId(), 10, '0', STR_PAD_LEFT);
+                $additionalData = unserialize($quoteItem->getAdditionalData());
+                if (!$additionalData) {
+                    $additionalData = array();
+                }
+                $additionalData['klarna_reference'] = $reference;
+                $quoteItem->setAdditionalData(serialize($additionalData));
+                $quoteItem->save();
+            }
 
             $items[] = array(
-                'reference' => $quoteItem->getSku(),
+                'reference' => $reference,
                 'name' => $quoteItem->getName(),
                 'quantity' => round($qty),
                 'unit_price' => round($price * 100),
@@ -155,8 +179,11 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
                         $taxAmount = $total->getAddress()->getShippingTaxAmount();
                         $hiddenTaxAmount = $total->getAddress()->getShippingHiddenTaxAmount();
                         //if (Mage::helper('klarna')->isShippingInclTax($quote->getStoreId())) {
-                        if (($amount_incl_tax>0) && (round($amount_incl_tax,2) == round($amount,2))) {
+                        if (($amount_incl_tax > 0) && (round($amount_incl_tax, 2) == round($amount, 2))) {
                             $amount = $amount - $taxAmount - $hiddenTaxAmount;
+                        }
+                        if ($amount == 0) {
+                            continue;
                         }
                         $taxRate = ($taxAmount + $hiddenTaxAmount) / $amount * 100;
                         $amount_incl_tax = $amount + $taxAmount + $hiddenTaxAmount;
@@ -179,6 +206,9 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
                         // otherwise the total tax wouldn't match
                         $taxAmount = $total->getAddress()->getHiddenTaxAmount();
                         $amount = -$total->getAddress()->getDiscountAmount() - $taxAmount;
+                        if ($amount == 0) {
+                            continue;
+                        }
                         $taxRate = $taxAmount / $amount * 100;
                         $items[] = array(
                             'type' => 'discount',
@@ -501,17 +531,18 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
     }
 
     /**
-     * Get Klarna checkout order
-     *
      * @param null $checkoutId
      * @param bool $createIfNotExists
      * @param bool $updateItems
-     * @return Klarna_Checkout_Order|null
+     * @param string $quoteId
+     * @return bool
+     * @throws Exception
      */
     public function initKlarnaOrder($checkoutId = null, $createIfNotExists = false, $updateItems = false, $quoteId = '')
     {
+        $message = '';
         if ($checkoutId) {
-            Mage::helper('klarna')->logKlarnaApi('initKlarnaOrder checkout id: ' . $checkoutId . ' (quote id: ' . $quoteId . ')');
+            Mage::helper('klarna')->logKlarnaApi('initKlarnaOrder quote id: ' . $quoteId, null, $checkoutId);
             $loadf = true;
             if (!$updateItems) {
                 if ($this->_useKlarnaOrderSessionCache) {
@@ -529,7 +560,13 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
                         $this->_updateLastError($e->getMessage());
                         if ($this->_getLastError('http_status_code')=='403' &&
                             $this->_getLastError('http_status_message')=='Forbidden') {
-                            Mage::helper('klarna')->logKlarnaApi('initKlarnaOrder trying to update, but it is forbidden, so we skip it and just use fetch');
+                            // We should probably redirect to success or display error... as this means the order is Done in Klarna...
+                            $message = 'initKlarnaOrder trying to update, but it is forbidden, so we skip it and just use fetch';
+                            Mage::helper('klarna')->logKlarnaApi($message);
+                        } elseif ($this->_getLastError('http_status_code')=='0' &&
+                                  $this->_getLastError('http_status_message')==null) {
+                            Mage::helper('klarna')->logDebugInfo('initKlarnaOrder possible timeout in communication with Klarna');
+                            return false;
                         } else {
                             throw $e;
                         }
@@ -539,10 +576,19 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
             }
             $res = $this->_klarnaOrder!=NULL;
             if ($res) {
+                if ($checkoutId!=$this->_getLocationOrderId()) {
+                    $message = 'POTENTIAL ERROR. initKlarnaOrder checkoutId received: ' . $this->_getLocationOrderId();
+                    Mage::helper('klarna')->logDebugInfo($message, null, $checkoutId);
+                }
                 if ($this->_getLocationOrderId()) {
                     $this->_setKlarnaCheckoutId($this->_getLocationOrderId());
                 }
                 Mage::dispatchEvent('klarnacheckout_init_klarna_order', array('klarna_order' => $this->_klarnaOrder, 'api_version' => $this->getApiVersion()));
+                Mage::helper('klarna')->updateKlarnacheckoutHistory(
+                    Mage::getSingleton('checkout/session')->getKlarnaCheckoutId(),
+                    $message,
+                    $quoteId
+                );
             }
             Mage::helper('klarna')->logKlarnaApi('initKlarnaOrder res: ' . $res);
             return $res;
@@ -558,7 +604,12 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
                     $this->_updateLastError($e->getMessage());
                     if ($this->_getLastError('http_status_code')=='403' &&
                         $this->_getLastError('http_status_message')=='Forbidden') {
+                        // We should probably redirect to success or display error... as this means the order is Done in Klarna...
                         Mage::helper('klarna')->logKlarnaApi('initKlarnaOrder trying to update, but it is forbidden, so we skip it and just use fetch');
+                    } elseif ($this->_getLastError('http_status_code')=='0' &&
+                              $this->_getLastError('http_status_message')==null) {
+                        Mage::helper('klarna')->logDebugInfo('initKlarnaOrder possible timeout in communication with Klarna');
+                        return false;
                     } else {
                         throw $e;
                     }
@@ -567,10 +618,19 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
             $this->_klarnaOrder->fetch();
             $res = $this->_klarnaOrder!=NULL;
             if ($res) {
+                if ($checkoutId!=$this->_getLocationOrderId()) {
+                    $message = 'POTENTIAL ERROR. initKlarnaOrder checkoutId received: ' . $this->_getLocationOrderId();
+                    Mage::helper('klarna')->logDebugInfo($message, null, $checkoutId);
+                }
                 if ($this->_getLocationOrderId()) {
                     $this->_setKlarnaCheckoutId($this->_getLocationOrderId());
                 }
                 Mage::dispatchEvent('klarnacheckout_init_klarna_order', array('klarna_order' => $this->_klarnaOrder, 'api_version' => $this->getApiVersion()));
+                Mage::helper('klarna')->updateKlarnacheckoutHistory(
+                    Mage::getSingleton('checkout/session')->getKlarnaCheckoutId(),
+                    $message,
+                    $quoteId
+                );
             }
             Mage::helper('klarna')->logKlarnaApi('initKlarnaOrder res: ' . $res);
             return $res;
@@ -591,6 +651,11 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
                 Mage::dispatchEvent('klarnacheckout_init_klarna_order', array('klarna_order' => $this->_klarnaOrder, 'api_version' => $this->getApiVersion()));
             }
             Mage::helper('klarna')->logKlarnaApi('initKlarnaOrder res: ' . $res);
+            Mage::helper('klarna')->updateKlarnacheckoutHistory(
+                Mage::getSingleton('checkout/session')->getKlarnaCheckoutId(),
+                $message,
+                $quoteId
+            );
             return $res;
         }
 
@@ -697,7 +762,7 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
 
     public function sanityTestQuote($createdKlarnaOrder, $quote)
     {
-        $res = NULL;
+        $res = null;
 
         foreach ($quote->getAllVisibleItems() as $quoteItem) {
             $foundf = false;
@@ -705,9 +770,13 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
             // $data is actually an object
             if (isset($data['cart'])) {
                 if (isset($data['cart']['items'])) {
+                    $reference = Mage::helper('klarna')->getProductReference(
+                        $quoteItem->getSku(),
+                        $quoteItem->getAdditionalData()
+                    );
                     foreach ($data['cart']['items'] as $klarnaItem) {
-                        if ($klarnaItem['reference']==substr($quoteItem->getSku(), 0, 64) &&
-                            $klarnaItem['quantity']==$quoteItem->getQty()
+                        if ($klarnaItem['reference'] == substr($reference, 0, 64) &&
+                            $klarnaItem['quantity'] == $quoteItem->getQty()
                         ) {
                             $foundf = true;
                             continue;

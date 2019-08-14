@@ -27,7 +27,7 @@
 $installer = Mage::getResourceModel('sales/setup', 'sales_setup');
 
 $installer->startSetup();
-
+/* Table removed from config, will no longer be used, so remove it from this old setup script
 $table = $installer->getConnection()
     ->newTable($installer->getTable('klarna/pushqueue'))
     ->addColumn('id', Varien_Db_Ddl_Table::TYPE_INTEGER, null, array(
@@ -47,5 +47,5 @@ $table = $installer->getConnection()
     ->setComment('Klarna Push Queue');
 
 $installer->getConnection()->createTable($table);
-
+*/
 $installer->endSetup();

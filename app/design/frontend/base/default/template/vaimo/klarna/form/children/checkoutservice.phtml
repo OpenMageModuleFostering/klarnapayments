@@ -43,6 +43,10 @@
 
                         <?php if ($this->getMethodCode()==Vaimo_Klarna_Helper_Data::KLARNA_METHOD_SPECIAL): ?>
                             <input id="pclass_<?php echo $serviceMethod['pclass_id']?>" onclick="toggleInformationBoxes('<?php echo $serviceMethod['pclass_id']; ?>');" type="hidden" name="payment[<?php echo $this->getMethodCode(); ?>_payment_plan]" value='<?php echo $serviceMethod['pclass_id']; ?>' <?php echo $checkedstr ?> />
+                            <?php echo $serviceMethod['title']; ?>
+                        <?php elseif ($this->getMethodCode()==Vaimo_Klarna_Helper_Data::KLARNA_METHOD_INVOICE): ?>
+                            <input id="pclass_<?php echo $serviceMethod['pclass_id']?>" onclick="toggleInformationBoxes('<?php echo $serviceMethod['pclass_id']; ?>');" type="hidden" name="payment[<?php echo $this->getMethodCode(); ?>_payment_plan]" value='<?php echo $serviceMethod['pclass_id']; ?>' <?php echo $checkedstr ?> />
+                            <?php echo $serviceMethod['title']; ?>
                         <?php elseif ($this->getMethodCode()==Vaimo_Klarna_Helper_Data::KLARNA_METHOD_ACCOUNT): ?>
                             <input id="pclass_<?php echo $serviceMethod['pclass_id']?>" onclick="toggleInformationBoxes('<?php echo $serviceMethod['pclass_id']; ?>');" type="radio" name="payment[<?php echo $this->getMethodCode(); ?>_payment_plan]" value='<?php echo $serviceMethod['pclass_id']; ?>' <?php echo $checkedstr ?> />
                             <?php echo $serviceMethod['title']; ?>
@@ -55,19 +59,24 @@
                         <li class="payment_plan_info_wrapper" id="infobox_pclass_<?php echo $serviceMethod['pclass_id']?>" <?php if (!$_firstf): ?> style="display: none;" <?php endif; ?>>
                             <div class="payment_plan_details" id="<?php echo $this->getMethodCode(); ?>_update_paymentplan_information_message">
                             <dl>
-                                <?php foreach ($serviceMethod['details'] as $detail): ?>
+                                <?php foreach ($serviceMethod['details'] as $detailId => $detail): ?>
+                                    <?php if ($detail['label']=='N/A') continue; ?>
                                     <dt><?php echo $detail['label']; ?></dt>
                                     <dd>
                                         <?php echo $detail['value']; ?>
                                         <?php if (isset($detail['symbol'])): ?>
                                             <?php echo ' ' . $detail['symbol']; ?>
+                                            <?php if ($detail['symbol'] != '%' && strpos($detailId, 'monthly') !== false): ?>
+                                                <?php echo '/ ' . $this->__('month'); ?>
+                                            <?php endif; ?>
                                         <?php endif; ?>
                                     </dd>
                                 <?php endforeach; ?>
                             <?php if (isset($serviceMethod['use_case'])): ?>
                                 <?php if ($serviceMethod['use_case']): ?>
+                                    <?php $outputUseCase = $this->formatUseCase($serviceMethod['use_case']); ?>
                                     <dt> &nbsp;</dt>
-                                    <dt> <?php echo $serviceMethod['use_case']; ?> </dt>
+                                    <dt> <?php echo $outputUseCase; ?> </dt>
                                 <?php endif; ?>
                             <?php endif; ?>
                             </dl>

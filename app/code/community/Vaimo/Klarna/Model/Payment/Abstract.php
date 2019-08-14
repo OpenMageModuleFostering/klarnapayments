@@ -88,8 +88,13 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
     public function canCapture()
     {
         $klarna = $this->_getKlarnaModel();
-        $klarna->setQuote($this->getQuote(), $this->_code);
-        if ($klarna->getConfigData('disable_backend_calls')) return false;
+        $info = $this->getInfoInstance();
+        if ($info->getOrder()) {
+            $order = $info->getOrder();
+            $klarna->setInfoInstance($this->getInfoInstance());
+            $klarna->setOrder($order);
+            if ($klarna->getConfigData('disable_backend_calls')) return false;
+        }
         return true;
     }
 
@@ -100,7 +105,20 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
 
     public function canCapturePartial()
     {
-        return $this->canCapture();
+        $res = $this->canCapture();
+        $klarna = $this->_getKlarnaModel();
+        $info = $this->getInfoInstance();
+        if ($info->getOrder()) {
+            $order = $info->getOrder();
+            $klarna->setInfoInstance($this->getInfoInstance());
+            $klarna->setOrder($order);
+            if (!$klarna->getConfigData('allow_part_capture_with_discount')) {
+                if ($klarna->orderHasDiscount()) {
+                    $res = false;
+                }
+            }
+        }
+        return $res;
     }
 
     public function canRefundInvoicePartial()
@@ -139,11 +157,13 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
                     if (isset($serviceMethod['group'])) {
                         if (isset($serviceMethod['group']['title']) && isset($serviceMethod['title'])) {
                             $presetTitle = $serviceMethod['group']['title'];
+                            /*
                             if ($serviceMethod['vaimo_klarna_method']==Vaimo_Klarna_Helper_Data::KLARNA_METHOD_INVOICE ||
                                 $serviceMethod['vaimo_klarna_method']==Vaimo_Klarna_Helper_Data::KLARNA_METHOD_SPECIAL) {
                                 $presetTitle =  $serviceMethod['title'];
 //                                $presetTitle .= ' ' . $serviceMethod['title'];
                             }
+                            */
                             break;
                         }
                     }
@@ -312,8 +332,15 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
      */
     protected function _canShowExceptionMessage(Exception $e)
     {
-        return $this->_getConfigData(self::EXTENDED_ERROR_MESSAGE)
-            && $e->getCode() && $e->getMessage() && !$this->_getHelper()->isXmlRpcException($e);
+        if ($this->_getHelper()->isXmlRpcException($e)) {
+            return false;
+        }
+        if (!$this->_getConfigData(self::EXTENDED_ERROR_MESSAGE)) {
+            if ($e->getCode() && $e->getMessage()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

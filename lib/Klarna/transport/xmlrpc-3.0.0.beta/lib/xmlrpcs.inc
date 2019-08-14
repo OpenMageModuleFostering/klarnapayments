@@ -494,6 +494,11 @@
 		*/
 		var $user_data = null;
 
+		function __construct($dispMap = null, $serviceNow = true)
+		{
+			$this->xmlrpc_server($dispMap, $serviceNow);
+		}
+
 		/**
 		* @param array $dispmap the dispatch map withd efinition of exposed services
 		* @param boolean $servicenow set to false to prevent the server from runnung upon construction

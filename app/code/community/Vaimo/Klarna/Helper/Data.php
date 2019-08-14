@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2009-2014 Vaimo AB
+ * Copyright (c) 2009-2016 Vaimo AB
  *
  * Vaimo reserves all rights in the Program as delivered. The Program
  * or any portion thereof may not be reproduced in any form whatsoever without
@@ -20,7 +20,7 @@
  *
  * @category    Vaimo
  * @package     Vaimo_Klarna
- * @copyright   Copyright (c) 2009-2014 Vaimo AB
+ * @copyright   Copyright (c) 2009-2016 Vaimo AB
  */
 
 class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
@@ -129,6 +129,12 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     const KLARNA_KCO_API_VERSION_UK  = 3;
     const KLARNA_KCO_API_VERSION_USA = 4;
 
+    const KLARNA_LOG_LEVEL_FULL = 0;
+    const KLARNA_LOG_LEVEL_MODERATE = 1;
+    const KLARNA_LOG_LEVEL_MINMIAL = 2;
+    const KLARNA_LOG_LEVEL_NONE = 3;
+
+
     public static $isEnterprise;
 
 
@@ -200,6 +206,31 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
      */
     const LOG_FUNCTION_SESSION_NAME = 'klarna_log_function_name';
 
+    protected static $_logFunctionNameArray = array();
+
+    protected static $_klarnaCheckoutId;
+
+    public function setCheckoutId($checkoutId)
+    {
+        self::$_klarnaCheckoutId = $checkoutId;
+    }
+
+    /**
+     * Convert into ASCII with some translation of special characters to pure text
+     *
+     * @param $str
+     * @param null $from
+     * @param null $to
+     * @return string
+     */
+    protected function _cleanAndConvert($str, $from = null, $to = null)
+    {
+        $res = iconv($from, 'ASCII//TRANSLIT', $str);
+        $this->logKlarnaDebug('_cleanAndConvert: ' . $res);
+        return $res;
+    }
+    
+    
     /**
      * Encode the string to klarna encoding
      *
@@ -217,7 +248,23 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
         if ($to === null) {
             $to = self::ENCODING_KLARNA;
         }
-        return iconv($from, $to, $str);
+        try {
+            $res = iconv($from, $to, $str);
+            if ($str && !$res) {
+                $res = $this->_cleanAndConvert($str, $from, $to);
+            }
+        } catch (Exception $e) {
+            try {
+                $this->logKlarnaDebug('encode exception: ' . $e->getMessage());
+                $res = $this->_cleanAndConvert($str, $from, $to);
+            } catch (Exception $e) {
+                $this->logKlarnaDebug('iconv failed in encode, returning error (' . $str . ')');
+            }
+        }
+        if ($str && !$res) {
+            $res = 'encode-error';
+        }
+        return $res;
     }
 
     /**
@@ -237,7 +284,15 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
         if ($to === null) {
             $to = self::ENCODING_MAGENTO;
         }
-        return iconv($from, $to, $str);
+        try {
+            $res = iconv($from, $to, $str);
+        } catch (Exception $e) {
+            $this->logKlarnaDebug('iconv failed in decode, returning error (' . $str . ')');
+        }
+        if ($str && !$res) {
+            $res = 'decode-error';
+        }
+        return $res;
     }
 
     public function getSupportedMethods()
@@ -817,7 +872,14 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
      */
     public function setFunctionNameForLog($functionName)
     {
-        $_SESSION[self::LOG_FUNCTION_SESSION_NAME] = $functionName;
+        if (in_array($functionName, self::$_logFunctionNameArray)) {
+            return;
+        }
+        // When klarna/klarna is loaded, it should not add a tag for klarna if klarnacheckout is called initially
+        if ($functionName=='klarna' && in_array('klarnacheckout', self::$_logFunctionNameArray)) {
+            return;
+        }
+        self::$_logFunctionNameArray[] = $functionName;
     }
 
     /**
@@ -827,20 +889,61 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
      */
     public function getFunctionNameForLog()
     {
-        return array_key_exists(self::LOG_FUNCTION_SESSION_NAME, $_SESSION) ? $_SESSION[self::LOG_FUNCTION_SESSION_NAME] : '';
+        return implode('-', self::$_logFunctionNameArray);
+    }
+
+    public function getKlarnaVersion()
+    {
+        return (string) Mage::getConfig()->getNode()->modules->Vaimo_Klarna->version;
+    }
+
+    public function logKlarnaActionStart($method, $name)
+    {
+        $this->setFunctionNameForLog($method);
+        $this->setFunctionNameForLog($name);
+        $this->logKlarnaApi(self::KLARNA_LOG_START_TAG);
+    }
+
+    public function logKlarnaActionEnd()
+    {
+        $this->logKlarnaApi(self::KLARNA_LOG_END_TAG);
+        array_pop(self::$_logFunctionNameArray); // name
+        array_pop(self::$_logFunctionNameArray); // method
+    }
+
+    public function logKlarnaClearFunctionName()
+    {
+        self::$_logFunctionNameArray = array();
+    }
+
+    public function logKlarnaCheckoutFunctionStart($checkoutId, $name)
+    {
+        $this->setFunctionNameForLog($name);
+        $this->logKlarnaDebug('logKlarnaCheckoutFunctionStart', null, $checkoutId);
+        if ($checkoutId) {
+            $this->logKlarnaApi('Checkout ID ' . $checkoutId);
+        } else {
+            $this->logKlarnaApi('Checkout ID NULL');
+        }
+    }
+
+    public function logKlarnaCheckoutFunctionEnd()
+    {
+        $this->logKlarnaApi('Complete');
+        array_pop(self::$_logFunctionNameArray);
     }
 
     /**
      * Log function that does the writing to log file
      *
-     * @param string $filename  What file to write to, will be placed in site/var/klarna/ folder
+     * @param string $filename  What file to write to, will be placed in site/var/log/ folder
      * @param string $msg       Text to log
      *
      * @return void
      */
     protected function _log($filename, $msg)
     {
-        Mage::log('PID(' . getmypid() . '): ' . $this->getFunctionNameForLog() . ': ' . $msg, null, $filename, true);
+        Mage::log('PID(' . getmypid() . '): ' . $this->getKlarnaVersion() . ' ' . $this->getFunctionNameForLog() . ': ' . $msg, null, $filename, true);
     }
 
     /**
@@ -875,6 +978,40 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     }
 
     /**
+     * Log function used for various debug log information, array is optional
+     *
+     * @param string $info  Header of what is being logged
+     * @param array $arr    The array to be logged
+     *
+     * @return void
+     */
+    protected function _logToDatabase($info, $arr = NULL, $tag = null)
+    {
+        if (is_null($tag)) {
+            $tag = self::$_klarnaCheckoutId;
+        }
+        if ($arr) {
+            $data = is_string($arr) ? $arr : json_encode($arr);
+        } else {
+            $data = null;
+        }
+        $log = Mage::getModel('klarna/log')
+            ->setProcess(getmypid())
+            ->setFunction($this->getFunctionNameForLog())
+            ->setTag($tag)
+            ->setMessage($info)
+            ->setExtra($data)
+            ->save();
+        /*
+        if ($arr) {
+            Mage::getModel('klarna/log_data')
+                ->setParent($log->getEntityId())
+                ->setExtra($data)
+                ->save();
+        }
+        */
+    }
+    /**
      * Log function that logs all Klarna API calls and replies, this to see what functions are called and what reply they get
      *
      * @param string $comment Text to log
@@ -883,8 +1020,12 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
      */
     public function logKlarnaApi($comment)
     {
-        $this->_log('klarnaapi.log', $comment);
-        $this->logDebugInfo($comment);
+        //$this->_log('klarnaapi.log', $comment);
+        $level = $this->getLogLevel();
+        if ($level == self::KLARNA_LOG_LEVEL_NONE) {
+            return;
+        }
+        $this->_logToDatabase($comment);
     }
 
     /**
@@ -895,18 +1036,42 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
      *
      * @return void
      */
-    public function logDebugInfo($info, $arr = NULL)
+    public function logKlarnaDebug($info, $arr = NULL, $tag = null)
     {
-        $this->_log('klarnadebug.log', $info);
-        if ($arr) {
-            if (is_array($arr)) {
-                $this->_log('klarnadebug.log', print_r($arr, true));
-            } elseif (is_object($arr)) {
-                $this->_log('klarnadebug.log', print_r(array($arr), true));
-            } elseif (is_string($arr)) {
-                $this->_log('klarnadebug.log', $arr);
-            }
+        $level = $this->getLogLevel();
+        if ($level == self::KLARNA_LOG_LEVEL_NONE || $level == self::KLARNA_LOG_LEVEL_MINMIAL) {
+            return;
         }
+        if ($level == self::KLARNA_LOG_LEVEL_MODERATE) {
+            $arr = null;
+        }
+        $this->_logToDatabase($info, $arr, $tag);
+    }
+
+    /**
+     * Will log to debug, but also include a backtrace
+     *
+     * @param string $info  Header of what is being logged
+     * @param array $arr    The array to be logged
+     *
+     * @return void
+     */
+    public function logKlarnaDebugBT($info, $arr = NULL, $tag = null)
+    {
+        $this->logKlarnaDebug($info, $arr, $tag);
+        $bt = mageDebugBacktrace(true, true, true);
+        $this->logKlarnaDebug('Backtrace', $bt);
+    }
+
+    /**
+     * Not sure why I named it like this, it should be called logKlarnaDebug, kept this for compability...
+     *
+     * @param $info
+     * @param null $arr
+     */
+    public function logDebugInfo($info, $arr = NULL, $tag = null)
+    {
+        $this->logKlarnaDebug($info, $arr, $tag);
     }
 
     protected function _logMagentoException($e)
@@ -918,19 +1083,97 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
      * If there is an exception, this log function should be used
      * This is mainly meant for exceptions concerning klarna API calls, but can be used for any exception
      *
+     * Logic for log level is this:
+     * Magento log is always updated, but never with special status code responses from Klarna
+     * Klarna special statu ressponses are logged to errorlog file only if full log level is selected
+     * In case of moderate and minimal, those special status errors, are logged to DB (when it can)
+     * If level is none, no exceptions are logged
+     *
+     *
      * @param Exception $e
      *
      * @return void
      */
     public function logKlarnaException($e)
     {
-        $this->_logMagentoException($e);
+        $level = $this->getLogLevel();
+        $logException = $this->_logThisException($e);
+        if ($logException) {
+            $this->_logMagentoException($e);
+        }
         $errstr = 'Exception:';
         if ($e->getCode()) $errstr = $errstr . ' Code: ' . $e->getCode();
-        if ($e->getMessage()) $errstr = $errstr . ' Message: ' . $e->getMessage(); // $this->_decode()
+        if ($e->getMessage()) $errstr = $errstr . ' Message: ' . $e->getMessage();
         if ($e->getLine()) $errstr = $errstr . ' Row: ' . $e->getLine();
         if ($e->getFile()) $errstr = $errstr . ' File: ' . $e->getFile();
+        switch ($level) {
+            case self::KLARNA_LOG_LEVEL_FULL:
+                $logException = true;
+                break;
+            case self::KLARNA_LOG_LEVEL_MODERATE:
+                if (!$logException) {
+                    // If there is a resulting exception, this write will be rolled back
+                    $this->_logToDatabase($errstr);
+                }
+                break;
+            case self::KLARNA_LOG_LEVEL_NONE:
+                $logException = false;
+                break;
+        }
+        if (!$logException) {
+            return;
+        }
         $this->_logAlways('klarnaerror.log', $errstr);
+    }
+
+    public function getLogLevel()
+    {
+        return Mage::getStoreConfig('dev/vaimo_klarna_debug/vaimo_klarna_log_level');
+    }
+
+    /**
+     * @param Exception $e
+     *
+     * @return boolean
+     */
+    protected function _logThisException($e)
+    {
+        $res = true;
+        if ($e->getCode()) {
+            $errSkipRange = array(
+                // KPM
+                array(2101, 2110),
+                array(2201, 2206),
+                array(2301, 2307),
+                array(2401, 2406),
+                array(2501, 2503),
+                array(2999, 2999),
+                array(3101, 3111),
+                array(3201, 3221),
+                array(3301, 3305),
+                array(3999, 3999),
+                array(6101, 6106),
+                array(6999, 6999),
+                array(7999, 7999),
+                array(8101, 8115),
+                array(8999, 8999),
+                array(9101, 9131),
+                array(9191, 9191),
+                array(9291, 9241),
+                // KCO
+                array(400, 401),
+                array(402, 406),
+                array(415, 415),
+
+            );
+            foreach ($errSkipRange as $range) {
+                if ($e->getCode()>=$range[0] && $e->getCode()<=$range[1]) {
+                    $res = false;
+                    break;
+                }
+            }
+        }
+        return $res;
     }
 
     public function getDefaultCountry($store = NULL)
@@ -997,13 +1240,14 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
             ->where('klarna_checkout_id=?', $klarna_id);
         $r = $read->fetchAll($select);
         if (count($r) < 1) {
-            Mage::helper('klarna')->logKlarnaApi('findQuote no checkout quote found!' . $klarna_id);
+            Mage::helper('klarna')->logKlarnaApi('findQuote no checkout quote found! ' . $klarna_id);
             return null;
         }
         else if (count($r) > 1) {
-            Mage::helper('klarna')->logKlarnaApi('findQuote more than one quote found!' . $klarna_id);
+            Mage::helper('klarna')->logKlarnaApi('findQuote more than one quote found! ' . $klarna_id);
         }
         $r = $r[0];
+        Mage::app()->setCurrentStore($r['store_id']);
         $quote = Mage::getModel('sales/quote')
             ->setStoreId($r['store_id'])
             ->load($r['entity_id']);
@@ -1084,7 +1328,7 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     {
         if ($quote->getPayment()->getMethod() != Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT) {
             if ($logf) {
-                $this->logDebugInfo('_createTheOrder quote ' . $quote->getId() .
+                $this->logKlarnaDebug('_createTheOrder quote ' . $quote->getId() .
                     ' not proper method (' . $quote->getPayment()->getMethod() .
                     '), changing to ' .
                     Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
@@ -1116,4 +1360,23 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
         return ($xmlRpcErrorCode !== false)
             && (strpos($e->getMessage(), $GLOBALS['xmlrpcstr'][$xmlRpcErrorCode]) === 0);
     }
+
+    public function updateKlarnacheckoutHistory($checkoutId, $message = null, $quoteId = null, $orderId = null, $reservationId = null)
+    {
+        $history = Mage::getModel('klarna/klarnacheckout_history')->loadByIdAndQuote($checkoutId, $quoteId);
+        $history->updateKlarnacheckoutHistory($checkoutId, $message, $quoteId, $orderId, $reservationId);
+    }
+
+    public function getProductReference($sku, $additionalData)
+    {
+        $reference = $sku;
+        $additionalData = unserialize($additionalData);
+        if ($additionalData) {
+            if (isset($additionalData['klarna_reference'])) {
+                $reference = $additionalData['klarna_reference'];
+            }
+        }
+        return $reference;
+    }
+
 }

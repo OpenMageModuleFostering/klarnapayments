@@ -58,13 +58,13 @@ abstract class Vaimo_Klarna_Model_Api_Abstract extends Varien_Object
     {
         if ($response) {
             $this->_lastErrorObj = new Varien_Object(json_decode($response, true));
-            if ($arrExtra) {
-                foreach ($arrExtra as $id => $val) {
-                    $this->_lastErrorObj->setData($id, $val);
-                }
-            }
         } else {
-            $this->_lastErrorObj = NULL;
+            $this->_lastErrorObj = new Varien_Object(array());
+        }
+        if ($arrExtra) {
+            foreach ($arrExtra as $id => $val) {
+                $this->_lastErrorObj->setData($id, $val);
+            }
         }
     }
 
@@ -96,8 +96,27 @@ abstract class Vaimo_Klarna_Model_Api_Abstract extends Varien_Object
             if (is_array($extras)) {
                 $create = array_merge_recursive($create, $extras);
             } else {
-                Mage::helper('klarna')->logDebugInfo($extras . ": " . $json);
+                Mage::helper('klarna')->logDebugInfo('_addUserDefinedVariables', $extras);
             }
         }
+    }
+
+    /**
+     * Checks all other lines, if it's unique
+     *
+     * @param $items
+     * @param $currentItem
+     * @return bool
+     */
+    protected function _skuNotUnique($items, $currentItem)
+    {
+        foreach ($items as $item) {
+            if ($item->getId() != $currentItem->getId()) {
+                if ($item->getSku() == $currentItem->getSku()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

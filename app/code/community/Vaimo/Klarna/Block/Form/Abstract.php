@@ -26,7 +26,7 @@
 class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
 {
     protected $_pclasses = array();
-    
+
     public function __construct()
     {
         parent::__construct();
@@ -57,7 +57,7 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
                 $id = $data->getAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_PAYMENT_PLAN);
                 if ($id) {
                     foreach ($res as &$pclass) {
-                        if ($pclass['id']==$id) {
+                        if ($pclass['id'] == $id) {
                             $pclass['default'] = true;
                         } else {
                             $pclass['default'] = false;
@@ -72,7 +72,7 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
         }
         return $res;
     }
-    
+
     public function getCheckoutService()
     {
         try {
@@ -84,7 +84,7 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
             Mage::helper('klarna')->logKlarnaException($e);
             $res = NULL;
         }
-        if ($res==NULL) {
+        if ($res == NULL) {
             $res = array(false); // On purpouse!
         }
         return $res;
@@ -145,7 +145,7 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
         }
         return $res;
     }
-    
+
     public function needExtraPaymentPlanInformaton()
     {
         try {
@@ -159,7 +159,7 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
         }
         return $res;
     }
-    
+
     protected function _getCurrentField($field, $default = '')
     {
         try {
@@ -181,7 +181,15 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
 
     public function getCurrentGender()
     {
-        return $this->_getCurrentField('gender');
+        $res = null;
+        $quote = $this->getQuote();
+        if ($quote->getCustomerGender()) {
+            $res = $quote->getCustomerGender();
+        }
+        if (!$res) {
+            $res = $this->_getCurrentField('gender');
+        }
+        return $res;
     }
 
     public function getCurrentPhonenumber()
@@ -196,23 +204,47 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
         if (!$res) {
             $res = $this->_getCurrentField('phonenumber');
         }
-        if ($res=='-') $res = ''; // Magento seems to default to '-'
+        if ($res == '-') $res = ''; // Magento seems to default to '-'
         return $res;
     }
 
     public function getCurrentDobYear()
     {
-        return $this->_getCurrentField('dob_year');
+        $res = null;
+        $quote = $this->getQuote();
+        if ($quote->getCustomerDob()) {
+            $res = substr($quote->getCustomerDob(), 0, 4);
+        }
+        if (!$res) {
+            $res = $this->_getCurrentField('dob_year');
+        }
+        return $res;
     }
 
     public function getCurrentDobMonth()
     {
-        return $this->_getCurrentField('dob_month');
+        $res = null;
+        $quote = $this->getQuote();
+        if ($quote->getCustomerDob()) {
+            $res = substr($quote->getCustomerDob(), 5, 2);
+        }
+        if (!$res) {
+            $res = $this->_getCurrentField('dob_month');
+        }
+        return $res;
     }
 
     public function getCurrentDobDay()
     {
-        return $this->_getCurrentField('dob_day');
+        $res = null;
+        $quote = $this->getQuote();
+        if ($quote->getCustomerDob()) {
+            $res = substr($quote->getCustomerDob(), 8, 2);
+        }
+        if (!$res) {
+            $res = $this->_getCurrentField('dob_day');
+        }
+        return $res;
     }
 
     public function getPClassHtml()
@@ -302,7 +334,7 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
         $klarna->setQuote($this->getQuote(), $method);
         return $klarna->getKlarnaLogotype($width, Vaimo_Klarna_Helper_Data::KLARNA_LOGOTYPE_POSITION_CHECKOUT);
     }
-    
+
     public function useServiceLogotypes($serviceMethod, $width)
     {
         $res = '';
@@ -381,8 +413,8 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
         $method = $this->getMethod()->getCode();
         $klarna = Mage::getModel('klarna/klarna');
         $klarna->setQuote($this->getQuote(), $method);
-        if (Mage::helper('klarna')->showTitleAsTextOnly()==false) {
-            $str = '<img src="'.$klarna->getKlarnaLogotype(75, Vaimo_Klarna_Helper_Data::KLARNA_LOGOTYPE_POSITION_CHECKOUT).'" alt="" title="" />';
+        if (Mage::helper('klarna')->showTitleAsTextOnly() == false) {
+            $str = '<img src="' . $klarna->getKlarnaLogotype(75, Vaimo_Klarna_Helper_Data::KLARNA_LOGOTYPE_POSITION_CHECKOUT) . '" alt="" title="" />';
             $str .= $klarna->getMethodTitleWithFee(Mage::helper('klarna')->getVaimoKlarnaFeeInclVat($this->getQuote(), false));
         }
         return $str;
@@ -397,5 +429,42 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
         return $res;
     }
 
+    public function validShippingAndBillingAddress()
+    {
+        $res = true;
+        if (!Mage::helper('klarna')->isOneStepCheckout() &&
+            !Mage::helper('klarna')->isFireCheckout() &&
+            !Mage::helper('klarna')->isVaimoCheckout()
+        ) {
+            $method = $this->getMethod()->getCode();
+            $klarna = Mage::getModel('klarna/klarna');
+            $klarna->setQuote($this->getQuote(), $method);
+            $res = $klarna->validShippingAndBillingAddress();
+        }
+        return $res;
+    }
+
+    public function formatUseCase($useCaseText)
+    {
+        $method = $this->getMethod()->getCode();
+        $klarna = Mage::getModel('klarna/klarna');
+        $klarna->setQuote($this->getQuote(), $method);
+        $res = $klarna->formatUseCase($useCaseText);
+        return $res;
+    }
+
+    public function addressesAreTheSame()
+    {
+        $method = $this->getMethod()->getCode();
+        $klarna = Mage::getModel('klarna/klarna');
+        $klarna->setQuote($this->getQuote(), $method);
+        $res = $klarna->addressesAreTheSame();
+        return $res;
+    }
+
+    public function getInvoiceSubTitle()
+    {
+        return Mage::helper('klarna')->__('Pay in 15 days');
+    }
 }
 
