@@ -94,9 +94,13 @@ class Vaimo_Klarna_Model_Creditmemo_Total extends Mage_Sales_Model_Order_Creditm
                     return $this;
                 }
                 if (!$invoice) {
-                    Mage::getSingleton('adminhtml/session')->addError(
-                        $this->_getHelper()->__('You must create the credit memo from the invoice, not directly from the order, to update Klarna with the credited amount/items')
-                    );
+                    $klarna = Mage::getModel('klarna/klarna');
+                    $klarna->setOrder($order);
+                    if (!$klarna->getConfigData('disable_backend_calls')) {
+                        Mage::getSingleton('adminhtml/session')->addError(
+                            $this->_getHelper()->__('You must create the credit memo from the invoice, not directly from the order, to update Klarna with the credited amount/items')
+                        );
+                    }
                     return $this;
                 }
                 $info = $payment->getMethodInstance()->getInfoInstance();

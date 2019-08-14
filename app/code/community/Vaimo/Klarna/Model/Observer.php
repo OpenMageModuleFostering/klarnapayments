@@ -105,9 +105,8 @@ class Vaimo_Klarna_Model_Observer extends Mage_Core_Model_Abstract
      */
     public function resetCheckoutCookie($observer)
     {
-        $this->_getSession()->setUseOtherMethods(false);
+        $this->_getSession()->setKlarnaUseOtherMethods(false);
     }
-
 
 // KLARNA CHECKOUT FROM HERE
 
@@ -135,7 +134,7 @@ class Vaimo_Klarna_Model_Observer extends Mage_Core_Model_Abstract
 
     public function checkLaunchKlarnaCheckout($observer)
     {
-        if (!$this->_getSession()->getUseOtherMethods()) {
+        if (!$this->_getSession()->getKlarnaUseOtherMethods()) {
             $quote = Mage::getSingleton('checkout/session')->getQuote();
             $klarna = Mage::getModel('klarna/klarnacheckout');
             $klarna->setQuote($quote, Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
@@ -145,6 +144,58 @@ class Vaimo_Klarna_Model_Observer extends Mage_Core_Model_Abstract
                     ->setRedirect(Mage::getUrl('checkout/klarna'))
                     ->sendResponse();
                 exit;
+            }
+        }
+    }
+
+    /**
+     * Odd way of figuring out when to reset the session variable
+     * Idea at first was to have a permanent switch of payment methods
+     * but now the code goes back to KCO (if active) as soon as any non
+     * checkout controller runs.
+     *
+     * @param $observer
+     */
+    public function checkDisableUseOtherMethods($observer)
+    {
+        if ($this->_getSession()->getKlarnaUseOtherMethods()) {
+            $quote = Mage::getSingleton('checkout/session')->getQuote();
+            $klarna = Mage::getModel('klarna/klarnacheckout');
+            $klarna->setQuote($quote, Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
+            if ($klarna->getConfigData('auto_reset_other_method_button')) {
+                $controller = $observer->getEvent()->getControllerAction();
+                $class = get_class($controller);
+                if ((!stristr($class, 'checkout') && !stristr($class, 'ajax') && !stristr($class, 'klarna')) ||
+                    ( stristr($class, 'checkout') && !stristr($class, 'ajax') &&  stristr($class, 'cart'))) {
+                    $this->_getSession()->setKlarnaUseOtherMethods(false);
+                    $payment = $quote->getPayment();
+                    $payment->setMethod(Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
+                    // This code was added because Magento does something very strange when we call getShippingRates
+                    // in available.phtml
+                    // It sometimes changes shipping amount to incl tax, which means total shipping is increased
+                    // by shipping tax. This causes Klarna Checkout to reply with an error, since totals don't match
+                    // Easiest solution was to clear selected shipping method when switching...
+                    $quote->getShippingAddress()->setShippingMethod(NULL)->setShippingDescription(NULL);
+                    $quote->collectTotals()->save();
+                }
+            }
+        }
+    }
+
+    public function addMassAction($observer)
+    {
+        if (get_class($observer->getEvent()->getBlock()) == 'Mage_Adminhtml_Block_Widget_Grid_Massaction') {
+            if ($observer->getEvent()->getBlock()->getRequest()->getControllerName() == 'sales_order') {
+                $store = Mage::app()->getStore();
+                $path = "*/klarna_massaction/capture";
+                $params = array(
+                    '_secure' => $store->isAdminUrlSecure()
+                );
+                $url = $store->getUrl($path,$params);
+                $observer->getEvent()->getBlock()->addItem('klarna_mass_capture', array(
+                    'label'=> Mage::helper('sales')->__('Invoice Klarna Orders'),
+                    'url'  => $url,
+                ));
             }
         }
     }

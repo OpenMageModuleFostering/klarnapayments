@@ -179,6 +179,10 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     const ENCODING_MAGENTO = 'UTF-8';
     const ENCODING_KLARNA = 'ISO-8859-1';
 
+    /**
+     * The name in SESSION variable of the function currently executing, only used for logs
+     */
+    const LOG_FUNCTION_SESSION_NAME = 'klarna_log_function_name';
 
     /**
      * Encode the string to klarna encoding
@@ -653,6 +657,180 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
         if ($event_name) {
             Mage::dispatchEvent( $event_name, array("order" => $order) );
         }
+    }
+
+    public function SplitJsonStrings($json)
+    {
+        $q = false;
+        $len = strlen($json);
+        for($l=$c=$i=0;$i<$len;$i++)
+        {
+            $json[$i] == '"' && ($i>0?$json[$i-1]:'') != '\\' && $q = !$q;
+            if(!$q && in_array($json[$i], array(" ", "\r", "\n", "\t"))){continue;}
+            in_array($json[$i], array('{', '[')) && !$q && $l++;
+            in_array($json[$i], array('}', ']')) && !$q && $l--;
+            (isset($objects[$c]) && $objects[$c] .= $json[$i]) || $objects[$c] = $json[$i];
+            $c += ($l == 0);
+        }
+        return $objects;
+    }
+
+    public function JsonDecode($json)
+    {
+        $res = array();
+        $jsonArr = $this->SplitJsonStrings($json);
+        if ($jsonArr) {
+            foreach ($jsonArr as $jsonStr) {
+                $decoded = json_decode($jsonStr, true);
+                switch (json_last_error()) {
+                    case JSON_ERROR_NONE:
+                        $res = array_merge_recursive($res, $decoded); // array_merge
+                        break;
+                    case JSON_ERROR_DEPTH:
+                        $res = 'Maximum stack depth exceeded';
+                        break;
+                    case JSON_ERROR_STATE_MISMATCH:
+                        $res = 'Underflow or the modes mismatch';
+                        break;
+                    case JSON_ERROR_CTRL_CHAR:
+                        $res = 'Unexpected control character found';
+                        break;
+                    case JSON_ERROR_SYNTAX:
+                        $res = 'Syntax error, malformed JSON';
+                        break;
+                    case JSON_ERROR_UTF8:
+                        $res = 'Malformed UTF-8 characters, possibly incorrectly encoded';
+                        break;
+                    default:
+                        $res = 'Unknown error';
+                        break;
+                }
+            }
+        }
+       return $res;
+    }
+    
+    /**
+     * Sets the function name, which is used in logs. This is set in each class construct
+     *
+     * @param string $functionName
+     *
+     * @return void
+     */
+    public function setFunctionNameForLog($functionName)
+    {
+        $_SESSION[self::LOG_FUNCTION_SESSION_NAME] = $functionName;
+    }
+    
+    /**
+     * Returns the function name set by the constructors in each class
+     *
+     * @return string
+     */
+    public function getFunctionNameForLog()
+    {
+        return array_key_exists(self::LOG_FUNCTION_SESSION_NAME, $_SESSION) ? $_SESSION[self::LOG_FUNCTION_SESSION_NAME] : '';
+    }
+    
+    /**
+     * Log function that does the writing to log file
+     *
+     * @param string $filename  What file to write to, will be placed in site/var/klarna/ folder
+     * @param string $msg       Text to log
+     *
+     * @return void
+     */
+    protected function _log($filename, $msg)
+    {
+        Mage::log('PID(' . getmypid() . '): ' . $this->getFunctionNameForLog() . ': ' . $msg, null, $filename, true);
+    }
+    
+    /**
+     * Log function that does the writing to log file
+     *
+     * @param string $filename  What file to write to, will be placed in site/var/klarna/ folder
+     * @param string $msg       Text to log
+     *
+     * @return void
+     */
+    protected function _logAlways($filename, $msg)
+    {
+        $logDir  = Mage::getBaseDir('var') . DS . 'log' . DS;
+        $logFile = $logDir . $filename;
+
+        try {
+            if (!is_dir($logDir)) {
+                mkdir($logDir);
+                chmod($logDir, 0777);
+            }
+            if( file_exists($logFile) ){
+                $fp = fopen( $logFile, "a" );
+            } else {
+                $fp = fopen( $logFile, "w" );
+            }
+            if( !$fp ) return null;
+            fwrite( $fp, date("Y/m/d H:i:s") . ' ' . $this->getFunctionNameForLog() . ': ' . $msg . "\n" );
+            fclose( $fp );
+        } catch( Exception $e ) {
+            return;
+        }
+    }
+    
+    /**
+     * Log function that logs all Klarna API calls and replies, this to see what functions are called and what reply they get
+     *
+     * @param string $comment Text to log
+     *
+     * @return void
+     */
+    public function logKlarnaApi($comment)
+    {
+        $this->_log('klarnaapi.log', $comment);
+    }
+    
+    /**
+     * Log function used for various debug log information, array is optional
+     *
+     * @param string $info  Header of what is being logged
+     * @param array $arr    The array to be logged
+     *
+     * @return void
+     */
+    public function logDebugInfo($info, $arr = NULL)
+    {
+        if (!$arr) {
+            $this->_log('klarnadebug.log', $info);
+        } else {
+            if (is_array($arr)) {
+                $this->_log('klarnadebug.log', print_r($arr, true));
+            } elseif (is_object($arr)) {
+                $this->_log('klarnadebug.log', print_r(array($arr), true));
+            }
+        }
+    }
+    
+    protected function _logMagentoException($e)
+    {
+        Mage::logException($e);
+    }
+    
+    /**
+     * If there is an exception, this log function should be used
+     * This is mainly meant for exceptions concerning klarna API calls, but can be used for any exception
+     *
+     * @param Exception $e
+     *
+     * @return void
+     */
+    public function logKlarnaException($e)
+    {
+        $this->_logMagentoException($e);
+        $errstr = 'Exception:';
+        if ($e->getCode()) $errstr = $errstr . ' Code: ' . $e->getCode();
+        if ($e->getMessage()) $errstr = $errstr . ' Message: ' . $e->getMessage(); // $this->_decode()
+        if ($e->getLine()) $errstr = $errstr . ' Row: ' . $e->getLine();
+        if ($e->getFile()) $errstr = $errstr . ' File: ' . $e->getFile();
+        $this->_logAlways('klarnaerror.log', $errstr);
     }
 
 }

@@ -24,12 +24,12 @@
  */
 ?>
 
-<div id="klarna_loader"><img src="<?php echo $this->getSkinUrl('images/opc-ajax-loader.gif')?>" alt="" id="klarna_loader_img" /></div>
+<div id="klarna_loader" class="klarna_loader"><img src="<?php echo $this->getSkinUrl('images/opc-ajax-loader.gif')?>" alt="" id="klarna_loader_img" /></div>
 
 <div class="page-title">
-
-	<h1><?php echo $this->__('Shopping Cart') ?></h1>
-
+    <h1 class="klarna_page-title"><?php echo $this->__('Shopping Cart') ?></h1>
 </div>
+
+<?php echo $this->getChildHtml('klarna_msg'); ?>
 
 <?php echo $this->getMessagesBlock()->getGroupedHtml() ?>

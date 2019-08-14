@@ -32,6 +32,12 @@
                     <span id="<?php echo $this->getMethodCode(); ?>_update_address_message" class="klarna_msg_txt"></span>
                 </li>
 
+            <?php else: ?>
+
+                <?php if ($this->shippingSameAsBilling()): ?>
+                    <li class="klarna_notification"><?php echo Mage::helper('klarna')->__('Please note that your official address will be used for shipping and billing address when you place your order'); ?></li>
+                <?php endif; ?>
+
             <?php endif; ?>
 
         <?php endif; ?>

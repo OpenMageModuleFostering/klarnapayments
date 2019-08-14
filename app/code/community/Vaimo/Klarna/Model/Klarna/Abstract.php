@@ -282,7 +282,7 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
     protected function _createRefundGoodsList($items = null)
     {
         if ($items === null) {
-            $this->logKlarnaApi('_createRefundGoodsList got no items. Order: ' . $this->getOrder()->getIncrementId());
+            $this->_getHelper()->logKlarnaApi('_createRefundGoodsList got no items. Order: ' . $this->getOrder()->getIncrementId());
         }
 
         $taxRate = NULL;
@@ -754,6 +754,24 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
     }
 
     /**
+     * Update a Magento address with another Magento address and save it.
+     *
+     * @return void
+     */
+    public function updateShippingAddress()
+    {
+        $this->getShippingAddress()->setFirstname($this->getBillingAddress()->getFirstname())
+            ->setLastname($this->getBillingAddress()->getLastname())
+            ->setPostcode($this->getBillingAddress()->getPostcode())
+            ->setStreet($this->getBillingAddress()->getStreet())
+            ->setCity($this->getBillingAddress()->getCity())
+            ->setTelephone($this->getBillingAddress()->getTelephone())
+            ->setCountry($this->getBillingAddress()->getCountry())
+            ->setCompany($this->getBillingAddress()->getCompany())
+            ->save();
+    }
+
+    /**
      * Get a usable email address
      *
      * @param string $customerSessionEmail email of current user
@@ -800,7 +818,7 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
                 return false;
             }
         } catch (Mage_Core_Exception $e) {
-            $this->logKlarnaException($e);
+            $this->_getHelper()->logKlarnaException($e);
             return false;
         }
         return true;
@@ -814,7 +832,7 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
                 return false;
             }
         } catch (Mage_Core_Exception $e) {
-            $this->logKlarnaException($e);
+            $this->_getHelper()->logKlarnaException($e);
             return false;
         }
         return true;
@@ -834,7 +852,7 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
                 return false;
             }
         } catch (Mage_Core_Exception $e) {
-            $this->logKlarnaException($e);
+            $this->_getHelper()->logKlarnaException($e);
             return false;
         }
         return true;
@@ -854,7 +872,7 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
                 return false;
             }
         } catch (Mage_Core_Exception $e) {
-            $this->logKlarnaException($e);
+            $this->_getHelper()->logKlarnaException($e);
             return false;
         }
         return true;
@@ -908,7 +926,7 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
             if ($this->_getHelper()->isKlarnaField($key)) {
                 $this->_postValues[$key] = $value;
             } else {
-                $this->logDebugInfo('Field ignored: ' . $key);
+                $this->_getHelper()->logDebugInfo('Field ignored: ' . $key);
             }
         }
     }

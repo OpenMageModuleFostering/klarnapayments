@@ -29,6 +29,7 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
 
     protected $_curlHeaders;
     protected $_klarnaOrder = null;
+    protected $_useKlarnaOrderSessionCache = false;
     protected $_request = NULL;
 
     public function init($klarnaSetup)
@@ -48,7 +49,7 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
 
     public function curlHeader($ch, $str)
     {
-        $this->_getTransport()->logDebugInfo('curlHeader rest str = ' . $str);
+        Mage::helper('klarna')->logDebugInfo('curlHeader rest str = ' . $str);
         if (strpos($str, ': ') !== false) {
             list($key, $value) = explode(': ', $str, 2);
             $this->_curlHeaders[$key] = trim($value);
@@ -57,9 +58,23 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         return strlen($str);
     }
 
+    protected function _getLocationOrderId($location = NULL)
+    {
+        if ($location) {
+            $res = $location;
+        } else {
+            $res = $this->_klarnaOrder->getLocation();
+        }
+        $arr = explode('/', $res);
+        if (is_array($arr)) {
+            $res = $arr[sizeof($arr)-1];
+        }
+        return $res;
+    }
+    
     protected function _getBillingAddressData()
     {
-        if (!$this->_getTransport()->getConfigData("auto_prefil")) return NULL;
+        if (!$this->_getTransport()->getConfigData('auto_prefil')) return NULL;
 
         /** @var $session Mage_Customer_Model_Session */
         $session = Mage::getSingleton('customer/session');
@@ -68,6 +83,12 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
             return array(
                 'email' => $session->getCustomer()->getEmail(),
                 'postal_code' => $address ? $address->getPostcode() : '',
+                'street_address' => $address ? $address->getStreet(1) : '',
+                'given_name' => $address ? $address->getFirstname() : '',
+                'family_name' => $address ? $address->getLastname() : '',
+                'city' => $address ? $address->getCity() : '',
+                'phone' => $address ? $address->getTelephone() : '',
+                'country' => $address ? $address->getCountryId() : '',
             );
         }
 
@@ -94,8 +115,8 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         $quote = $this->_getQuote();
 
         if ($quote->getKlarnaCheckoutId() != $checkoutId) {
-            $this->_getTransport()->logDebugInfo('SET checkout id rest: ' . $checkoutId);
-            $this->_getTransport()->logDebugInfo('Quote Id rest: ' . $quote->getId());
+            Mage::helper('klarna')->logDebugInfo('SET checkout id rest: ' . $checkoutId);
+            Mage::helper('klarna')->logDebugInfo('Quote Id rest: ' . $quote->getId());
             $quote->setKlarnaCheckoutId($checkoutId);
             $quote->save();
         }
@@ -134,19 +155,26 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
             switch ($key) {
                 case 'shipping':
                     if ($total->getValue() != 0) {
-                        $amount = $total->getAddress()->getShippingAmount();
-                        $taxAmount = $total->getAddress()->getShippingTaxAmount();
+                        $amount_incl_tax = $total->getAddress()->getShippingInclTax();
+                        if (false && $amount_incl_tax) {
+                            $taxAmount = $total->getAddress()->getShippingTaxAmount();
+                            $amount = $amount_incl_tax - $taxAmount;
+                        } else {
+                            $amount = $total->getAddress()->getShippingAmount();
+                            $taxAmount = $total->getAddress()->getShippingTaxAmount();
+                        }
                         $hiddenTaxAmount = $total->getAddress()->getShippingHiddenTaxAmount();
                         $taxRate = ($taxAmount + $hiddenTaxAmount) / $amount * 100;
+                        $amount_incl_tax = $amount + $taxAmount + $hiddenTaxAmount;
                         $items[] = array(
                             'type' => 'shipping_fee',
                             'reference' => $total->getCode(),
                             'name' => $total->getTitle(),
                             'quantity' => 1,
-                            'unit_price' => round(($amount + $taxAmount + $hiddenTaxAmount) * 100),
+                            'unit_price' => round(($amount_incl_tax) * 100),
                             'discount_rate' => 0,
                             'tax_rate' => round($taxRate * 100),
-                            'total_amount' => round(($amount + $taxAmount + $hiddenTaxAmount) * 100),
+                            'total_amount' => round(($amount_incl_tax) * 100),
                             'total_tax_amount' => round($taxAmount * 100),
                         );
                     }
@@ -251,16 +279,16 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         $create['locale'] = str_replace('_', '-', Mage::app()->getLocale()->getLocaleCode());
 
         $create['gui']['layout'] = $this->_isMobile() ? 'mobile' : 'desktop';
-        if ($this->_getTransport()->getConfigData("enable_auto_focus")==false) {
+        if ($this->_getTransport()->getConfigData('enable_auto_focus')==false) {
             $create['gui']['options'] = array('disable_autofocus');
         }
         if ($this->_getTransport()->AllowSeparateAddress()) {
             $create['options']['allow_separate_shipping_address'] = true;
         }
-        if ($this->_getTransport()->getConfigData("force_phonenumber")) {
+        if ($this->_getTransport()->getConfigData('force_phonenumber')) {
             $create['options']['phone_mandatory'] = true;
         }
-        if ($this->_getTransport()->getConfigData("packstation_enabled")) {
+        if ($this->_getTransport()->getConfigData('packstation_enabled')) {
             $create['options']['packstation_enabled'] = true;
         }
 
@@ -278,7 +306,7 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
             $create['order_tax_amount'] += $line['total_tax_amount'];
         }
 
-        $pushUrl = Mage::getUrl('checkout/klarna/push?klarna_order={checkout.order.uri}', array('_nosid' => true));
+        $pushUrl = Mage::getUrl('checkout/klarna/push?klarna_order={checkout.order.id}', array('_nosid' => true));
         if (substr($pushUrl, -1, 1) == '/') {
             $pushUrl = substr($pushUrl, 0, strlen($pushUrl) - 1);
         }
@@ -288,7 +316,7 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         $create['merchant_urls']['confirmation'] = Mage::getUrl('checkout/klarna/success');
         $create['merchant_urls']['push'] = $pushUrl;
 
-        $validateUrl = Mage::getUrl('checkout/klarna/validate?klarna_order={checkout.order.uri}', array('_nosid' => true));
+        $validateUrl = Mage::getUrl('checkout/klarna/validate?klarna_order={checkout.order.id}', array('_nosid' => true));
         if (substr($validateUrl, -1, 1) == '/') {
             $validateUrl = substr($validateUrl, 0, strlen($validateUrl) - 1);
         }
@@ -296,7 +324,7 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
             $create['merchant']['validation_uri'] = $validateUrl;
         }
 
-        $this->_getTransport()->logDebugInfo('_getCreateRequest rest', $create);
+        Mage::helper('klarna')->logDebugInfo('_getCreateRequest rest', $create);
 
         $request = new Varien_Object($create);
         Mage::dispatchEvent('klarnacheckout_get_create_request', array('request' => $request));
@@ -320,7 +348,7 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
             $update['order_tax_amount'] += $line['total_tax_amount'];
         }
 
-        $this->_getTransport()->logDebugInfo('_getUpdateRequest rest', $update);
+        Mage::helper('klarna')->logDebugInfo('_getUpdateRequest rest', $update);
 
         $request = new Varien_Object($update);
         Mage::dispatchEvent('klarnacheckout_get_update_request', array('request' => $request));
@@ -352,18 +380,19 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
             Mage::throwException('Error creating order: ' . $status);
         }
 
-        $this->_getTransport()->logDebugInfo('_createOrder rest response = ' . $response . ' status = ' . $status);
+        Mage::helper('klarna')->logDebugInfo('_createOrder rest response = ' . $response . ' status = ' . $status);
 
         if (isset($this->_curlHeaders['Location'])) {
-            return $this->_curlHeaders['Location'];
+            return $this->_getLocationOrderId($this->_curlHeaders['Location']);
         }
 
         return false;
     }
 
-    protected function _fetchOrder($location)
+    protected function _fetchOrder($checkoutId)
     {
         $ch = curl_init();
+        $location = $this->_getUrl() . '/checkout/v3/orders/' . $checkoutId;
         curl_setopt($ch, CURLOPT_URL, $location);
         curl_setopt($ch, CURLOPT_USERPWD, $this->_getTransport()->getConfigData('merchant_id') . ':' . $this->_getTransport()->getConfigData('shared_secret'));
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
@@ -378,15 +407,16 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
             Mage::throwException('Error fetching order: ' . $status);
         }
 
-        $this->_getTransport()->logDebugInfo('_fetchOrder rest response = ' . $response . ' status = ' . $status);
+        Mage::helper('klarna')->logDebugInfo('_fetchOrder rest response = ' . $response . ' status = ' . $status);
 
         $this->_klarnaOrder = new Varien_Object(json_decode($response, true));
         $this->_klarnaOrder->setLocation($location);
     }
 
-    protected function _updateOrder($location)
+    protected function _updateOrder($checkoutId)
     {
         $ch = curl_init();
+        $location = $this->_getUrl() . '/checkout/v3/orders/' . $checkoutId;
         curl_setopt($ch, CURLOPT_URL, $location);
         curl_setopt($ch, CURLOPT_USERPWD, $this->_getTransport()->getConfigData('merchant_id') . ':' . $this->_getTransport()->getConfigData('shared_secret'));
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
@@ -404,7 +434,7 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
             Mage::throwException('Error updating order: ' . $status);
         }
 
-        $this->_getTransport()->logDebugInfo('_updateOrder rest response = ' . $response . ' status = ' . $status);
+        Mage::helper('klarna')->logDebugInfo('_updateOrder rest response = ' . $response . ' status = ' . $status);
 
         $this->_klarnaOrder = new Varien_Object(json_decode($response, true));
         $this->_klarnaOrder->setLocation($location);
@@ -423,7 +453,7 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        $this->_getTransport()->logDebugInfo('_retrieveOrder rest response = ' . $response . ' status = ' . $status);
+        Mage::helper('klarna')->logDebugInfo('_retrieveOrder rest response = ' . $response . ' status = ' . $status);
 
         return new Varien_Object(json_decode($response, true));
     }
@@ -444,7 +474,7 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        $this->_getTransport()->logDebugInfo('_acknowledgeOrder rest response = ' . $response . ' status = ' . $status);
+        Mage::helper('klarna')->logDebugInfo('_acknowledgeOrder rest response = ' . $response . ' status = ' . $status);
     }
 
     protected function _updateMerchantReferences($orderId, $reference1, $reference2 = null)
@@ -471,7 +501,7 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        $this->_getTransport()->logDebugInfo('_updateMerchantReferences rest response = ' . $response . ' status = ' . $status);
+        Mage::helper('klarna')->logDebugInfo('_updateMerchantReferences rest response = ' . $response . ' status = ' . $status);
     }
 
     public function capture($orderId, $amount, $sendEmailf)
@@ -490,7 +520,7 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        $this->_getTransport()->logDebugInfo('capture rest response = ' . $response . ' status = ' . $status);
+        Mage::helper('klarna')->logDebugInfo('capture rest response = ' . $response . ' status = ' . $status);
 
         if ($status != 201) {
             $response = json_decode($response, true);
@@ -552,7 +582,7 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        $this->_getTransport()->logDebugInfo('refund rest response = ' . $response . ' status = ' . $status);
+        Mage::helper('klarna')->logDebugInfo('refund rest response = ' . $response . ' status = ' . $status);
 
         if ($status != 204) {
             $response = json_decode($response, true);
@@ -596,7 +626,7 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        $this->_getTransport()->logDebugInfo('cancel rest response = ' . $response . ' status = ' . $status);
+        Mage::helper('klarna')->logDebugInfo('cancel rest response = ' . $response . ' status = ' . $status);
 
         if ($status != 204) {
             $response = json_decode($response, true);
@@ -639,7 +669,7 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        $this->_getTransport()->logDebugInfo('release rest response = ' . $response . ' status = ' . $status);
+        Mage::helper('klarna')->logDebugInfo('release rest response = ' . $response . ' status = ' . $status);
 
         if ($status != 204) {
             $response = json_decode($response, true);
@@ -661,24 +691,37 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         return $res;
     }
 
+    public function setKlarnaOrderSessionCache($value)
+    {
+        $this->_useKlarnaOrderSessionCache = $value;
+    }
+
     public function initKlarnaOrder($checkoutId = null, $createIfNotExists = false, $updateItems = false)
     {
         if ($checkoutId) {
-            $this->_getTransport()->logKlarnaApi('initKlarnaOrder rest checkout id: ' . $checkoutId);
-            $this->_fetchOrder($checkoutId);
-            $res = $this->_klarnaOrder!=NULL;
-            if ($res) {
-                if ($this->_klarnaOrder->getLocation()) {
-                    $this->_setKlarnaCheckoutId($this->_klarnaOrder->getLocation());
+            Mage::helper('klarna')->logKlarnaApi('initKlarnaOrder rest checkout id: ' . $checkoutId);
+            $loadf = true;
+            if ($this->_useKlarnaOrderSessionCache) {
+                if ($this->_klarnaOrder) {
+                    $loadf = false;
                 }
             }
-            $this->_getTransport()->logKlarnaApi('initKlarnaOrder rest true');
+            if ($loadf) {
+                $this->_fetchOrder($checkoutId);
+            }
+            $res = $this->_klarnaOrder!=NULL;
+            if ($res) {
+                if ($this->_getLocationOrderId()) {
+                    $this->_setKlarnaCheckoutId($this->_getLocationOrderId());
+                }
+            }
+            Mage::helper('klarna')->logKlarnaApi('initKlarnaOrder rest true');
             return $res;
         }
 
         if ($klarnaCheckoutId = $this->_getKlarnaCheckoutId()) {
             try {
-                $this->_getTransport()->logKlarnaApi('initKlarnaOrder rest klarnaCheckoutId id: ' . $klarnaCheckoutId);
+                Mage::helper('klarna')->logKlarnaApi('initKlarnaOrder rest klarnaCheckoutId id: ' . $klarnaCheckoutId);
                 if ($updateItems) {
                     $this->_updateOrder($klarnaCheckoutId);
                 } else {
@@ -686,25 +729,25 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
                 }
                 $res = $this->_klarnaOrder!=NULL;
                 if ($res) {
-                    if ($this->_klarnaOrder->getLocation()) {
-                        $this->_setKlarnaCheckoutId($this->_klarnaOrder->getLocation());
+                    if ($this->_getLocationOrderId()) {
+                        $this->_setKlarnaCheckoutId($this->_getLocationOrderId());
                     }
                 }
-                $this->_getTransport()->logKlarnaApi('initKlarnaOrder rest true');
+                Mage::helper('klarna')->logKlarnaApi('initKlarnaOrder rest true');
                 return $res;
             } catch (Exception $e) {
                 // when checkout in Klarna was expired, then exception, so we just ignore and create new
-                $this->_getTransport()->logKlarnaException($e);
+                Mage::helper('klarna')->logKlarnaException($e);
             }
         }
 
         if ($createIfNotExists) {
-            if ($location = $this->_createOrder()) {
-                $this->_fetchOrder($location);
+            if ($checkoutId = $this->_createOrder()) {
+                $this->_fetchOrder($checkoutId);
                 $res = $this->_klarnaOrder!=NULL;
                 if ($res) {
-                    if ($this->_klarnaOrder->getLocation()) {
-                        $this->_setKlarnaCheckoutId($location);
+                    if ($this->_getLocationOrderId()) {
+                        $this->_setKlarnaCheckoutId($this->_getLocationOrderId()); // $location
                     }
                 }
                 return $res;
@@ -714,6 +757,18 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         return false;
     }
 
+    /*
+     * Not happy with this, but I guess we can't solve it in other ways.
+     *
+     */
+    public function getActualKlarnaOrder()
+    {
+        if ($this->_klarnaOrder) {
+            return $this->_klarnaOrder;
+        }
+        return NULL;
+    }
+    
     public function getKlarnaCheckoutGui()
     {
         if ($this->_klarnaOrder) {
@@ -736,7 +791,7 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
     {
         if ($this->_klarnaOrder) {
             /** @var $quote Mage_Sales_Model_Quote */
-            $quote = Mage::getModel('sales/quote')->load($this->_klarnaOrder->getLocation(), 'klarna_checkout_id');
+            $quote = Mage::getModel('sales/quote')->load($this->_getLocationOrderId(), 'klarna_checkout_id');
             if ($quote->getId()) {
                 return $quote;
             }
@@ -760,10 +815,10 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
     public function updateKlarnaOrder($order)
     {
         if ($this->_klarnaOrder) {
-            $this->_getTransport()->logKlarnaApi('updateKlarnaOrder rest order no: ' . $order->getIncrementId());
+            Mage::helper('klarna')->logKlarnaApi('updateKlarnaOrder rest order no: ' . $order->getIncrementId());
             $this->_acknowledgeOrder($this->_klarnaOrder->getOrderId());
             $this->_updateMerchantReferences($this->_klarnaOrder->getOrderId(), $order->getIncrementId());
-            $this->_getTransport()->logKlarnaApi('updateKlarnaOrder rest success');
+            Mage::helper('klarna')->logKlarnaApi('updateKlarnaOrder rest success');
             return true;
         }
 

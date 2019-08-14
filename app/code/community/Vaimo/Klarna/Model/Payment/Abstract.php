@@ -85,6 +85,9 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
 
     public function canCapture()
     {
+        $klarna = $this->_getKlarnaModel();
+        $klarna->setQuote($this->getQuote(), $this->_code);
+        if ($klarna->getConfigData('disable_backend_calls')) return false;
         return true;
     }
 
@@ -204,7 +207,7 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
                 }
             }
         } catch (Mage_Core_Exception $e) {
-            if ($klarna) $klarna->logKlarnaException($e);
+            $this->_getHelper()->logKlarnaException($e);
             return false;
         }
         return true;
@@ -339,10 +342,10 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
                 Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_RESERVATION_STATUS, $transactionStatus
             );
             $payment->setAdditionalInformation(
-                Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_HOST, $klarna->getConfigData("host")
+                Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_HOST, $klarna->getConfigData('host')
             );
             $payment->setAdditionalInformation(
-                Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_MERCHANT_ID, $klarna->getConfigData("merchant_id")
+                Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_MERCHANT_ID, $klarna->getConfigData('merchant_id')
             );
 
             if ($transactionStatus==Vaimo_Klarna_Helper_Data::KLARNA_STATUS_PENDING) {

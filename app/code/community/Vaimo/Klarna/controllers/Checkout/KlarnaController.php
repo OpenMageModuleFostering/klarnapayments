@@ -25,11 +25,6 @@
 
 class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_Action
 {
-    protected function _log($message)
-    {
-        Mage::log(getmypid() . ' ' . $message, null, 'klarnacheckout.log', true);
-    }
-
     /**
      * @return Mage_Checkout_Model_Session
      */
@@ -123,7 +118,7 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
         $quote->setTotalsCollectedFlag(false);
         $quote->collectTotals();
         $quote->save();
-        $this->_getSession()->setUseOtherMethods(true);
+        $this->_getSession()->setKlarnaUseOtherMethods(true);
         if (Mage::helper('klarna')->isOneStepCheckout()) {
             $this->_redirect('onestepcheckout');
         } else {
@@ -138,7 +133,7 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
         $quote->setTotalsCollectedFlag(false);
         $quote->collectTotals();
         $quote->save();
-        $this->_getSession()->setUseOtherMethods(false);
+        $this->_getSession()->setKlarnaUseOtherMethods(false);
         if (Mage::helper('klarna')->isOneStepCheckout()) {
             $this->_redirect('onestepcheckout');
         } else {
@@ -205,10 +200,10 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
         if (substr($checkoutId, -1, 1) == '/') {
             $checkoutId = substr($checkoutId, 0, strlen($checkoutId) - 1);
         }
-        $klarna->logKlarnaApi('validateAction checkout id: ' . $checkoutId);
+        Mage::helper('klarna')->logKlarnaApi('validateAction checkout id: ' . $checkoutId);
 
         $result = $klarna->validateQuote($checkoutId);
-        $klarna->logKlarnaApi('validateAction result = ' . $result);
+        Mage::helper('klarna')->logKlarnaApi('validateAction result = ' . $result);
 
         if ($result !== true) {
             $this->getResponse()
@@ -228,9 +223,9 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
         if (substr($checkoutId, -1, 1) == '/') {
             $checkoutId = substr($checkoutId, 0, strlen($checkoutId) - 1);
         }
-        $klarna->logKlarnaApi('pushAction checkout id: ' . $checkoutId);
+        Mage::helper('klarna')->logKlarnaApi('pushAction checkout id: ' . $checkoutId);
         if (!$quote->getId()) {
-            $klarna->logKlarnaApi('pushAction checkout quote not found!');
+            Mage::helper('klarna')->logKlarnaApi('pushAction checkout quote not found!');
         }
 
         if ($checkoutId) {
@@ -239,12 +234,12 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
                 $result = $klarna->createOrder($checkoutId);
 
                 if (is_object($result)) {
-                    $klarna->logKlarnaApi('pushAction order created successfully, order id: ' . $result->getId());
+                    Mage::helper('klarna')->logKlarnaApi('pushAction order created successfully, order id: ' . $result->getId());
                 } else {
-                    $klarna->logKlarnaApi($result);
+                    Mage::helper('klarna')->logKlarnaApi($result);
                 }
             } catch (Exception $e) {
-                $klarna->logKlarnaException($e);
+                Mage::helper('klarna')->logKlarnaException($e);
             }
         }
     }
@@ -256,7 +251,7 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
             $quote = Mage::getModel('sales/quote')->load($checkoutId, 'klarna_checkout_id');
             $klarna = Mage::getModel('klarna/klarnacheckout');
             $klarna->setQuote($quote, Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
-            $klarna->logKlarnaApi('successAction checkout id: ' . $checkoutId);
+            Mage::helper('klarna')->logKlarnaApi('successAction checkout id: ' . $checkoutId);
 
             if (!$checkoutId) {
                 $this->_redirect('');
@@ -267,17 +262,17 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
             $canDisplaySuccess = $status == 'checkout_complete' || $status == 'created';
 
             if (!$canDisplaySuccess) {
-                $klarna->logKlarnaApi('successAction ERROR: order not created: ' . $status);
+                Mage::helper('klarna')->logKlarnaApi('successAction ERROR: order not created: ' . $status);
                 $this->_redirect('');
                 return;
             } else {
-                $klarna->logKlarnaApi('successAction displaying success');
+                Mage::helper('klarna')->logKlarnaApi('successAction displaying success');
             }
 
             // close the quote if push hasn't closed it already
             $quote = $this->_getQuote();
             if ($quote->getId() && $quote->getIsActive()) {
-                $klarna->logKlarnaApi('successAction closing quote');
+                Mage::helper('klarna')->logKlarnaApi('successAction closing quote');
                 /** @var Mage_Core_Model_Resource $resource */
                 $resource = Mage::getSingleton('core/resource');
                 $read = $resource->getConnection('core_read');
@@ -301,10 +296,10 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
             $this->renderLayout();
 
             $this->_getSession()->setKlarnaCheckoutId('');
-            $this->_getSession()->setUseOtherMethods(false);
-            $klarna->logKlarnaApi('successAction displayed success');
+            $this->_getSession()->setKlarnaUseOtherMethods(false);
+            Mage::helper('klarna')->logKlarnaApi('successAction displayed success');
         } catch (Exception $e) {
-            $klarna->logKlarnaException($e);
+            Mage::helper('klarna')->logKlarnaException($e);
         }
     }
 
@@ -422,13 +417,22 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
 
     public function getKlarnaWrapperHtmlAction()
     {
+        $layout = (int) $this->getRequest()->getParam('klarna_layout');
+
+        if ($layout == 1 && !empty($layout)) {
+            $blockName = 'klarna_sidebar';
+        }
+        else {
+            $blockName = 'klarna_default';
+        }
+
         $this->loadLayout('checkout_klarna_index');
 
-        $block = $this->getLayout()->getBlock('klarna_wrapper');
+        $block = $this->getLayout()->getBlock($blockName);
         $cartHtml = $block->toHtml();
 
         $result['update_sections'] = array(
-            'name' => 'klarna_wrapper',
+            'name' => 'klarna_sidebar',
             'html' => $cartHtml
         );
 

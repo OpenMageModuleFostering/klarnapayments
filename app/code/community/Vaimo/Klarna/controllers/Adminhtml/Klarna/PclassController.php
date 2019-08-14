@@ -52,4 +52,5 @@ class Vaimo_Klarna_Adminhtml_Klarna_PclassController extends Mage_Adminhtml_Cont
         $result = Mage::helper('core')->jsonEncode($result);
         Mage::app()->getResponse()->setBody($result);
     }
+    
 }

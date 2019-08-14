@@ -43,7 +43,7 @@ class Vaimo_Klarna_Model_Payment_Special extends Vaimo_Klarna_Model_Payment_Abst
             }
 
         } catch (Mage_Core_Exception $e) {
-            if ($klarna) $klarna->logKlarnaException($e);
+            $this->_getHelper()->logKlarnaException($e);
             return false;
         }
         return true;

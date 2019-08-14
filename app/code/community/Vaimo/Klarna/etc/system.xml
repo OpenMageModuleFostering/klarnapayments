@@ -153,6 +153,16 @@
                             <show_in_website>1</show_in_website>
                             <comment>Disable this method when company field is filled in during checkout</comment>
                         </disable_company_purchase>
+                        <disable_backend_calls translate="label">
+                            <label>Disable Klarna Backend</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>230</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_store>1</show_in_store>
+                            <show_in_website>1</show_in_website>
+                            <comment>Disable all calls to Klarna from Admin, such as Capture, Credit and Cancel. This feature can be used if those functions are maintained by an external system</comment>
+                        </disable_backend_calls>
                         <terms_url translate="label">
                             <label>URL to terms and conditions</label>
                             <frontend_type>text</frontend_type>
@@ -310,6 +320,16 @@
                             <show_in_website>1</show_in_website>
                             <comment>Disable this method when company field is filled in during checkout</comment>
                         </disable_company_purchase>
+                        <disable_backend_calls translate="label">
+                            <label>Disable Klarna Backend</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>230</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_store>1</show_in_store>
+                            <show_in_website>1</show_in_website>
+                            <comment>Disable all calls to Klarna from Admin, such as Capture, Credit and Cancel. This feature can be used if those functions are maintained by an external system</comment>
+                        </disable_backend_calls>
                         <disable_product_widget translate="label">
                             <label>Disable payment widget on product page</label>
                             <frontend_type>select</frontend_type>
@@ -467,6 +487,16 @@
                             <show_in_website>1</show_in_website>
                             <comment>Disable this method when company field is filled in during checkout</comment>
                         </disable_company_purchase>
+                        <disable_backend_calls translate="label">
+                            <label>Disable Klarna Backend</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>230</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_store>1</show_in_store>
+                            <show_in_website>1</show_in_website>
+                            <comment>Disable all calls to Klarna from Admin, such as Capture, Credit and Cancel. This feature can be used if those functions are maintained by an external system</comment>
+                        </disable_backend_calls>
                         <terms_url translate="label">
                             <label>URL to terms and conditions</label>
                             <frontend_type>text</frontend_type>
@@ -604,6 +634,16 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
                         </order_status>
+                        <disable_backend_calls translate="label">
+                            <label>Disable Klarna Backend</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>79</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_store>1</show_in_store>
+                            <show_in_website>1</show_in_website>
+                            <comment>Disable all calls to Klarna from Admin, such as Capture, Credit and Cancel. This feature can be used if those functions are maintained by an external system</comment>
+                        </disable_backend_calls>
                         <disable_product_widget translate="label">
                             <label>Disable payment widget on product page</label>
                             <frontend_type>select</frontend_type>
@@ -623,6 +663,25 @@
                             <show_in_store>1</show_in_store>
                             <comment>URL to this stores own terms and conditions</comment>
                         </terms_url>
+                        <klarna_layout translate="label">
+                            <label>Layout</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>klarna/source_klarnalayout</source_model>
+                            <sort_order>100</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </klarna_layout>
+                        <show_login_form translate="label">
+                            <label>Show login form</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>110</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>Only for 2 column layout</comment>
+                        </show_login_form>
                         <extra_order_attribute translate="label">
                             <label>Extra order ID attribute</label>
                             <frontend_type>text</frontend_type>
@@ -691,7 +750,7 @@
                         <enable_other_button translate="label">
                             <label>Enabled</label>
                             <frontend_type>select</frontend_type>
-                            <source_model>klarna/source_yesnodefault</source_model>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
                             <sort_order>721</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
@@ -716,6 +775,16 @@
                             <show_in_store>1</show_in_store>
                             <comment>This can be free text or a complete URL to a reasonably sized image</comment>
                         </label_back_button>
+                        <auto_reset_other_method_button translate="label">
+                            <label>Automatically reactivate Klarna Checkout</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>724</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>If enabled, it will go to Klarna Checkout next time checkout is requested, if user exits checkout by going to another page. Attention! If there are many customizations in standard checkout, it might cause this reactivation as well!</comment>
+                        </auto_reset_other_method_button>
 
                         <heading_newsletter translate="label">
                             <label>Newsletter</label>
@@ -799,6 +868,16 @@
                             <show_in_store>1</show_in_store>
                         </extra_parameters>
                         -->
+                        <user_defined_json translate="label">
+                            <label>User Defined Variables</label>
+                            <backend_model>klarna/adminhtml_system_config_backend_admin_json</backend_model>
+                            <frontend_type>textarea</frontend_type>
+                            <sort_order>920</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>JSON encoded array. Please consult Klarna before using this, incorrect information may cause the integration to stop working</comment>
+                        </user_defined_json>
                     </fields>
                 </vaimo_klarna_checkout>
             </groups>
