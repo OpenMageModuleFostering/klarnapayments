@@ -411,6 +411,10 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         $create['purchase_country'] = Mage::helper('klarna')->getDefaultCountry();
         $create['purchase_currency'] = $this->_getQuote()->getQuoteCurrencyCode();
         $create['locale'] = str_replace('_', '-', Mage::app()->getLocale()->getLocaleCode());
+        $sysLocaleArr = explode('-', $create['locale']);
+        if (sizeof($sysLocaleArr)>1) {
+            $create['locale'] = $this->_klarnaSetup->getLanguageCode() . '-' .$sysLocaleArr[1];
+        }
 
         $create['gui']['layout'] = $this->_isMobile() ? 'mobile' : 'desktop';
         if ($this->_getTransport()->getConfigData('enable_auto_focus')==false) {

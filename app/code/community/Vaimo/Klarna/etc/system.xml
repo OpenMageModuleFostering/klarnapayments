@@ -681,7 +681,6 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </klarna_layout>
-                        <!--
                         <klarna_language>
                             <label>Language</label>
                             <frontend_type>select</frontend_type>
@@ -690,8 +689,8 @@
                             <show_in_default>1</show_in_default>
                             <show_in_store>1</show_in_store>
                             <show_in_website>1</show_in_website>
+                            <comment>Can be used if site is in a different language than the official language of current country</comment>
                         </klarna_language>
-                        -->
                         <show_login_form translate="label">
                             <label>Show login form</label>
                             <frontend_type>select</frontend_type>

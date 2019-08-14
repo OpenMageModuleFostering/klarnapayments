@@ -105,6 +105,7 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
     {
         $quote = $this->_getQuote();
         $items = array();
+        $qtyMultiplierArray = array();
 
         foreach ($quote->getAllItems() as $quoteItem) {
             if (Mage::helper('klarna')->shouldItemBeIncluded($quoteItem)==false) {
@@ -112,6 +113,9 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
             }
 
             $shouldSumsBeZero = Mage::helper('klarna')->checkBundles($quoteItem);
+            if ($shouldSumsBeZero) {
+                $qtyMultiplierArray[$quoteItem->getItemId()] = $quoteItem->getQty();
+            }
 
             if ($quoteItem->getTaxPercent() > 0) {
                 $taxRate = $quoteItem->getTaxPercent();
@@ -127,11 +131,15 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
                 $totalInclTax = 0;
                 $taxAmount = 0;
             }
+            $qty = $quoteItem->getQty();
+            if (isset($qtyMultiplierArray[$quoteItem->getParentItemId()])) {
+                $qty = $qty * $qtyMultiplierArray[$quoteItem->getParentItemId()];
+            }
 
             $items[] = array(
                 'reference' => $quoteItem->getSku(),
                 'name' => $quoteItem->getName(),
-                'quantity' => round($quoteItem->getQty()),
+                'quantity' => round($qty),
                 'unit_price' => round($price * 100),
 //                'discount_rate' => round($quoteItem->getDiscountPercent() * 100),
                 'tax_rate' => round($taxRate * 100),
@@ -252,6 +260,10 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
         $create['purchase_country'] = Mage::helper('klarna')->getDefaultCountry();
         $create['purchase_currency'] = $this->_getQuote()->getQuoteCurrencyCode();
         $create['locale'] = str_replace('_', '-', Mage::app()->getLocale()->getLocaleCode());
+        $sysLocaleArr = explode('-', $create['locale']);
+        if (sizeof($sysLocaleArr)>1) {
+            $create['locale'] = $this->_klarnaSetup->getLanguageCode() . '-' .$sysLocaleArr[1];
+        }
         $create['merchant']['id'] = $this->_klarnaSetup->getMerchantId();
         $terms = Mage::helper('klarna')->getTermsUrl($this->_klarnaSetup->getTermsUrl());
         if ($terms) {

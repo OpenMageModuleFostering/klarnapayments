@@ -363,7 +363,7 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
             $payment->setTransactionId($transactionId)
                 ->setIsTransactionClosed(0);
         } catch (Mage_Core_Exception $e) {
-            Mage::throwException($e->getMessage());
+            Mage::throwException($this->_getHelper()->__('Technical problem occurred while using %s payment method. Please try again later.', $klarna->getMethodTitleWithFee()));
         }
         return $this;
     }

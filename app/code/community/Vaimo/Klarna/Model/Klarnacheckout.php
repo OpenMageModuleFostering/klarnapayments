@@ -291,11 +291,20 @@ class Vaimo_Klarna_Model_Klarnacheckout extends Vaimo_Klarna_Model_Klarnacheckou
             $shippingAddress->setRegionId($request->getRegionId());
             $shippingAddress->setPostcode($request->getPostcode());
             // Massive workaround... because Shipping Origin is per website, not store...
+            /*
+              Changing country at this point is not accurate, it was set to that country
+              for a reason, the fact that it lacks region and postocode, should not cause
+              a country change..
+              
+              Possibly, it should default to some region if the country demands one...
+            
             if (Mage::helper('klarna')->getDefaultCountry()!=$shippingAddress->getCountryId()) {
                 if (!$shippingAddress->getRegionId() && !$shippingAddress->getPostcode()) {
                     $shippingAddress->setCountryId(Mage::helper('klarna')->getDefaultCountry());
                 }
             }
+            
+            */
             $shippingAddress->setCollectShippingRates(true);
             $shippingAddress->collectTotals();
             $shippingAddress->collectShippingRates();

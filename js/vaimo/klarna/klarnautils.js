@@ -407,7 +407,7 @@ var KlarnaResponsive = (function () {
             fragmentSidebarEl,
             sidebarEl = el || this.storedSidebarEl;
 
-        if (el !== "undefined") {
+        if (typeof el !== "undefined") {
             docFragment.appendChild(sidebarEl);
         } else {
             if (sidebarEl) {

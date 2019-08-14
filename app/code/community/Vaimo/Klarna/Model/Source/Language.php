@@ -30,12 +30,13 @@ class Vaimo_Klarna_Model_Source_Language extends Vaimo_Klarna_Model_Source_Abstr
     {
         return array(
             array('value' => '',   'label' => $this->_getCoreHelper()->__('Default')),
-            array('value' => 'nb', 'label' => $this->_getCoreHelper()->__('Norwegian')),
-            array('value' => 'sv', 'label' => $this->_getCoreHelper()->__('Swedish')),
-            array('value' => 'fi', 'label' => $this->_getCoreHelper()->__('Finnish')),
             array('value' => 'dk', 'label' => $this->_getCoreHelper()->__('Danish')),
             array('value' => 'nl', 'label' => $this->_getCoreHelper()->__('Dutch')),
+            array('value' => 'en', 'label' => $this->_getCoreHelper()->__('English')),
+            array('value' => 'fi', 'label' => $this->_getCoreHelper()->__('Finnish')),
             array('value' => 'de', 'label' => $this->_getCoreHelper()->__('German')),
+            array('value' => 'nb', 'label' => $this->_getCoreHelper()->__('Norwegian')),
+            array('value' => 'sv', 'label' => $this->_getCoreHelper()->__('Swedish')),
         );
     }
 
