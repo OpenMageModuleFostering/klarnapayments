@@ -1,0 +1,16 @@
+{
+    "name": "OpenMageModuleFostering/klarnapayments",
+    "type": "magento-module",
+    "license": "Open-Software-License-(OSL)",
+    "homepage": "",
+    "description": "Klarna module for invoice and part payment",
+    "authors": [
+    {
+        "name": "Klarna",
+        "email": "magento@klarna.com"
+    }
+],
+    "suggest": {
+        "magento-hackathon/magento-composer-installer": "*"
+    }
+}
