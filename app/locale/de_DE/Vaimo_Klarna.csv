@@ -52,7 +52,7 @@
 "Klarna was not able to cancel the reservation","Klarna konnte die Reservierung nicht stornieren."
 "Please enter a positive number in this field","Bitte geben Sie eine positive Zahl ein."
 "No address found. Verify the personal id and try again","Keine Adresse gefunden. berprüfen Sie die Sozialversicherungsnummer und versuchen Sie es erneut."
-"Please note that both shipping and invoice address will be updated to this address when you place your order","Bitte beachten Sie, dass diese Adresse sowohl als Liefer- als auch als Rechnungsadresse genutzt wird, wenn Sie die Bestellung abschicken."
+"Please note that both shipping and billing address will be updated to this address when you place your order","Bitte beachten Sie, dass diese Adresse sowohl als Liefer- als auch als Rechnungsadresse genutzt wird, wenn Sie die Bestellung abschicken."
 "Please note that shipping address will be updated to this address when you place your order","Bitte beachten Sie, dass diese Adresse als Lieferadresse genutzt wird, wenn Sie die Bestellung abschicken."
 
 "Invoice","Rechnung"

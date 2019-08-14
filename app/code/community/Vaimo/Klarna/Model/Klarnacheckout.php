@@ -189,7 +189,7 @@ class Vaimo_Klarna_Model_Klarnacheckout extends Vaimo_Klarna_Model_Klarnacheckou
         $shippingStreetName    = $varienOrder->getShippingAddress('street_name');
         $shippingStreetNumber  = $varienOrder->getShippingAddress('street_number');
 
-        if(!$billingStreetAddress && $billingStreetName && $billingStreetNumber) {
+        if (!$billingStreetAddress && $billingStreetName && $billingStreetNumber) {
             $streetAddress = $varienOrder->getBillingAddress();
             $streetAddress['street_address'] = $billingStreetName . ' ' . $billingStreetNumber;
             $varienOrder->setBillingAddress($streetAddress);
@@ -200,7 +200,7 @@ class Vaimo_Klarna_Model_Klarnacheckout extends Vaimo_Klarna_Model_Klarnacheckou
             $varienOrder->setBillingAddress($streetAddress);
         }
 
-        if(!$shippingStreetAddress && $shippingStreetName && $shippingStreetNumber) {
+        if (!$shippingStreetAddress && $shippingStreetName && $shippingStreetNumber) {
             $streetAddress = $varienOrder->getShippingAddress();
             $streetAddress['street_address'] = $shippingStreetName . ' ' . $shippingStreetNumber;
             $varienOrder->setShippingAddress($streetAddress);
@@ -392,7 +392,7 @@ class Vaimo_Klarna_Model_Klarnacheckout extends Vaimo_Klarna_Model_Klarnacheckou
 
             if (!in_array(Vaimo_Klarna_Helper_Data::KLARNA_CHECKOUT_ALLOW_ALL_GROUP_ID, $allowedCustomerGroups)) {
                 $customerGroupId = $this->_getCustomerSession()->getCustomerGroupId();
-                if(!in_array($customerGroupId, $allowedCustomerGroups)) {
+                if (!in_array($customerGroupId, $allowedCustomerGroups)) {
                     return false;
                 }
             }

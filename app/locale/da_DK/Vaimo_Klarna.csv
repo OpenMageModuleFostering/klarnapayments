@@ -52,7 +52,7 @@
 "Klarna was not able to cancel the reservation","Klarna var ikke i stand til at annullere reservationen."
 "Please enter a positive number in this field","Beløbet skal være positivt."
 "No address found. Verify the personal id and try again","Adresse blev ikke fundet. Kontroller personnummeret og forsøg igen."
-"Please note that both shipping and invoice address will be updated to this address when you place your order","Bemærk venligst, at både leverings- og fakturaadresse bliver opdateret til denne adresse, når du lægger ordren."
+"Please note that both shipping and billing address will be updated to this address when you place your order","Bemærk venligst, at både leverings- og fakturaadresse bliver opdateret til denne adresse, når du lægger ordren."
 "Please note that shipping address will be updated to this address when you place your order","Bemærk venligst, at leveringsadressen bliver opdateret til denne adresse, når du lægger ordren."
 
 "Invoice","Faktura"

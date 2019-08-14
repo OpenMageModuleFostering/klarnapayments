@@ -43,7 +43,7 @@ class Vaimo_Klarna_Model_Payment_Checkout extends Vaimo_Klarna_Model_Payment_Abs
     public function isAvailable($quote = NULL)
     {
         $available = $this->_isAvailableParent($quote);
-        if(!$available) return false;
+        if (!$available) return false;
 /*
         if (parent::isAvailable($quote) == false) return false;
         try {

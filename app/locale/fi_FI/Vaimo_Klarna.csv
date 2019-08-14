@@ -52,7 +52,7 @@
 "Klarna was not able to cancel the reservation","Varausta ei pystytty poistamaan."
 "Please enter a positive number in this field","Anna tähän kenttään positiivinen luku."
 "No address found. Verify the personal id and try again","Osoitetta ei löydetty. Tarkista henkilötunnuksesi ja yritä uudelleen."
-"Please note that both shipping and invoice address will be updated to this address when you place your order","Huomioi, että tätä osoitetta käytetään tilauksessa sekä laskutus- että toimitusosoitteena."
+"Please note that both shipping and billing address will be updated to this address when you place your order","Huomioi, että tätä osoitetta käytetään tilauksessa sekä laskutus- että toimitusosoitteena."
 "Please note that shipping address will be updated to this address when you place your order","Huomioi, että tätä osoitetta käytetään tilauksessa toimitusosoitteena."
 
 "Invoice","Lasku"

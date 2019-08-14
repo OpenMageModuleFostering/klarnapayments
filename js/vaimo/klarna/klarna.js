@@ -181,11 +181,28 @@ function doUpdatePClass(url)
     var pclassReceived = function(transport)
     {
         if (transport.responseText.isJSON()) {
-            response = transport.responseText.evalJSON()
+            response = transport.responseText.evalJSON();
             if (response.error) {
                 alert(response.message);
             } else {
-                $("update_pclass_message").update(response.html);
+                var message = $("update_pclass_message");
+                var messageContainer = message.up('td');
+
+                var next;
+                var counter = 0;
+                
+                while (next = messageContainer.next()) {
+                    next.remove();
+                    console.log('removed');
+                    counter++;
+                }
+
+                if (counter) {
+                    messageContainer.setAttribute('colspan', counter);
+                }
+
+                message.update(response.html);
+
             }
         }
         enableUpdatePclassButton();
@@ -194,7 +211,7 @@ function doUpdatePClass(url)
     var pclassError = function(transport)
     {
         if (transport.responseText.isJSON()) {
-            response = transport.responseText.evalJSON()
+            response = transport.responseText.evalJSON();
             if (response.error) {
                 alert(response.message);
             } else {

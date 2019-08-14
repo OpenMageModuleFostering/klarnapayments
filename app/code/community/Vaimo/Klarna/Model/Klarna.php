@@ -279,7 +279,7 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
                     /*
                      * This is not approved by Klarna, so address will be updated only when order is placed. This is NOT a bug.
                      */
-                    // $this->_updateShippingWithSelectedAddress($addr);
+                    // $this->_updateWithSelectedAddress($addr);
                 } else {
                     /*
                      * No error message here if using OneStepCheckout
@@ -313,7 +313,7 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
         if ($this->useGetAddresses()) {
             $addr = $this->_getSelectedAddress($this->getPayment()->getAdditionalInformation('pno'), $this->getPayment()->getAdditionalInformation('address_id'));
             if ($addr!=NULL) {
-                $this->_updateShippingWithSelectedAddress($addr);
+                $this->_updateWithSelectedAddress($addr);
             } else {
                 Mage::throwException($this->_getHelper()->__('Unknown address, please specify correct personal id in the payment selection and press Fetch again, or use another payment method'));
             }
@@ -322,8 +322,8 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
         //Check to see if the addresses must be same. If so overwrite shipping
         //address with the billing address.
         if ($this->shippingSameAsBilling()) {
-//            $this->updateBillingAddress();
-            $this->updateShippingAddress();
+            $this->updateBillingAddress();
+//            $this->updateShippingAddress();
         }
     }
 
@@ -506,7 +506,7 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
             if (sizeof($paymentMethodsFilteredGroupd)>0) {
                 $res = $paymentMethodsFilteredGroupd;
             }
-        } catch (Mage_Core_Exception $e) {
+        } catch (Exception $e) {
             $res = NULL;
         }
         return $res;

@@ -26,6 +26,8 @@
 /** @var $installer Mage_Sales_Model_Resource_Setup */
 $installer = Mage::getResourceModel('sales/setup', 'sales_setup');
 
+$installer->startSetup();
+
 /*
   Klarna libraries used to create the table, but in the latest update, they don't do that
   any longer. So I create it, if it doesn't already exist. 
@@ -76,7 +78,5 @@ $table = $installer->getConnection()
 
 $installer->getConnection()->createTable($table);
 }
-
-$installer->startSetup();
 
 $installer->endSetup();

@@ -520,7 +520,7 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
 
             // Add extra attribute to order
             $orderid2Code = trim($this->_getTransport()->getConfigData('extra_order_attribute'));
-            if($orderid2Code && $orderid2Code!='' && $order->getData($orderid2Code)) {
+            if ($orderid2Code && $orderid2Code!='' && $order->getData($orderid2Code)) {
                 $orderid2Value = $order->getData($orderid2Code);
                 $update['merchant_reference']['orderid2'] = $orderid2Value;
             }

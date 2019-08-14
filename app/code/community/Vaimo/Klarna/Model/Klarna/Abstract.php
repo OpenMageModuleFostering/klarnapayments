@@ -707,13 +707,18 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
      * Update a Magento address with an array containing address information
      *
      * @param array $addr  The addr to use
+     * @param string $updateWhichAddress address type to update
      *
      * @return void
      */
-    protected function _updateShippingWithSelectedAddress($addr)
+    protected function _updateWithSelectedAddress($addr, $updateWhichAddress = Mage_Sales_Model_Quote_Address::TYPE_SHIPPING)
     {
         $selAddr = new Varien_Object($addr);
-        $address = $this->getShippingAddress();
+        if ($updateWhichAddress==Mage_Sales_Model_Quote_Address::TYPE_SHIPPING) {
+            $address = $this->getShippingAddress();
+        } else {
+            $address = $this->getBillingAddress();
+        }
         $street = $selAddr->getStreet();
 
         if ($selAddr->getHouseNumber()) {

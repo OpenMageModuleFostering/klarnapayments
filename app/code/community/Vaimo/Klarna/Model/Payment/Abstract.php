@@ -172,17 +172,17 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
     public function isAvailable( $quote = null )
     {
         $available = $this->_isAvailableParent($quote);
-        if(!$available) return false;
+        if (!$available) return false;
 
         $klarna = null;
         try {
             $active = $this->_getConfigData('active'); // Only call to this
 
-            if(!$active) return false;
-            if(is_null($quote)) return false;
+            if (!$active) return false;
+            if (is_null($quote)) return false;
 
             $grandTotal = $quote->getGrandTotal();
-            if(empty ($grandTotal) || $grandTotal <= 0) return false;
+            if (empty ($grandTotal) || $grandTotal <= 0) return false;
 
             $klarna = $this->_getKlarnaModel();
             $klarna->setQuote($quote, $this->_code);
@@ -239,7 +239,7 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
                 $klarna->addPostValues(array('gender' => '-1')); // If this is not set in post, set it to -1.
             }
 
-            $klarnaAddr = $klarna->toKlarnaAddress($klarna->getShippingAddress());
+            $klarnaAddr = $klarna->toKlarnaAddress($klarna->getBillingAddress()); // Shipping
 
             // These ifs were in a sense copied from old klarna module
             // Don't send in reference for non-company purchase.

@@ -52,7 +52,7 @@
 "Klarna was not able to cancel the reservation","Klarna kunne ikke kansellere reservasjonen."
 "Please enter a positive number in this field","Beløpet må være positivt."
 "No address found. Verify the personal id and try again","Ingen adresse ble funnet. Kontroller fødselsnummer og prøv på nytt."
-"Please note that both shipping and invoice address will be updated to this address when you place your order","Både leveranse- og fakturaadresse vil bli oppdatert til denne adressen når du sluttfører ordren."
+"Please note that both shipping and billing address will be updated to this address when you place your order","Både leveranse- og fakturaadresse vil bli oppdatert til denne adressen når du sluttfører ordren."
 "Please note that shipping address will be updated to this address when you place your order","Leveranseadressen vil bli oppdatert til denne adressen når du sluttfører ordren."
 
 "Invoice","Faktura"
@@ -74,7 +74,7 @@
 "Monthly cost","Månedskostnad"
 "Total cost","Total kostnad"
 "Start fee","Startgebyr"
-"Personal ID/Registration number","Personnummer/Organisasjonsnummer"
+"Personal ID/Registration number","Fødselsnummer/Organisasjonsnummer"
 "Fetch ","Hent adresse"
 "Identifying...","Identifiserer..."
 "Phone number","Telefonnummer"

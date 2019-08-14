@@ -611,7 +611,7 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     }
 
     /*
-     * This function might be removed
+     * 
      *
      */
     public function dispatchReserveInfo($order, $pno)
@@ -663,10 +663,11 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     {
         $q = false;
         $len = strlen($json);
-        for($l=$c=$i=0;$i<$len;$i++)
-        {
-            $json[$i] == '"' && ($i>0?$json[$i-1]:'') != '\\' && $q = !$q;
-            if(!$q && in_array($json[$i], array(" ", "\r", "\n", "\t"))){continue;}
+        for($l=$c=$i=0; $i<$len; $i++) {
+            $json[$i] == '"' && ($i>0 ? $json[$i-1] : '') != '\\' && $q = !$q;
+            if (!$q && in_array($json[$i], array(" ", "\r", "\n", "\t"))){
+                continue;
+            }
             in_array($json[$i], array('{', '[')) && !$q && $l++;
             in_array($json[$i], array('}', ']')) && !$q && $l--;
             (isset($objects[$c]) && $objects[$c] .= $json[$i]) || $objects[$c] = $json[$i];
@@ -763,12 +764,12 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
                 mkdir($logDir);
                 chmod($logDir, 0777);
             }
-            if( file_exists($logFile) ){
+            if ( file_exists($logFile) ){
                 $fp = fopen( $logFile, "a" );
             } else {
                 $fp = fopen( $logFile, "w" );
             }
-            if( !$fp ) return null;
+            if ( !$fp ) return null;
             fwrite( $fp, date("Y/m/d H:i:s") . ' ' . $this->getFunctionNameForLog() . ': ' . $msg . "\n" );
             fclose( $fp );
         } catch( Exception $e ) {

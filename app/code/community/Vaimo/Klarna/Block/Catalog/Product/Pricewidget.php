@@ -78,7 +78,7 @@ class Vaimo_Klarna_Block_Catalog_Product_Pricewidget extends Mage_Core_Block_Tem
         }
         if ($activef) {
             if ($klarnaSetup) {
-                if($klarnaSetup->getCountryCode() != 'NL' && $klarnaSetup->getCountryCode() != 'AT') {
+                if ($klarnaSetup->getCountryCode() != 'NL' && $klarnaSetup->getCountryCode() != 'AT') {
                     return $klarnaSetup;
                 }
             }

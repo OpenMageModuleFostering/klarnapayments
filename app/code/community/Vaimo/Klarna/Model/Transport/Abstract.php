@@ -177,7 +177,12 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
      */
     protected function _getDefaultCountry()
     {
-        return strtoupper($this->_getConfigDataCall(Mage_Core_Model_Locale::XML_PATH_DEFAULT_COUNTRY, $this->_getStoreId()));
+// Can't just use helpers like this, unit tests will fail... It's not important anyway, not right now.
+//        $res = Mage::helper('core')->getMerchantCountryCode($this->_getStoreId());
+//        if (!$res) {
+            $res = $this->_getConfigDataCall(Mage_Core_Model_Locale::XML_PATH_DEFAULT_COUNTRY, $this->_getStoreId());
+//        }
+        return strtoupper($res);
     }
 
     /**
