@@ -25,7 +25,7 @@
 --><config>
     <modules>
         <Vaimo_Klarna>
-            <version>5.1.5</version>
+            <version>5.1.6</version>
             <name>Vaimo Klarna Module</name>
             <depends>
                 <Mage_Payment/>

@@ -94,7 +94,7 @@ class Vaimo_Klarna_Model_Klarna_Api extends Vaimo_Klarna_Model_Klarna_Tools_Api
         $magentoVersion = Mage::getVersion();
         $module = (string)Mage::getConfig()->getNode()->modules->Vaimo_Klarna->name;
         $version = (string)Mage::getConfig()->getNode()->modules->Vaimo_Klarna->version;
-        $this->_klarnaApi->setVersion('PHP:' . 'Magento ' . $magentoEdition . ':' . $magentoVersion . ':' . $module . ':' . $version);
+        $this->_klarnaApi->setVersion('PHP_' . 'Magento ' . $magentoEdition . '_' . $magentoVersion . '_' . $module . '_' . $version);
     }
 
     public function reserve($amount)

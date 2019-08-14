@@ -99,3 +99,8 @@
 
 "Disable payment widget on product page","Disable payment widget on product page"
 "If set to yes, the payment information from Klarna will not appear on the product page","If set to yes, the payment information from Klarna will not appear on the product page"
+
+"Disable method for company purchase","Disable method for company purchase"
+"Disable this method when company field is filled in during checkout","Disable this method when company field is filled in during checkout"
+"Default Country Only","Default Country Only"
+"Multiple Countries Allowed","Multiple Countries Allowed"

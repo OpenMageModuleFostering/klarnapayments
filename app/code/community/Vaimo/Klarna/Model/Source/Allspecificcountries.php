@@ -23,20 +23,14 @@
  * @copyright   Copyright (c) 2009-2014 Vaimo AB
  */
 
-class Vaimo_Klarna_Model_Source_Country
-{
 
+class Vaimo_Klarna_Model_Source_Allspecificcountries
+{
     public function toOptionArray()
     {
         return array(
-            array('value' => 'AT', 'label' => Mage::helper('core')->__('Austria')),
-            array('value' => 'DK', 'label' => Mage::helper('core')->__('Denmark')),
-            array('value' => 'FI', 'label' => Mage::helper('core')->__('Finland')),
-            array('value' => 'DE', 'label' => Mage::helper('core')->__('Germany')),
-            array('value' => 'NL', 'label' => Mage::helper('core')->__('Netherlands')),
-            array('value' => 'NO', 'label' => Mage::helper('core')->__('Norway')),
-            array('value' => 'SE', 'label' => Mage::helper('core')->__('Sweden')),
+            array('value'=>0, 'label'=>Mage::helper('klarna')->__('Default Country Only')),
+            array('value'=>1, 'label'=>Mage::helper('klarna')->__('Multiple Countries Allowed')),
         );
     }
-
 }

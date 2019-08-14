@@ -125,6 +125,12 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
             if ($klarnaAvailable->isCountryAllowed()==false) {
                 return false;
             }
+            $billingAddress = $quote->getBillingAddress();
+            if ($billingAddress->getCompany() != null) {
+                if ($klarnaAvailable->showMethodForCompanyPurchases()==false) {
+                    return false;
+                }
+            }
         } catch (Mage_Core_Exception $e) {
             if ($klarnaAvailable) $klarnaAvailable->logKlarnaException($e);
             return false;

@@ -143,6 +143,16 @@
                             <show_in_website>1</show_in_website>
                             <comment>Allow shipping address to be different from billing address. You might need acceptance from Klarna if activated</comment>
                         </allow_separate_address>
+                        <disable_company_purchase translate="label">
+                            <label>Disable method for company purchase</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>220</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_store>1</show_in_store>
+                            <show_in_website>1</show_in_website>
+                            <comment>Disable this method when company field is filled in during checkout</comment>
+                        </disable_company_purchase>
                         <terms_url translate="label">
                             <label>URL to terms and conditions</label>
                             <frontend_type>text</frontend_type>
@@ -165,7 +175,7 @@
                             <label>Allowed countries</label>
                             <frontend_type>allowspecific</frontend_type>
                             <sort_order>900</sort_order>
-                            <source_model>adminhtml/system_config_source_payment_allspecificcountries</source_model>
+                            <source_model>klarna/source_allspecificcountries</source_model>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
@@ -290,11 +300,21 @@
                             <show_in_website>1</show_in_website>
                             <comment>Allow shipping address to be different from billing address. You might need acceptance from Klarna if activated</comment>
                         </allow_separate_address>
+                        <disable_company_purchase translate="label">
+                            <label>Disable method for company purchase</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>220</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_store>1</show_in_store>
+                            <show_in_website>1</show_in_website>
+                            <comment>Disable this method when company field is filled in during checkout</comment>
+                        </disable_company_purchase>
                         <disable_product_widget translate="label">
                             <label>Disable payment widget on product page</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
-                            <sort_order>220</sort_order>
+                            <sort_order>250</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_store>1</show_in_store>
                             <show_in_website>1</show_in_website>
@@ -322,7 +342,7 @@
                             <label>Allowed countries</label>
                             <frontend_type>allowspecific</frontend_type>
                             <sort_order>900</sort_order>
-                            <source_model>adminhtml/system_config_source_payment_allspecificcountries</source_model>
+                            <source_model>klarna/source_allspecificcountries</source_model>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
@@ -437,6 +457,16 @@
                             <show_in_website>1</show_in_website>
                             <comment>Allow shipping address to be different from billing address. You might need acceptance from Klarna if activated</comment>
                         </allow_separate_address>
+                        <disable_company_purchase translate="label">
+                            <label>Disable method for company purchase</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>220</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_store>1</show_in_store>
+                            <show_in_website>1</show_in_website>
+                            <comment>Disable this method when company field is filled in during checkout</comment>
+                        </disable_company_purchase>
                         <terms_url translate="label">
                             <label>URL to terms and conditions</label>
                             <frontend_type>text</frontend_type>
@@ -478,7 +508,7 @@
                             <label>Allowed countries</label>
                             <frontend_type>allowspecific</frontend_type>
                             <sort_order>900</sort_order>
-                            <source_model>adminhtml/system_config_source_payment_allspecificcountries</source_model>
+                            <source_model>klarna/source_allspecificcountries</source_model>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>

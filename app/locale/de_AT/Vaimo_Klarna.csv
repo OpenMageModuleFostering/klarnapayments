@@ -97,5 +97,10 @@
 "Day","Tag"
 "07xxxxxxxx",""
 
-"Disable payment widget on product page","Disable payment widget on product page"
-"If set to yes, the payment information from Klarna will not appear on the product page","If set to yes, the payment information from Klarna will not appear on the product page"
+"Disable payment widget on product page","Deaktivieren von Zahlungs-Widget auf der Produktseite"
+"If set to yes, the payment information from Klarna will not appear on the product page","Wenn auf JA gesetzt, wird die Zahlungsinformation von Klarna nicht auf der Produktseite angezeigt"
+
+"Disable method for company purchase","Deaktivieren des Verfahrens zum Unternehmenseinkäufe"
+"Disable this method when company field is filled in during checkout","Deaktivieren der Funktion, wenn Firmen-Feld beim Checkout ausgefüllt ist"
+"Default Country Only","Land das Standard eingestellt ist"
+"Multiple Countries Allowed","Mehrere Länder zugelassen"

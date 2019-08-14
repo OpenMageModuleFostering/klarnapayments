@@ -109,6 +109,18 @@ class Vaimo_Klarna_Model_Klarna_Tools_Abstract extends Varien_Object
                                     'sv', // Swedish
                                     );
 
+    /*
+     * Countries supported by Klarna (array not used)
+     */
+    protected $_supportedCountries = array(
+                                    'AT', // Austria
+                                    'DK', // Danmark
+                                    'DE', // Germany
+                                    'FI', // Finland
+                                    'NL', // Netherlands
+                                    'NO', // Norway
+                                    'SE', // Sweden
+                                    );
 
     
     /**
@@ -246,6 +258,40 @@ class Vaimo_Klarna_Model_Klarna_Tools_Abstract extends Varien_Object
     }
 
     /*
+     * This function is only called if multiple countries are allowed
+     * And one chooses one of the countries that aren't the default one
+     * It then changes the language, to match with the country.
+     *
+     * @return void
+     */
+    protected function _updateNonDefaultCountryLanguage()
+    {
+        switch ($this->_countryCode) {
+            case 'AT':
+                $this->_languageCode = 'de';
+                break;
+            case 'DK':
+                $this->_languageCode = 'da';
+                break;
+            case 'DE':
+                $this->_languageCode = 'de';
+                break;
+            case 'FI':
+                $this->_languageCode = 'fi';
+                break;
+            case 'NL':
+                $this->_languageCode = 'nl';
+                break;
+            case 'NO':
+                $this->_languageCode = 'nb';
+                break;
+            case 'SE':
+                $this->_languageCode = 'sv';
+                break;
+        }
+    }
+
+    /*
      * Once we have a record in one of the record variables, we update the addresses and then we set the country to
      * that of the shipping address or billing address, if shipping is empty
      *
@@ -257,6 +303,14 @@ class Vaimo_Klarna_Model_Klarna_Tools_Abstract extends Varien_Object
             $this->_countryCode = strtoupper($this->_shippingAddress->getCountry());
         } elseif ($this->_billingAddress && $this->_billingAddress->getCountry()) {
             $this->_countryCode = strtoupper($this->_billingAddress->getCountry());
+        }
+        if ($this->_countryCode!=$this->_getDefaultCountry()) {
+            $this->_updateNonDefaultCountryLanguage();
+        } else {
+            // It's only necessary to call this if updateNonDefaultCountryLanguage
+            // has been called. A minor speed improvement possible here, as
+            // _updateCountry() is called quite a number of times.
+            $this->_setDefaultLanguageCode();
         }
     }
     
@@ -663,6 +717,28 @@ class Vaimo_Klarna_Model_Klarna_Tools_Abstract extends Varien_Object
     public function isCountryAllowed()
     {
         if ($this->_getCountryCode() != $this->_getDefaultCountry()) {
+            if ($this->_getConfigData('allowspecific')) {
+                $allowedCountries = $this->_getConfigData('specificcountry');
+                if ($allowedCountries) {
+                    if (in_array($this->_getCountryCode(), explode(",", $allowedCountries))) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Check if method should be disabled if company field is filled in
+     * See isCompanyAllowed, perhaps we should merge functions...
+     *
+     * @return boolean
+     */
+    public function showMethodForCompanyPurchases()
+    {
+        if ($this->_getConfigData('disable_company_purchase')) {
             return false;
         }
         return true;
@@ -680,7 +756,7 @@ class Vaimo_Klarna_Model_Klarna_Tools_Abstract extends Varien_Object
         if ($this->getMethod() && $this->_getStoreId()!==NULL) {
             $res = Mage::getStoreConfig('payment/' . $this->getMethod() . '/' . $field, $this->_getStoreId());
         } else {
-          $res = NULL;
+            $res = NULL;
         }
         return $res;
     }

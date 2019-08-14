@@ -99,3 +99,8 @@
 
 "Disable payment widget on product page","Deaktivera betal-widget på produkt sidan"
 "If set to yes, the payment information from Klarna will not appear on the product page","Om ja, så kommer inte betalinformation från Klarna att presenteras på produkt sidan"
+
+"Disable method for company purchase","Deaktivera betalsätt för företagsköp"
+"Disable this method when company field is filled in during checkout","Deaktivera betalsättet när företagsfältet är ifyllt"
+"Default Country Only","Endast förvalt land"
+"Multiple Countries Allowed","Flera länder accepteras"

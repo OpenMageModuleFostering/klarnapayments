@@ -388,8 +388,6 @@ class Vaimo_Klarna_Model_Klarna_Tools_Api extends Vaimo_Klarna_Model_Klarna_Tool
 
         $this->_addShippingFee();
 
-        $this->_addDiscount($taxRate);
-
         $this->_addGiftCard();
 
         $this->_addCustomerBalance();
@@ -401,6 +399,8 @@ class Vaimo_Klarna_Model_Klarna_Tools_Api extends Vaimo_Klarna_Model_Klarna_Tool
         $this->_addGiftWrapItemPrice();
 
         $this->_addGwPrintedCardPrice();
+
+        $this->_addDiscount($taxRate);
 
     }
 
@@ -609,30 +609,54 @@ class Vaimo_Klarna_Model_Klarna_Tools_Api extends Vaimo_Klarna_Model_Klarna_Tool
         if ($this->getOrder()->getDiscountAmount() >= 0) {
             return;
         }
+        // Instead of calculating discount from order etc, we now simply use the amounts we are adding to goods list
+        
+        //calculate grandtotal and subtotal with all possible fees and extra costs
+        $subtotal = $this->getOrder()->getSubtotalInclTax();
+		$grandtotal = $this->getOrder()->getGrandTotal();
+		
+		//if fee is added, add to subtotal
+		//if discount is added, like cards and such, add to grand total
+		foreach ($this->_extras as $extra) {
+			if ($extra['price'] > 0) {
+				$subtotal+= $extra['price'];
+			} else if ($extra['price'] < 0) {
+				$grandtotal+= $extra['price'];
+			}
+		}
+        
+        //now check what the actual discount incl vat is
+        $amount = $grandtotal - $subtotal; //grand total is always incl tax
 
+/*
         $amount = $this->getOrder()->getDiscountAmount();
-        $applyAfter = Mage::helper('tax')->applyTaxAfterDiscount(
-            $this->getOrder()->getStoreId()
-        );
+        $applyAfter = Mage::helper('tax')->applyTaxAfterDiscount( $this->getOrder()->getStoreId() );
+        $prodInclVat = Mage::helper('tax')->priceIncludesTax( $this->getOrder()->getStoreId() );
         if ($applyAfter == true) {
             //With this setting active the discount will not have the correct
             //value. We need to take each respective products rate and calculate
             //a new value.
-            $amount = 0;
-            foreach ($this->getOrder()->getAllVisibleItems() as $product) {
-                $rate = $product->getTaxPercent();
-                $newAmount = $product->getDiscountAmount() * (($rate / 100 ) + 1);
-                $amount -= $newAmount;
-            }
-            //If the discount also extends to shipping
-            $shippingDiscount = $this->getOrder()->getShippingDiscountAmount();
-            if ($shippingDiscount) {
-                $taxClass = Mage::getStoreConfig('tax/classes/shipping_tax_class');
-                $rate = $this->_getTaxRate($taxClass);
-                $newAmount = $shippingDiscount * (($rate / 100 ) + 1);
-                $amount -= $newAmount;
+
+            // The interesting part is that Magento changes how discounts are
+            // added depending on if product prices are including VAT or not...
+            if ($prodInclVat == false) {
+                $amount = 0;
+                foreach ($this->getOrder()->getAllVisibleItems() as $product) {
+                    $rate = $product->getTaxPercent();
+                    $newAmount = $product->getDiscountAmount() * (($rate / 100 ) + 1);
+                    $amount -= $newAmount;
+                }
+                //If the discount also extends to shipping
+                $shippingDiscount = $this->getOrder()->getShippingDiscountAmount() - 0;
+                if ($shippingDiscount) {
+                    $taxClass = Mage::getStoreConfig('tax/classes/shipping_tax_class');
+                    $rate = $this->_getTaxRate($taxClass);
+                    $newAmount = $shippingDiscount * (($rate / 100 ) + 1);
+                    $amount -= $newAmount;
+                }
             }
         }
+*/
 
         $sku = $this->getOrder()->getDiscountDescription();
 
