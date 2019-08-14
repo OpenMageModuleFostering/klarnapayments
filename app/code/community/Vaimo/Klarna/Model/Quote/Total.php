@@ -25,14 +25,31 @@
 
 class Vaimo_Klarna_Model_Quote_Total extends Mage_Sales_Model_Quote_Address_Total_Abstract
 {
-    public function __construct()
+    protected $_moduleHelper = NULL;
+
+    /**
+     * constructor
+     *
+     * @param  $moduleHelper
+     */
+    public function __construct($moduleHelper = NULL)
     {
         $this->setCode('vaimo_klarna_fee');
+        
+        $this->_moduleHelper = $moduleHelper;
+        if ($this->_moduleHelper==NULL) {
+            $this->_moduleHelper = Mage::helper('klarna');
+        }
+    }
+
+    protected function _getHelper()
+    {
+        return $this->_moduleHelper;
     }
 
     public function collect(Mage_Sales_Model_Quote_Address $address)
     {
-        if (Mage::helper('klarna')->collectQuoteRunParentFunction()) {
+        if ($this->_getHelper()->collectQuoteRunParentFunction()) {
             parent::collect($address);
         }
 
@@ -54,7 +71,7 @@ class Vaimo_Klarna_Model_Quote_Total extends Mage_Sales_Model_Quote_Address_Tota
             return $this;
         }
 
-        if (!Mage::helper('klarna')->isMethodKlarna($address->getQuote()->getPayment()->getMethod())) {
+        if (!$this->_getHelper()->isMethodKlarna($address->getQuote()->getPayment()->getMethod())) {
             return $this;
         }
 
@@ -63,7 +80,7 @@ class Vaimo_Klarna_Model_Quote_Total extends Mage_Sales_Model_Quote_Address_Tota
             return $this;
         }
 
-        $baseKlarnaFee = Mage::helper('klarna')->getVaimoKlarnaFeeExclVat($address);
+        $baseKlarnaFee = $this->_getHelper()->getVaimoKlarnaFeeExclVat($address);
 
         if (!$baseKlarnaFee > 0 ) {
             return $this;
@@ -90,8 +107,8 @@ class Vaimo_Klarna_Model_Quote_Total extends Mage_Sales_Model_Quote_Address_Tota
     {
         $amount = $address->getVaimoKlarnaFee();
         
-        if (Mage::helper('klarna')->isOneStepCheckout()) {
-            if (Mage::helper('klarna')->isOneStepCheckoutTaxIncluded()) {
+        if ($this->_getHelper()->isOneStepCheckout()) {
+            if ($this->_getHelper()->isOneStepCheckoutTaxIncluded()) {
                 $amount = $amount + $address->getVaimoKlarnaFeeTax();
             }
         }
@@ -100,7 +117,7 @@ class Vaimo_Klarna_Model_Quote_Total extends Mage_Sales_Model_Quote_Address_Tota
             $quote = $address->getQuote();
             $address->addTotal(array(
                 'code' => $this->getCode(),
-                'title' => Mage::helper('klarna')->getKlarnaFeeLabel($quote->getStore()),
+                'title' => $this->_getHelper()->getKlarnaFeeLabel($quote->getStore()),
                 'value' => $amount,
             ));
         }

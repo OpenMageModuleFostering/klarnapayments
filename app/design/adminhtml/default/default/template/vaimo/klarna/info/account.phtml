@@ -27,7 +27,10 @@
 
 <ul id="payment_info_<?php echo $this->getMethodCode(); ?>" class="form-list">
     <li>
-        <?php echo '<img src="' . $this->getKlarnaLogotype(125) . '" alt="' . Mage::helper('klarna')->__($this->getMethodTitle()) . '"/>'; ?>
+        <?php echo '<img src="' . $this->getKlarnaLogotype(125) . '" alt=""/>'; ?>
+    </li>
+    <li>
+        <?php echo Mage::helper('klarna')->__($this->getMethodTitle()); ?>
     </li>
 
     <?php echo $this->getInvoicesHtml(); ?>

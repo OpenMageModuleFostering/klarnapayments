@@ -36,17 +36,17 @@ class Vaimo_Klarna_Model_Observer extends Mage_Core_Model_Abstract
      */
     public function prePaymentCapture($observer)
     {
-        $klarnaCapture = Mage::getModel('klarna/klarna_capture');
         $payment = $observer->getEvent()->getPayment();
-        $klarnaCapture->setPayment($payment);
+        $klarna = Mage::getModel('klarna/klarna');
+        $klarna->setPayment($payment);
 
-        if (!$klarnaCapture->supportedMethod()) {
+        if (!Mage::helper('klarna')->isMethodKlarna($payment->getMethod())) {
             return $this;
         }
 
         $invoice = $observer->getEvent()->getInvoice();
-        $klarnaCapture->setInvoice($invoice);
-        $itemList = $klarnaCapture->createItemList();
+        $klarna->setInvoice($invoice);
+        $itemList = $klarna->createItemListCapture();
         $payment->setKlarnaItemList($itemList);
     }
 
@@ -62,9 +62,9 @@ class Vaimo_Klarna_Model_Observer extends Mage_Core_Model_Abstract
         $payment = $observer->getEvent()->getPayment();
         if ($payment) {
             $data = $observer->getEvent()->getInput();
-            $klarnaAssign = Mage::getModel('klarna/klarna_assign');
-            $klarnaAssign->setQuote($payment->getQuote());
-            $klarnaAssign->clearInactiveKlarnaMethodsPostvalues($data,$data->getMethod());
+            $klarna = Mage::getModel('klarna/klarna');
+            $klarna->setQuote($payment->getQuote());
+            $klarna->clearInactiveKlarnaMethodsPostvalues($data,$data->getMethod());
         }
     }
 
@@ -90,4 +90,52 @@ class Vaimo_Klarna_Model_Observer extends Mage_Core_Model_Abstract
         }
     }
 
+
+// KLARNA CHECKOUT FROM HERE
+
+    /**
+     * @return Mage_Checkout_Model_Session
+     */
+    protected function _getSession()
+    {
+        return Mage::getSingleton('checkout/session');
+    }
+
+    public function customerAddressFormat(Varien_Event_Observer $observer)
+    {
+        $type = $observer->getEvent()->getType();
+
+        if (strpos($type->getDefaultFormat(), 'care_of') === false) {
+            $defaultFormat = explode("\n", $type->getDefaultFormat());
+
+            if (is_array($defaultFormat)) {
+                $result = array();
+
+                foreach ($defaultFormat as $key => $value) {
+                    $result[] = $value;
+                    if ($key == 0) {
+                        $result[] = '{{depend care_of}}c/o {{var care_of}}<br />{{/depend}}';
+                    }
+                }
+
+                $type->setDefaultFormat(implode("\n", $result));
+            }
+        }
+    }
+
+    public function checkLaunchKlarnaCheckout($observer)
+    {
+        if (!$this->_getSession()->getUseOtherMethods()) {
+            $quote = Mage::getSingleton('checkout/session')->getQuote();
+            $klarna = Mage::getModel('klarna/klarnacheckout');
+            $klarna->setQuote($quote, Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
+            if ($klarna->getKlarnaCheckoutEnabled()) {
+                $controllerAction = $observer->getControllerAction();
+                $controllerAction->getResponse()
+                    ->setRedirect(Mage::getUrl('checkout/klarna'))
+                    ->sendResponse();
+                exit;
+            }
+        }
+    }
 }

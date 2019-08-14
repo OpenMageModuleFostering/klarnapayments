@@ -25,9 +25,21 @@
 
 class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
 {
-    const KLARNA_METHOD_INVOICE = 'vaimo_klarna_invoice';
-    const KLARNA_METHOD_ACCOUNT = 'vaimo_klarna_account';
-    const KLARNA_METHOD_SPECIAL = 'vaimo_klarna_special';
+    const KLARNA_METHOD_INVOICE  = 'vaimo_klarna_invoice';
+    const KLARNA_METHOD_ACCOUNT  = 'vaimo_klarna_account';
+    const KLARNA_METHOD_SPECIAL  = 'vaimo_klarna_special';
+    const KLARNA_METHOD_CHECKOUT = 'vaimo_klarna_checkout';
+
+    const KLARNA_API_CALL_RESERVE     = 'reserve';
+    const KLARNA_API_CALL_CAPTURE     = 'capture';
+    const KLARNA_API_CALL_REFUND      = 'refund';
+    const KLARNA_API_CALL_CANCEL      = 'cancel';
+    const KLARNA_API_CALL_CHECKSTATUS = 'check_status';
+    const KLARNA_API_CALL_ADDRESSES   = 'addresses';
+    const KLARNA_API_CALL_PCLASSES    = 'pclasses';
+
+    const KLARNA_API_CALL_KCODISPLAY_ORDER = 'kco_display_order';
+    const KLARNA_API_CALL_KCOCREATE_ORDER  = 'kco_create_order';
     
     const KLARNA_STATUS_ACCEPTED = 'accepted';
     const KLARNA_STATUS_PENDING  = 'pending';
@@ -43,9 +55,12 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     const KLARNA_INFO_FIELD_RESERVATION_STATUS  = 'klarna_reservation_status';
     const KLARNA_INFO_FIELD_RESERVATION_ID      = 'klarna_reservation_id';
     const KLARNA_INFO_FIELD_CANCELED_DATE       = 'klarna_reservation_canceled_date';
+    const KLARNA_INFO_FIELD_REFERENCE           = 'klarna_reservation_reference';
+    const KLARNA_INFO_FIELD_ORDER_ID            = 'klarna_reservation_order_id';
     const KLARNA_INFO_FIELD_INVOICE_LIST        = 'klarna_invoice_list';
     const KLARNA_INFO_FIELD_INVOICE_LIST_STATUS = 'invoice_status';
     const KLARNA_INFO_FIELD_INVOICE_LIST_ID     = 'invoice_id';
+    const KLARNA_INFO_FIELD_INVOICE_LIST_KCO_ID = 'invoice_kco_id';
     const KLARNA_INFO_FIELD_HOST                = 'klarna_reservation_host';
     const KLARNA_INFO_FIELD_MERCHANT_ID         = 'merchant_id';
 
@@ -72,21 +87,38 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     const KLARNA_API_RESPONSE_TRANSACTION_ID = 'response_transaction_id';
     const KLARNA_API_RESPONSE_FEE_REFUNDED   = 'response_fee_refunded';
     const KLARNA_API_RESPONSE_FEE_CAPTURED   = 'response_fee_captured';
+    const KLARNA_API_RESPONSE_KCO_CAPTURE_ID = 'response_kco_capture_id';
+    const KLARNA_API_RESPONSE_KCO_LOCATION   = 'response_kco_location';
 
-    const KLARNA_LOGOTYPE_TYPE_INVOICE = 'invoice';
-    const KLARNA_LOGOTYPE_TYPE_ACCOUNT = 'account';
-    const KLARNA_LOGOTYPE_TYPE_BOTH    = 'unified';
-    const KLARNA_LOGOTYPE_TYPE_BASIC   = 'basic';
+    const KLARNA_LOGOTYPE_TYPE_INVOICE  = 'invoice';
+    const KLARNA_LOGOTYPE_TYPE_ACCOUNT  = 'account';
+    const KLARNA_LOGOTYPE_TYPE_CHECKOUT = 'checkout';
+    const KLARNA_LOGOTYPE_TYPE_BOTH     = 'unified';
+    const KLARNA_LOGOTYPE_TYPE_BASIC    = 'basic';
+
+    const KLARNA_FLAG_ITEM_NORMAL = "normal";
+    const KLARNA_FLAG_ITEM_SHIPPING_FEE = "shipping";
+    const KLARNA_FLAG_ITEM_HANDLING_FEE = "handling";
+
+    const KLARNA_REFUND_METHOD_FULL = "full";
+    const KLARNA_REFUND_METHOD_PART = "part";
+    const KLARNA_REFUND_METHOD_AMOUNT = "amount";
 
     const KLARNA_LOGOTYPE_POSITION_FRONTEND = 'frontend';
     const KLARNA_LOGOTYPE_POSITION_PRODUCT  = 'product';
     const KLARNA_LOGOTYPE_POSITION_CHECKOUT = 'checkout';
+    
+    const KLARNA_DISPATCH_RESERVED = 'vaimo_paymentmethod_order_reserved';
+    const KLARNA_DISPATCH_CAPTURED = 'vaimo_paymentmethod_order_captured';
+    const KLARNA_DISPATCH_REFUNDED = 'vaimo_paymentmethod_order_refunded';
+    const KLARNA_DISPATCH_CANCELED = 'vaimo_paymentmethod_order_canceled';
 
     protected $_supportedMethods = array(
-                                    Vaimo_Klarna_Helper_Data::KLARNA_METHOD_INVOICE,
-                                    Vaimo_Klarna_Helper_Data::KLARNA_METHOD_ACCOUNT,
-                                    Vaimo_Klarna_Helper_Data::KLARNA_METHOD_SPECIAL
-                                    );
+        Vaimo_Klarna_Helper_Data::KLARNA_METHOD_INVOICE,
+        Vaimo_Klarna_Helper_Data::KLARNA_METHOD_ACCOUNT,
+        Vaimo_Klarna_Helper_Data::KLARNA_METHOD_SPECIAL,
+        Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT
+    );
 
     protected $_klarnaFields = array(
         self::KLARNA_INFO_FIELD_FEE,
@@ -99,6 +131,8 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
         self::KLARNA_INFO_FIELD_RESERVATION_STATUS,
         self::KLARNA_INFO_FIELD_RESERVATION_ID,
         self::KLARNA_INFO_FIELD_CANCELED_DATE,
+        self::KLARNA_INFO_FIELD_REFERENCE,
+        self::KLARNA_INFO_FIELD_ORDER_ID,
         self::KLARNA_INFO_FIELD_INVOICE_LIST,
         self::KLARNA_INFO_FIELD_INVOICE_LIST_STATUS,
         self::KLARNA_INFO_FIELD_INVOICE_LIST_ID,
@@ -123,17 +157,71 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
         self::KLARNA_FORM_FIELD_CONSENT,
         self::KLARNA_FORM_FIELD_GENDER,
         self::KLARNA_FORM_FIELD_EMAIL,
-    
+        
     );
+
+    const KLARNA_CHECKOUT_ENABLE_NEWSLETTER          = 'payment/vaimo_klarna_checkout/enable_newsletter';
+    const KLARNA_CHECKOUT_EXTRA_ORDER_ATTRIBUTE      = 'payment/vaimo_klarna_checkout/extra_order_attribute';
+    const KLARNA_CHECKOUT_ENABLE_CART_ABOVE_KCO     = 'payment/vaimo_klarna_checkout/enable_cart_above_kco';
+
+    const KLARNA_CHECKOUT_NEWSLETTER_DISABLED       = 0;
+    const KLARNA_CHECKOUT_NEWSLETTER_SUBSCRIBE      = 1;
+    const KLARNA_CHECKOUT_NEWSLETTER_DONT_SUBSCRIBE = 2;
+
+    const KLARNA_CHECKOUT_ALLOW_ALL_GROUP_ID = 99;
+
+    const ENCODING_MAGENTO = 'UTF-8';
+    const ENCODING_KLARNA = 'ISO-8859-1';
+
+
+    /**
+     * Encode the string to klarna encoding
+     *
+     * @param string $str  string to encode
+     * @param string $from from encoding
+     * @param string $to   target encoding
+     *
+     * @return string
+     */
+    public function encode($str, $from = null, $to = null)
+    {
+        if ($from === null) {
+            $from = self::ENCODING_MAGENTO;
+        }
+        if ($to === null) {
+            $to = self::ENCODING_KLARNA;
+        }
+        return iconv($from, $to, $str);
+    }
+
+    /**
+     * Decode the string to the Magento encoding
+     *
+     * @param string $str  string to decode
+     * @param string $from from encoding
+     * @param string $to   target encoding
+     *
+     * @return string
+     */
+    public function decode($str, $from = null, $to = null)
+    {
+        if ($from === null) {
+            $from = self::ENCODING_KLARNA;
+        }
+        if ($to === null) {
+            $to = self::ENCODING_MAGENTO;
+        }
+        return iconv($from, $to, $str);
+    }
 
     public function getSupportedMethods()
     {
         return $this->_supportedMethods;
     }
 
-    public function getKlarnaFields()
+    public function isKlarnaField($key)
     {
-        return $this->_klarnaFields;
+        return (in_array($key,$this->_klarnaFields));
     }
 
     public function isMethodKlarna($method)
@@ -176,10 +264,11 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
         $res = false;
         if (Mage::getStoreConfig('onestepcheckout/general/rewrite_checkout_links', $store)) {
             $res = true;
-            if (isset($_SERVER['REQUEST_URI'])) {
-                if (stristr($_SERVER['REQUEST_URI'],'checkout/onepage')) {
-                  $res = false;
-                }
+            $request = Mage::app()->getRequest();
+            $requestedRouteName = $request->getRequestedRouteName();
+            $requestedControllerName = $request->getRequestedControllerName();
+            if ($requestedRouteName == 'checkout' && $requestedControllerName == 'onepage') {
+                $res = false;
             }
         }
         return $res;
@@ -412,4 +501,135 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
             return false;
         }
     }
+
+
+// KLARNA CHECKOUT FROM NOW
+
+    protected function _addressMatch(array $address1, array $address2)
+    {
+        $compareFields = array(
+            'firstname',
+            'lastname',
+            'company',
+            'street',
+            'postcode',
+            'city',
+            'telephone',
+            'country_id',
+        );
+
+        // fix street address: sometimes street is array
+        if (isset($address1['street']) && is_array($address1['street'])) {
+            $address1['street'] = implode("\n", $address1['street']);
+        }
+
+        if (isset($address2['street']) && is_array($address2['street'])) {
+            $address2['street'] = implode("\n", $address2['street']);
+        }
+
+        foreach ($compareFields as $field) {
+            $field1 = (isset($address1[$field]) ? $address1[$field] : '');
+            $field2 = (isset($address2[$field]) ? $address2[$field] : '');
+
+            if ($field1 != $field2) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function getCustomerAddressId($customer, $addressData)
+    {
+        if (!$customer) {
+            return false;
+        }
+
+        $billingAddress = $customer->getDefaultBillingAddress();
+
+        if ($this->_addressMatch($addressData, $billingAddress->getData())) {
+            return $billingAddress->getEntityId();
+        }
+
+        $shippingAddress = $customer->getDefaultShippingAddress();
+
+        if ($this->_addressMatch($addressData, $shippingAddress->getData())) {
+            return $shippingAddress->getEntityId();
+        }
+
+        $additionalAddresses = $customer->getAdditionalAddresses();
+
+        foreach ($additionalAddresses as $additionalAddress) {
+            if ($this->_addressMatch($addressData, $additionalAddress->getData())) {
+                return $additionalAddress->getEntityId();
+            }
+        }
+
+        return false;
+    }
+
+    public function getExtraOrderAttributeCode()
+    {
+       return Mage::getStoreConfig(self::KLARNA_CHECKOUT_EXTRA_ORDER_ATTRIBUTE);
+    }
+
+    public function excludeCartInKlarnaCheckout()
+    {
+        if (Mage::getStoreConfig(self::KLARNA_CHECKOUT_ENABLE_CART_ABOVE_KCO)) {
+            $res = false;
+        } else {
+            $res = true;
+        }
+        return $res;
+    }
+
+    /*
+     * This function might be removed
+     *
+     */
+    public function dispatchReserveInfo($order, $pno)
+    {
+        Mage::dispatchEvent( 'vaimo_klarna_pno_used_to_reserve', array(
+            'store_id' => $order->getStoreId(),
+            'order_id' => $order->getIncrementId(),
+            'customer_id' => $order->getCustomerId(),
+            'pno' => $pno
+            ));
+    }
+    
+    /*
+     * Whenever a refund, capture, reserve or cancel is performed, we send out an event
+     * This can be listened to for financial reconciliation
+     *
+     * @return void
+     */
+    public function dispatchMethodEvent($order, $eventcode, $amount, $method)
+    {
+        Mage::dispatchEvent( $eventcode, array(
+            'store_id' => $order->getStoreId(),
+            'order_id' => $order->getIncrementId(),
+            'method' => $method,
+            'amount' => $amount
+            ));
+        
+        // Vaimo specific dispatch
+        $event_name = NULL;
+        switch ($eventcode) {
+            case self::KLARNA_DISPATCH_RESERVED:
+                $event_name = 'ic_order_success';
+                break;
+            case self::KLARNA_DISPATCH_CAPTURED:
+                $event_name = 'ic_order_captured';
+                break;
+            case self::KLARNA_DISPATCH_REFUNDED:
+                break;
+            case self::KLARNA_DISPATCH_CANCELED:
+                $event_name = 'ic_order_cancel';
+                break;
+        }
+        if ($event_name) {
+            Mage::dispatchEvent( $event_name, array("order" => $order) );
+        }
+    }
+
 }

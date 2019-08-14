@@ -34,11 +34,53 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
     protected $_canUseForMultishipping  = false;
     protected $_canSaveCc               = false;
     protected $_canFetchTransactionInfo = true;
+    protected $_canManageRecurringProfiles = false;
 
-    public function getConfigData($field, $storeId = NULL)
+    protected $_moduleHelper = NULL;
+
+    public function __construct($moduleHelper = NULL)
+    {
+        parent::__construct();
+
+        $this->_moduleHelper = $moduleHelper;
+        if ($this->_moduleHelper==NULL) {
+            $this->_moduleHelper = Mage::helper('klarna');
+        }
+    }
+
+    /**
+     * @return false|Vaimo_Klarna_Model_Klarna
+     */
+    protected function _getKlarnaModel()
+    {
+        return Mage::getModel('klarna/klarna');
+    }
+
+    /**
+     * @return Vaimo_Klarna_Helper_Data|null
+     */
+    protected function _getHelper()
+    {
+        return $this->_moduleHelper;
+    }
+
+    /**
+     * @param      $field
+     * @param null $storeId
+     *
+     * @return mixed
+     */
+    protected function _getConfigData($field, $storeId = NULL)
     {
         if (!$storeId) $storeId = Mage::app()->getStore()->getId();
-        return parent::getConfigData($field, $storeId);
+        return $this->getConfigData($field, $storeId);
+    }
+    
+    protected function _getCustomerFromSession()
+    {
+        /** @var Mage_Customer_Model_Session $customerSession */
+        $customerSession = Mage::getSingleton('customer/session');
+        return $customerSession->getCustomer();
     }
 
     public function canCapture()
@@ -65,7 +107,13 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
     {
         return $this->canCapture();
     }
-
+    
+    // Expects Magentos current store to be accurate...
+    protected function _roundPrice($price)
+    {
+        return Mage::app()->getStore()->roundPrice($price);
+    }
+    
     /*
      *
      * This returns blank because Klarna doesn't want the title in text
@@ -76,32 +124,40 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
      */
     public function getTitle()
     {
-        if (Mage::helper('klarna')->showTitleAsTextOnly()) {
-            $klarnaAvailable = Mage::getModel('klarna/klarna_available');
-            $klarnaAvailable->setQuote($this->getQuote(), $this->_code);
-            return $klarnaAvailable->getMethodTitle();
+        if ($this->_getHelper()->showTitleAsTextOnly()) {
+            $klarna = $this->_getKlarnaModel();
+            $klarna->setQuote($this->getQuote(), $this->_code);
+            return $klarna->getMethodTitleWithFee($this->_getHelper()->getVaimoKlarnaFeeInclVat($this->getQuote(), false));
         } else {
             return '';
         }
     }
 
-    public function getCheckout()
-    {
-        return Mage::getSingleton('checkout/session');
-    }
-
     public function getQuote()
     {
-        return $this->getCheckout()->getQuote();
+        /** @var Mage_Checkout_Model_Session $checkoutSession */
+        $checkoutSession = Mage::getSingleton('checkout/session');
+        return $checkoutSession->getQuote();
     }
 
+    protected function _isAvailableParent( $quote = NULL)
+    {
+         return parent::isAvailable($quote);
+    }
+
+    /**
+     * @param Mage_Sales_Model_Quote|null $quote
+     *
+     * @return bool
+     */
     public function isAvailable( $quote = null )
     {
-        $available = parent::isAvailable($quote);
+        $available = $this->_isAvailableParent($quote);
         if(!$available) return false;
 
+        $klarna = null;
         try {
-            $active = $this->getConfigData('active');
+            $active = $this->_getConfigData('active'); // Only call to this
 
             if(!$active) return false;
             if(is_null($quote)) return false;
@@ -109,9 +165,9 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
             $grandTotal = $quote->getGrandTotal();
             if(empty ($grandTotal) || $grandTotal <= 0) return false;
 
-            $klarnaAvailable = Mage::getModel('klarna/klarna_available');
-            $klarnaAvailable->setQuote($quote, $this->_code);
-            if ($klarnaAvailable->isBelowAllowedHardcodedLimit($grandTotal) == false ) {
+            $klarna = $this->_getKlarnaModel();
+            $klarna->setQuote($quote, $this->_code);
+            if ($klarna->isBelowAllowedHardcodedLimit($grandTotal) == false ) {
                 return false;
             }
 
@@ -122,17 +178,17 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
                     return false;
                 }
             }
-            if ($klarnaAvailable->isCountryAllowed()==false) {
+            if ($klarna->isCountryAllowed()==false) {
                 return false;
             }
             $billingAddress = $quote->getBillingAddress();
             if ($billingAddress->getCompany() != null) {
-                if ($klarnaAvailable->showMethodForCompanyPurchases()==false) {
+                if ($klarna->showMethodForCompanyPurchases()==false) {
                     return false;
                 }
             }
         } catch (Mage_Core_Exception $e) {
-            if ($klarnaAvailable) $klarnaAvailable->logKlarnaException($e);
+            if ($klarna) $klarna->logKlarnaException($e);
             return false;
         }
         return true;
@@ -142,44 +198,45 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
     public function assignData( $data )
     {
         try {
-            $klarnaAssign = Mage::getModel('klarna/klarna_assign');
             if (!($data instanceof Varien_Object)) {
                 $data = new Varien_Object($data);
             }
             $info = $this->getInfoInstance();
+            /** @var Mage_Sales_Model_Quote $quote */
             $quote = $info->getQuote();
-            $klarnaAssign->setQuote($quote, $data->getMethod());
-            $klarnaAssign->clearInactiveKlarnaMethodsPostvalues($data, $data->getMethod());
-            $klarnaAssign->addPostvalues($data->getData(), $data->getMethod());
-            $email = $klarnaAssign->getEmailValue(Mage::getSingleton('customer/session')->getCustomer()->getEmail());
-            $klarnaAssign->addPostvalues(array('email' => $email)); // will replace email from checkout...
-            $klarnaAssign->updateAddress();
-            $klarnaAssign->setPaymentPlan();
-            $klarnaAssign->setPaymentFee($quote);
-            if ($klarnaAssign->getPostValues('consent')===NULL) {
-                $klarnaAssign->addPostvalues(array('consent' => 'NO')); // If this is not set in post, set it to NO to mark as no consent was given.
+            $klarna = $this->_getKlarnaModel();
+            $klarna->setQuote($quote, $data->getMethod());
+            $klarna->clearInactiveKlarnaMethodsPostvalues($data, $data->getMethod());
+            $klarna->addPostValues($data->getData(), $data->getMethod());
+            $email = $klarna->getEmailValue($this->_getCustomerFromSession()->getEmail());
+            $klarna->addPostValues(array('email' => $email)); // will replace email from checkout...
+            $klarna->updateAssignAddress();
+            $klarna->setPaymentPlan();
+            $klarna->setPaymentFee($quote);
+            if ($klarna->getPostValues('consent')===NULL) {
+                $klarna->addPostValues(array('consent' => 'NO')); // If this is not set in post, set it to NO to mark as no consent was given.
             }
-            if ($klarnaAssign->getPostValues('gender')===NULL) {
-                $klarnaAssign->addPostvalues(array('gender' => '-1')); // If this is not set in post, set it to -1.
+            if ($klarna->getPostValues('gender')===NULL) {
+                $klarna->addPostValues(array('gender' => '-1')); // If this is not set in post, set it to -1.
             }
 
-            $klarnaAddr = $klarnaAssign->toKlarna($klarnaAssign->getShippingAddress());
+            $klarnaAddr = $klarna->toKlarnaAddress($klarna->getShippingAddress());
 
             // These ifs were in a sense copied from old klarna module
             // Don't send in reference for non-company purchase.
             if (!$klarnaAddr->isCompany) {
-                if ($klarnaAssign->getPostValues('reference')!==NULL) {
-                    $klarnaAssign->unsPostvalue('reference');
+                if ($klarna->getPostValues('reference')!==NULL) {
+                    $klarna->unsPostvalue('reference');
                 }
             } else {
                 // This insane ifcase is for OneStepCheckout
-                if ($klarnaAssign->getPostValues('reference')===NULL) {
+                if ($klarna->getPostValues('reference')===NULL) {
                     $reference = $klarnaAddr->getFirstName() . " " . $klarnaAddr->getLastName();
-                    $klarnaAssign->addPostvalues(array('reference' => $reference));
+                    $klarna->addPostValues(array('reference' => $reference));
                 }
             }
 
-            $klarnaAssign->updateAdditionalInformation( $info );
+            $klarna->updateAdditionalInformation( $info );
 
         } catch (Mage_Core_Exception $e) {
             Mage::throwException($e->getMessage());
@@ -187,31 +244,36 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
         return $this;
     }
 
+    protected function _validateParent()
+    {
+        return parent::validate();
+    }
+
     public function validate()
     {
-        parent::validate();
+        $this->_validateParent();
         try {
-            $klarnaValidate = Mage::getModel('klarna/klarna_validate');
+            $klarna = $this->_getKlarnaModel();
             $info = $this->getInfoInstance();
             if ($info->getQuote()) {
                 // Validate is called while in checkout and immediately after place order is pushed
                 $quote = $info->getQuote();
-                $klarnaValidate->setInfoInstance($this->getInfoInstance());
-                $klarnaValidate->setQuote($quote, $info->getMethod());
+                $klarna->setInfoInstance($this->getInfoInstance());
+                $klarna->setQuote($quote, $info->getMethod());
             } else {
                 // Magento also calls validate when the quote has been changed into an order, then the quote doesn't exist and we do our tests against the order
                 $order = $info->getOrder();
-                $klarnaValidate->setInfoInstance($this->getInfoInstance());
-                $klarnaValidate->setOrder($order);
+                $klarna->setInfoInstance($this->getInfoInstance());
+                $klarna->setOrder($order);
             }
 
             // We cannot perform basic tests with OneStepCheckout because they try
             // to save the payment method as soon as the customer views the checkout
-            if (Mage::helper('klarna')->isOneStepCheckout()) {
+            if ($this->_getHelper()->isOneStepCheckout()) {
                 return $this;
             }
 
-            $klarnaValidate->doBasicTests();
+            $klarna->doBasicTests();
 
         } catch (Mage_Core_Exception $e) {
             Mage::throwException($e->getMessage());
@@ -225,7 +287,7 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
      * @param Varien_Object $payment Magento payment model
      * @param double $amount  The amount to authorize with
      *
-     * @return Klarna_KlarnaPaymentModule_Model_Klarna_Shared
+     * @return Vaimo_Klarna_Model_Klarna_Abstract
      */
     public function authorize(Varien_Object $payment, $amount)
     {
@@ -234,88 +296,103 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
              * Since we could not perform basic tests with OneStepCheckout at validate and assign functions
              * we do them here instead
              */
-            if (Mage::helper('klarna')->isOneStepCheckout()) {
-                $klarnaValidate = Mage::getModel('klarna/klarna_validate');
-                $klarnaValidate->setInfoInstance($this->getInfoInstance());
-                $klarnaValidate->setPayment($payment);
-                $klarnaValidate->doBasicTests();
+            $klarna = $this->_getKlarnaModel();
+            if ($this->_getHelper()->isOneStepCheckout()) {
+                $klarna->setInfoInstance($this->getInfoInstance());
+                $klarna->setPayment($payment);
+                $klarna->doBasicTests();
             }
 
-            $klarnaAuthorize = Mage::getModel('klarna/klarna_authorize');
-            $klarnaAuthorize->setPayment($payment);
-            $klarnaAuthorize->updateAddress();
+            $klarna = $this->_getKlarnaModel(); // Is a clean model really needed here?
+            $klarna->setPayment($payment);
+            $klarna->updateAuthorizeAddress();
 
-            if (Mage::helper('klarna')->isOneStepCheckout() && $klarnaAuthorize->shippingSameAsBilling()) {
-                $klarnaAuthorize->updateBillingAddress();
+            if ($this->_getHelper()->isOneStepCheckout() && $klarna->shippingSameAsBilling()) {
+                $klarna->updateBillingAddress();
             }
         
-            $itemList = $klarnaAuthorize->createItemList();
+            $itemList = $klarna->createItemListAuthorize();
             $payment->setKlarnaItemList($itemList);
 
-            $result = $klarnaAuthorize->reserve($amount);
+            $result = $klarna->reserve($amount);
             $transactionStatus = $result[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_STATUS];
             $transactionId = $result[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_TRANSACTION_ID];
+
+            $payment->setAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_RESERVATION_ID, $transactionId);
+            $payment->setAdditionalInformation(
+                Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_RESERVATION_STATUS, $transactionStatus
+            );
+            $payment->setAdditionalInformation(
+                Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_HOST, $klarna->getConfigData("host")
+            );
+            $payment->setAdditionalInformation(
+                Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_MERCHANT_ID, $klarna->getConfigData("merchant_id")
+            );
+
+            if ($transactionStatus==Vaimo_Klarna_Helper_Data::KLARNA_STATUS_PENDING) {
+                $payment->setIsTransactionPending(true);
+            }
+
+            $payment->setTransactionId($transactionId)
+                ->setIsTransactionClosed(0);
         } catch (Mage_Core_Exception $e) {
             Mage::throwException($e->getMessage());
         }
-
-        $payment->setAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_RESERVATION_ID, $transactionId );
-        $payment->setAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_RESERVATION_STATUS, $transactionStatus );
-        $payment->setAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_HOST, $this->getConfigData("host") );
-        $payment->setAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_MERCHANT_ID, $this->getConfigData("merchant_id") );
-
-        if ($transactionStatus==Vaimo_Klarna_Helper_Data::KLARNA_STATUS_PENDING) {
-            $payment->setIsTransactionPending(true);
-        }
-
-        $payment->setTransactionId($transactionId)
-                ->setIsTransactionClosed(0);
         return $this;
     }
 
     public function capture(Varien_Object $payment, $amount)
     {
         try {
-            $klarnaCapture = Mage::getModel('klarna/klarna_capture');
-            $klarnaCapture->setPayment($payment);
-            $result = $klarnaCapture->capture($amount);
+            $klarna = $this->_getKlarnaModel();
+            $klarna->setPayment($payment);
+            $result = $klarna->capture($amount);
             $transactionStatus = $result[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_STATUS];
             $transactionId = $result[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_TRANSACTION_ID];
             $feeAmountCaptured = $result[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_FEE_CAPTURED];
+            if (isset($result[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_KCO_CAPTURE_ID])) {
+                $kcoCaptureId = $result[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_KCO_CAPTURE_ID];
+            } else {
+                $kcoCaptureId = NULL;
+            }
+
+            $invoice = array(
+                Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_INVOICE_LIST_STATUS => $transactionStatus,
+                Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_INVOICE_LIST_ID => $transactionId
+            );
+            if ($kcoCaptureId) {
+                $invoice[Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_INVOICE_LIST_KCO_ID] = $kcoCaptureId;
+                $transactionId = $transactionId . '/' . $kcoCaptureId;
+            }
+            $invoices = $payment->getAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_INVOICE_LIST);
+            if (!is_array($invoices)) {
+                $invoices = array();
+            }
+            $invoices[] = $invoice;
+            $payment->setAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_INVOICE_LIST, $invoices);
+
+            if ($feeAmountCaptured) {
+                $payment->setAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_FEE_CAPTURED_TRANSACTION_ID, $transactionId);
+                $payment->setAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_FEE_REFUNDED, 0);
+            }
+
+            $payment->setTransactionId($transactionId)
+                ->setIsTransactionClosed(0);
         } catch (Mage_Core_Exception $e) {
             Mage::throwException($e->getMessage());
         }
-        $invoices = $payment->getAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_INVOICE_LIST);
-        if (!is_array($invoices)) {
-            $invoices = array();
-        }
-        $invoices[] = array(
-                           Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_INVOICE_LIST_STATUS => $transactionStatus,
-                           Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_INVOICE_LIST_ID => $transactionId
-                           );
-        $payment->setAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_INVOICE_LIST, $invoices);
-
-        if ($feeAmountCaptured) {
-            $payment->setAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_FEE_CAPTURED_TRANSACTION_ID, $transactionId);
-            $payment->setAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_FEE_REFUNDED, 0);
-        }
-
-        $payment->setTransactionId($transactionId)
-                ->setIsTransactionClosed(0);
         return $this;
     }
 
     public function refund(Varien_Object $payment, $amount)
     {
         try {
-            $klarnaRefund = Mage::getModel('klarna/klarna_refund');
-            $klarnaRefund->setPayment($payment);
-
-            $itemList = $klarnaRefund->createItemList();
+            $klarna = $this->_getKlarnaModel();
+            $klarna->setPayment($payment);
+            $itemList = $klarna->createItemListRefund();
             $payment->setKlarnaItemList($itemList);
-
-            $klarnaRefund->setInfoInstance($this->getInfoInstance());
-            $result = $klarnaRefund->refund($amount);
+            $klarna->setInfoInstance($this->getInfoInstance());
+            $result = $klarna->refund($amount);
             $transactionStatus = $result[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_STATUS]; // Always OK...
             $transactionId = $result[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_TRANSACTION_ID];
             $klarnaFeeRefunded = $result[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_FEE_REFUNDED];
@@ -327,31 +404,32 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
             }
             $id = date('His');
             if (!$id) $id = 1;
+
+            $payment->setTransactionId($transactionId . '-' . $id . '-refund')
+                ->setIsTransactionClosed(1);
         } catch (Mage_Core_Exception $e) {
             Mage::throwException($e->getMessage());
         }
-
-        $payment->setTransactionId($transactionId . '-' . $id . '-refund')
-                ->setIsTransactionClosed(1);
         return $this;
     }
     
     public function cancel(Varien_Object $payment)
     {
         try {
-            $klarnaCancel = Mage::getModel('klarna/klarna_cancel');
-            $klarnaCancel->setPayment($payment);
-            $result = $klarnaCancel->cancel();
+            $klarna = $this->_getKlarnaModel();
+            $klarna->setPayment($payment);
+            $result = $klarna->cancel();
             $transactionStatus = $result[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_STATUS];
+
+            if (!$transactionStatus) {
+                Mage::throwException($this->_getHelper()->__('Klarna was not able to cancel the reservation'));
+            }
+            $payment->setAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_CANCELED_DATE, date("Y-m-d") );
+
+            $payment->setIsTransactionClosed(1);
         } catch (Mage_Core_Exception $e) {
             Mage::throwException($e->getMessage());
         }
-        if (!$transactionStatus) {
-            Mage::throwException(Mage::helper('klarna')->__('Klarna was not able to cancel the reservation'));
-        }
-        $payment->setAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_CANCELED_DATE, date("Y-m-d") );
-
-        $payment->setIsTransactionClosed(1);
         return $this;
     }
 
@@ -360,6 +438,10 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
         return $this->cancel($payment);
     }
 
+    protected function _fetchTransactionInfoParent(Mage_Payment_Model_Info $payment, $transactionId)
+    {
+        return parent::fetchTransactionInfo($payment, $transactionId);
+    }
     /**
      * Fetch transaction details info
      *
@@ -371,10 +453,10 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
      */
     public function fetchTransactionInfo(Mage_Payment_Model_Info $payment, $transactionId)
     {
-        $klarnaAuthorize = Mage::getModel('klarna/klarna_authorize');
-        $klarnaAuthorize->setPayment($payment);
+        $klarna = $this->_getKlarnaModel();
+        $klarna->setPayment($payment);
         $status = $payment->getAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_RESERVATION_STATUS);
-        $result = $klarnaAuthorize->checkStatus();
+        $result = $klarna->checkStatus();
         $transactionStatus = $result[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_STATUS];
         if ($transactionStatus!=$status) {
             $payment->setAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_RESERVATION_STATUS, $transactionStatus );
@@ -384,6 +466,6 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
         } elseif ($transactionStatus==Vaimo_Klarna_Helper_Data::KLARNA_STATUS_DENIED) {
             $payment->setIsTransactionDenied(true);
         }
-        return parent::fetchTransactionInfo($payment, $transactionId);
+        return $this->_fetchTransactionInfoParent($payment, $transactionId);
     }
 }

@@ -47,9 +47,9 @@ class Vaimo_Klarna_PaymentplanController extends Mage_Core_Controller_Front_Acti
             $plan = $request->getParam('payment_plan');
             $method = $request->getParam('method');
             $storeId = $request->getParam('store_id');
-            $klarnaPClass = Mage::getModel('klarna/klarna_pclass');
-            $klarnaPClass->setQuote($this->_getQuote(), $method);
-            $details = $klarnaPClass->getPClassDetails($plan);
+            $klarna = Mage::getModel('klarna/klarna');
+            $klarna->setQuote($this->_getQuote(), $method);
+            $details = $klarna->getPClassDetails($plan);
 
             $block = Mage::getSingleton('core/layout')
                         ->createBlock('klarna/form_paymentplan_information');

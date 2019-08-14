@@ -3709,10 +3709,10 @@ class Klarna
         $dir = dirname(__FILE__);
 
         //Require the CheckoutHTML interface/abstract class
-        include_once $dir.'/checkout/checkouthtml.intf.php';
+        include_once $dir.'/checkoutkpm/checkouthtml.intf.php';
 
         //Iterate over all .class.php files in checkout/
-        foreach (glob($dir.'/checkout/*.class.php') as $checkout) {
+        foreach (glob($dir.'/checkoutkpm/*.class.php') as $checkout) {
             if (!self::$debug) {
                 ob_start();
             }
@@ -3750,7 +3750,7 @@ class Klarna
         $dir = dirname(__FILE__);
 
         //Require the CheckoutHTML interface/abstract class
-        include_once $dir.'/checkout/checkouthtml.intf.php';
+        include_once $dir.'/checkoutkpm/checkouthtml.intf.php';
 
         //Iterate over all .class.php files in
         $html = "\n";

@@ -25,6 +25,26 @@
 
 class Vaimo_Klarna_Model_Invoice_Total extends Mage_Sales_Model_Order_Invoice_Total_Abstract
 {
+    protected $_moduleHelper = NULL;
+
+    /**
+     * constructor
+     *
+     * @param  $moduleHelper
+     */
+    public function __construct($moduleHelper = NULL)
+    {
+        $this->_moduleHelper = $moduleHelper;
+        if ($this->_moduleHelper==NULL) {
+            $this->_moduleHelper = Mage::helper('klarna');
+        }
+    }
+
+    protected function _getHelper()
+    {
+        return $this->_moduleHelper;
+    }
+
     public function collect(Mage_Sales_Model_Order_Invoice $invoice)
     {
         $order = $invoice->getOrder();
@@ -39,7 +59,7 @@ class Vaimo_Klarna_Model_Invoice_Total extends Mage_Sales_Model_Order_Invoice_To
           return $this;
         }
 
-        if (!Mage::helper('klarna')->isMethodKlarna($payment->getMethod())) {
+        if (!$this->_getHelper()->isMethodKlarna($payment->getMethod())) {
             return $this;
         }
 
@@ -62,7 +82,7 @@ class Vaimo_Klarna_Model_Invoice_Total extends Mage_Sales_Model_Order_Invoice_To
         $baseInvoiceTotal = $invoice->getBaseGrandTotal();
         $invoiceTotal = $invoice->getGrandTotal();
 
-        if (Mage::helper('klarna')->collectInvoiceAddTaxToInvoice()) {
+        if ($this->_getHelper()->collectInvoiceAddTaxToInvoice()) {
             $baseInvoiceTotal = $baseInvoiceTotal + $baseKlarnaFee + $baseKlarnaFeeTax;
             $invoiceTotal = $invoiceTotal + $klarnaFee + $klarnaFeeTax;
         } else {

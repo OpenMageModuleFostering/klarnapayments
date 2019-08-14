@@ -25,6 +25,52 @@
 
 class Vaimo_Klarna_Model_Invoice_Pdf_Total extends Mage_Sales_Model_Order_Pdf_Total_Default
 {
+    protected $_moduleHelper = NULL;
+
+    protected $_taxConfig = NULL;
+
+    /**
+     * constructor
+     *
+     * @param  $moduleHelper
+     * @param  $taxHelper
+     * @param  $taxConfig
+     */
+    public function __construct($moduleHelper = NULL, $taxHelper = NULL)
+    {
+        $this->_moduleHelper = $moduleHelper;
+        if ($this->_moduleHelper==NULL) {
+            $this->_moduleHelper = Mage::helper('klarna');
+        }
+        $this->_taxHelper = $taxHelper;
+        if ($this->_taxHelper==NULL) {
+            $this->_taxHelper = Mage::helper('tax');
+        }
+    }
+
+    protected function _getHelper()
+    {
+        return $this->_moduleHelper;
+    }
+
+    protected function _getTaxHelper()
+    {
+        return $this->_taxHelper;
+    }
+    
+    public function setTaxConfig($confObj)
+    {
+        $this->_taxConfig = $confObj;
+    }
+
+    protected function _getTaxConfig()
+    {
+        if ($this->_taxConfig==NULL) {
+            $this->_taxConfig = Mage::getSingleton('klarna/tax_config');
+        }
+        return $this->_taxConfig;
+    }
+
     public function getTotalsForDisplay()
     {
         $amount = $this->getAmount();
@@ -33,7 +79,7 @@ class Vaimo_Klarna_Model_Invoice_Pdf_Total extends Mage_Sales_Model_Order_Pdf_To
             $amount = $this->getAmountPrefix() . $amount;
         }
 
-        $label = Mage::helper('klarna')->__($this->getTitle()) . ':';
+        $label = $this->_getHelper()->__($this->getTitle()) . ':';
         $fontSize = $this->getFontSize() ? $this->getFontSize() : 7;
 
         $info =  $this->getOrder()->getPayment()->getMethodInstance()->getInfoInstance();
@@ -42,7 +88,7 @@ class Vaimo_Klarna_Model_Invoice_Pdf_Total extends Mage_Sales_Model_Order_Pdf_To
         $amountInclTax = $this->getOrder()->formatPriceTxt($amountInclTax);
 
         $store = $this->getOrder()->getStore();
-        $config = Mage::getSingleton('klarna/tax_config');
+        $config = $this->_getTaxConfig();
         if ($config->displaySalesKlarnaFeeInclTax($store->getId())) {
             $totals = array(array(
                 'amount'    => $amountInclTax,
@@ -53,12 +99,12 @@ class Vaimo_Klarna_Model_Invoice_Pdf_Total extends Mage_Sales_Model_Order_Pdf_To
             $totals = array(
                 array(
                     'amount'    => $amount,
-                    'label'     => Mage::helper('tax')->__('Invoice fee (Excl. Tax)') . ':',
+                    'label'     => $this->_getTaxHelper()->__('Invoice fee (Excl. Tax)') . ':',
                     'font_size' => $fontSize
                 ),
                 array(
                     'amount'    => $amountInclTax,
-                    'label'     => Mage::helper('tax')->__('Invoice fee (Incl. Tax)') . ':',
+                    'label'     => $this->_getTaxHelper()->__('Invoice fee (Incl. Tax)') . ':',
                     'font_size' => $fontSize
                 ),
             );

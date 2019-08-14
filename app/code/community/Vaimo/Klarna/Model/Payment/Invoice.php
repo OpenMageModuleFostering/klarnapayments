@@ -33,18 +33,17 @@ class Vaimo_Klarna_Model_Payment_Invoice extends Vaimo_Klarna_Model_Payment_Abst
     {
         if (parent::isAvailable($quote)==false) return false;
         try {
-            $klarnaAvailable = Mage::getModel('klarna/klarna_available');
-            $klarnaAvailable->setQuote($quote, $this->_code);
+            $klarna = $this->_getKlarnaModel();
+            $klarna->setQuote($quote, $this->_code);
 
-            $allowedMin = (int)$this->getConfigData('minimum_order_cost');
+            $allowedMin = (int)$klarna->getConfigData('minimum_order_cost');
             $grandTotal = $quote->getGrandTotal();
 
-            if(Mage::app()->getStore()->roundPrice($grandTotal) < $allowedMin) return false;
+            if ($this->_roundPrice($grandTotal) < $allowedMin) return false;
         } catch (Mage_Core_Exception $e) {
-            if ($klarnaAvailable) $klarnaAvailable->logKlarnaException($e);
+            if ($klarna) $klarna->logKlarnaException($e);
             return false;
         }
         return true;
     }
-
 }

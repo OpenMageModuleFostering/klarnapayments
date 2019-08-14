@@ -51,18 +51,20 @@ class Vaimo_Klarna_Block_Info_Abstract extends Mage_Payment_Block_Info
 
     public function getMethodTitle()
     {
+        $res = '';
         $data = $this->getMethod()->getInfoInstance();
         if ($data) {
-            $klarnaInfo = Mage::getModel('klarna/klarna_info');
+            $klarna = Mage::getModel('klarna/klarna');
             $method = $data->getAdditionalInformation('method');
             if ($data->getOrder()) {
-                $klarnaInfo->setOrder($data->getOrder());
+                $klarna->setOrder($data->getOrder());
+                $res = $klarna->getMethodTitleWithFee();
             } else {
-                $klarnaInfo->setQuote($this->getQuote(), $method);
+                $klarna->setQuote($this->getQuote(), $method);
+                $res = $klarna->getMethodTitleWithFee(Mage::helper('klarna')->getVaimoKlarnaFeeInclVat($this->getQuote(), false));
             }
-            return $klarnaInfo->getMethodTitle();
         }
-        return '';
+        return $res;
     }
 
     public function getKlarnaFeeLabel()
@@ -148,6 +150,12 @@ class Vaimo_Klarna_Block_Info_Abstract extends Mage_Payment_Block_Info
         return $this->toHtml();
     }
 
+    public function getReferenceHtml()
+    {
+        $this->setTemplate('vaimo/klarna/info/children/reference.phtml');
+        return $this->toHtml();
+    }
+
     public function getPaymentPlanHtml()
     {
         $this->setTemplate('vaimo/klarna/info/children/paymentplan.phtml');
@@ -157,18 +165,24 @@ class Vaimo_Klarna_Block_Info_Abstract extends Mage_Payment_Block_Info
     public function getKlarnaLogotype($width)
     {
         $method = $this->getMethod()->getCode();
-        $klarnaInfo = Mage::getModel('klarna/klarna_info');
+        $klarna = Mage::getModel('klarna/klarna');
         $data = $this->getMethod()->getInfoInstance();
         if ($data) {
             if ($data->getOrder()) {
-                $klarnaInfo->setOrder($data->getOrder(), $method);
+                $klarna->setOrder($data->getOrder(), $method);
             } else {
-                $klarnaInfo->setQuote($data->getQuote(), $method);
+                $klarna->setQuote($data->getQuote(), $method);
             }
         } else {
-            $klarnaInfo->setQuote($this->getQuote(), $method);
+            $klarna->setQuote($this->getQuote(), $method);
         }
-        return $klarnaInfo->getKlarnaLogotype($width, Vaimo_Klarna_Helper_Data::KLARNA_LOGOTYPE_POSITION_FRONTEND);
+        return $klarna->getKlarnaLogotype($width, Vaimo_Klarna_Helper_Data::KLARNA_LOGOTYPE_POSITION_FRONTEND);
     }
+
+    public function getMethodCode()
+    {
+        return $this->getMethod()->getCode();
+    }
+
 }
 

@@ -23,19 +23,19 @@
  * @copyright   Copyright (c) 2009-2014 Vaimo AB
  */
 
-class Vaimo_Klarna_Model_Source_Language
+class Vaimo_Klarna_Model_Source_Language extends Vaimo_Klarna_Model_Source_Abstract
 {
 
     public function toOptionArray()
     {
         return array(
-            array('value' => '', 'label' => Mage::helper('core')->__('Default')),
-            array('value' => 'nb', 'label' => Mage::helper('core')->__('Norwegian')),
-            array('value' => 'se', 'label' => Mage::helper('core')->__('Swedish')),
-            array('value' => 'fi', 'label' => Mage::helper('core')->__('Finnish')),
-            array('value' => 'dk', 'label' => Mage::helper('core')->__('Danish')),
-            array('value' => 'nl', 'label' => Mage::helper('core')->__('Dutch')),
-            array('value' => 'de', 'label' => Mage::helper('core')->__('German')),
+            array('value' => '',   'label' => $this->_getCoreHelper()->__('Default')),
+            array('value' => 'nb', 'label' => $this->_getCoreHelper()->__('Norwegian')),
+            array('value' => 'se', 'label' => $this->_getCoreHelper()->__('Swedish')),
+            array('value' => 'fi', 'label' => $this->_getCoreHelper()->__('Finnish')),
+            array('value' => 'dk', 'label' => $this->_getCoreHelper()->__('Danish')),
+            array('value' => 'nl', 'label' => $this->_getCoreHelper()->__('Dutch')),
+            array('value' => 'de', 'label' => $this->_getCoreHelper()->__('German')),
         );
     }
 

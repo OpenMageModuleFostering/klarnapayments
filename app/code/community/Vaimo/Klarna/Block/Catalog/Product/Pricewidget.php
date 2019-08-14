@@ -57,12 +57,22 @@ class Vaimo_Klarna_Block_Catalog_Product_Pricewidget extends Mage_Core_Block_Tem
      */
     public function getWidgetParameters()
     {
-        $klarnaWidget = Mage::getModel('klarna/klarna_widget');
-        $klarnaWidget->setQuote($this->getQuote(), Vaimo_Klarna_Helper_Data::KLARNA_METHOD_ACCOUNT);
-        $klarnaSetup = $klarnaWidget->getKlarnaSetup();
-        if ($klarnaSetup) {
-            if($klarnaSetup->getCountryCode() != 'NL' && $klarnaSetup->getCountryCode() != 'AT') {
-                return $klarnaSetup;
+        $activef = true;
+        $klarna = Mage::getModel('klarna/klarna');
+        $klarna->setQuote($this->getQuote(), Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
+        if ($klarna->getConfigData('disable_product_widget')) {
+            $activef = false;
+        }
+        $klarna->setQuote($this->getQuote(), Vaimo_Klarna_Helper_Data::KLARNA_METHOD_ACCOUNT);
+        if ($klarna->getConfigData('disable_product_widget')) {
+            $activef = false;
+        }
+        if ($activef) {
+            $klarnaSetup = $klarna->getKlarnaSetup();
+            if ($klarnaSetup) {
+                if($klarnaSetup->getCountryCode() != 'NL' && $klarnaSetup->getCountryCode() != 'AT') {
+                    return $klarnaSetup;
+                }
             }
         }
         return NULL;

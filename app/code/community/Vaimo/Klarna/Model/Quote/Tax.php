@@ -25,14 +25,66 @@
 
 class Vaimo_Klarna_Model_Quote_Tax extends Mage_Sales_Model_Quote_Address_Total_Tax
 {
-    public function __construct()
+    protected $_moduleHelper = NULL;
+    protected $_salesHelper = NULL;
+
+    protected $_taxCalculation = NULL;
+    protected $_taxConfig = NULL;
+
+    /**
+     * constructor
+     *
+     * @param  $moduleHelper
+     * @param  $salesHelper
+     * @param  $taxCalculation
+     * @param  $taxConfig
+     */
+    public function __construct($moduleHelper = NULL, $salesHelper = NULL,
+                                $taxCalculation = NULL, $taxConfig = NULL)
     {
         $this->setCode('vaimo_klarna_fee_tax');
+
+        $this->_moduleHelper = $moduleHelper;
+        if ($this->_moduleHelper==NULL) {
+            $this->_moduleHelper = Mage::helper('klarna');
+        }
+        $this->_salesHelper = $salesHelper;
+        if ($this->_salesHelper==NULL) {
+            $this->_salesHelper = Mage::helper('sales');
+        }
+        $this->_taxCalculation = $taxCalculation;
+        if ($this->_taxCalculation==NULL) {
+            $this->_taxCalculation = Mage::getSingleton('tax/calculation');
+        }
+        $this->_taxConfig = $taxConfig;
+        if ($this->_taxConfig==NULL) {
+            $this->_taxConfig = Mage::getSingleton('tax/config');
+        }
+    }
+
+    protected function _getHelper()
+    {
+        return $this->_moduleHelper;
+    }
+
+    protected function _getSalesHelper()
+    {
+        return $this->_salesHelper;
+    }
+
+    protected function _getTaxCalculation()
+    {
+        return $this->_taxCalculation;
+    }
+
+    protected function _getTaxConfig()
+    {
+        return $this->_taxConfig;
     }
 
     public function collect(Mage_Sales_Model_Quote_Address $address)
     {
-        if (Mage::helper('klarna')->collectQuoteRunParentFunction()) {
+        if ($this->_getHelper()->collectQuoteRunParentFunction()) {
 //            parent::collect($address);
         }
 
@@ -48,7 +100,7 @@ class Vaimo_Klarna_Model_Quote_Tax extends Mage_Sales_Model_Quote_Address_Total_
           return $this;
         }
 
-        if (!Mage::helper('klarna')->isMethodKlarna($address->getQuote()->getPayment()->getMethod())) {
+        if (!$this->_getHelper()->isMethodKlarna($address->getQuote()->getPayment()->getMethod())) {
             return $this;
         }
 
@@ -60,9 +112,9 @@ class Vaimo_Klarna_Model_Quote_Tax extends Mage_Sales_Model_Quote_Address_Total_
         $quote = $address->getQuote();
         $custTaxClassId = $quote->getCustomerTaxClassId();
         $store = $quote->getStore();
-        $taxCalculationModel = Mage::getSingleton('tax/calculation');
+        $taxCalculationModel = $this->_getTaxCalculation();
         $request = $taxCalculationModel->getRateRequest($address, $quote->getBillingAddress(), $custTaxClassId, $store);
-        $klarnaFeeTaxClass = Mage::helper('klarna')->getTaxClass($store);
+        $klarnaFeeTaxClass = $this->_getHelper()->getTaxClass($store);
 
         $klarnaFeeTax      = 0;
         $klarnaFeeBaseTax  = 0;
@@ -73,7 +125,7 @@ class Vaimo_Klarna_Model_Quote_Tax extends Mage_Sales_Model_Quote_Address_Total_
                 $klarnaFeeTax = $taxCalculationModel->calcTaxAmount($address->getVaimoKlarnaFee(), $rate, false, true);
                 $klarnaFeeBaseTax = $taxCalculationModel->calcTaxAmount($address->getVaimoKlarnaBaseFee(), $rate, false, true);
                 
-                if (Mage::helper('klarna')->collectQuoteUseExtraTaxInCheckout()) {
+                if ($this->_getHelper()->collectQuoteUseExtraTaxInCheckout()) {
                     $address->setExtraTaxAmount($address->getExtraTaxAmount() + $klarnaFeeTax);
                     $address->setBaseExtraTaxAmount($address->getBaseExtraTaxAmount() + $klarnaFeeBaseTax);
                 } else {
@@ -99,7 +151,7 @@ class Vaimo_Klarna_Model_Quote_Tax extends Mage_Sales_Model_Quote_Address_Total_
     {
         $store = $address->getQuote()->getStore();
 
-        if (Mage::getSingleton('tax/config')->displayCartSubtotalBoth($store) || Mage::getSingleton('tax/config')->displayCartSubtotalInclTax($store)) {
+        if ($this->_getTaxConfig()->displayCartSubtotalBoth($store) || $this->_getTaxConfig()->displayCartSubtotalInclTax($store)) {
             if ($address->getSubtotalInclTax() > 0) {
                 $subtotalInclTax = $address->getSubtotalInclTax();
             } else {
@@ -108,7 +160,7 @@ class Vaimo_Klarna_Model_Quote_Tax extends Mage_Sales_Model_Quote_Address_Total_
 
             $address->addTotal(array(
                 'code'      => 'subtotal',
-                'title'     => Mage::helper('sales')->__('Subtotal'),
+                'title'     => $this->_getSalesHelper()->__('Subtotal'),
                 'value'     => $subtotalInclTax,
                 'value_incl_tax' => $subtotalInclTax,
                 'value_excl_tax' => $address->getSubtotal(),

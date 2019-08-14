@@ -49,9 +49,9 @@ class Vaimo_Klarna_AddressController extends Mage_Core_Controller_Front_Action
                 Mage::throwException(Mage::helper('klarna')->__('Please enter your personal ID and try again'));
             }
             $method = $request->getParam('method');
-            $klarnaAddressSearch = Mage::getModel('klarna/klarna_addresssearch');
-            $klarnaAddressSearch->setQuote($this->_getQuote(), $method);
-            $addresses = $klarnaAddressSearch->getAddresses($pno);
+            $klarna = Mage::getModel('klarna/klarna');
+            $klarna->setQuote($this->_getQuote(), $method);
+            $addresses = $klarna->getAddresses($pno);
 
             $block = Mage::getSingleton('core/layout')
                         ->createBlock('klarna/form_address_search');

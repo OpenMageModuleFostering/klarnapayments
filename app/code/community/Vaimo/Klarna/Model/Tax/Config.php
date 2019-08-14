@@ -34,7 +34,7 @@ class Vaimo_Klarna_Model_Tax_Config extends Mage_Tax_Model_Config
     /**
      * Prices display settings
      */
-    const CONFIG_XML_PATH_DISPLAY_KLARNA_FEE      = 'tax/display/vaimo_klarna_fee';
+    const CONFIG_XML_PATH_DISPLAY_KLARNA_FEE      = 'tax/display/vaimo_klarna_fee'; // Not used?
 
     /**
      * Shopping cart display settings
@@ -50,7 +50,21 @@ class Vaimo_Klarna_Model_Tax_Config extends Mage_Tax_Model_Config
      * @var $_klarnaFeePriceIncludeTax bool
      */
     protected $_klarnaFeePriceIncludeTax = null;
-
+    
+    /*
+     * Will call normal Mage::getStoreConfig
+     * It's in it's own function, so it can be mocked in tests
+     * 
+     * @param string $field
+     * @param string $storeId
+     *
+     * @return string
+     */
+    protected function _getConfigDataCall($field, $storeId)
+    {
+        return Mage::getStoreConfig($field, $storeId);
+    }
+    
     /**
      * Get tax class id specified for klarna fee tax estimation
      *
@@ -59,7 +73,7 @@ class Vaimo_Klarna_Model_Tax_Config extends Mage_Tax_Model_Config
      */
     public function getKlarnaFeeTaxClass($store=null)
     {
-        return (int)Mage::getStoreConfig(self::CONFIG_XML_PATH_KLARNA_FEE_TAX_CLASS, $store);
+        return (int)$this->_getConfigDataCall(self::CONFIG_XML_PATH_KLARNA_FEE_TAX_CLASS, $store);
     }
 
     /**
@@ -70,7 +84,7 @@ class Vaimo_Klarna_Model_Tax_Config extends Mage_Tax_Model_Config
      */
     public function getKlarnaFeePriceDisplayType($store = null)
     {
-        return (int)Mage::getStoreConfig(self::CONFIG_XML_PATH_DISPLAY_KLARNA_FEE, $store);
+        return (int)$this->_getConfigDataCall(self::CONFIG_XML_PATH_DISPLAY_KLARNA_FEE, $store);
     }
 
     /**
@@ -82,7 +96,7 @@ class Vaimo_Klarna_Model_Tax_Config extends Mage_Tax_Model_Config
     public function klarnaFeePriceIncludesTax($store = null)
     {
         if ($this->_klarnaFeePriceIncludeTax === null) {
-            $this->_klarnaFeePriceIncludeTax = (bool)Mage::getStoreConfig(
+            $this->_klarnaFeePriceIncludeTax = (bool)$this->_getConfigDataCall(
                 self::CONFIG_XML_PATH_KLARNA_FEE_INCLUDES_TAX,
                 $store
             );
@@ -92,32 +106,32 @@ class Vaimo_Klarna_Model_Tax_Config extends Mage_Tax_Model_Config
 
     public function displayCartKlarnaFeeInclTax($store = null)
     {
-        return Mage::getStoreConfig(self::XML_PATH_DISPLAY_CART_KLARNA_FEE, $store) == self::DISPLAY_TYPE_INCLUDING_TAX;
+        return $this->_getConfigDataCall(self::XML_PATH_DISPLAY_CART_KLARNA_FEE, $store) == self::DISPLAY_TYPE_INCLUDING_TAX;
     }
 
     public function displayCartKlarnaFeeExclTax($store = null)
     {
-        return Mage::getStoreConfig(self::XML_PATH_DISPLAY_CART_KLARNA_FEE, $store) == self::DISPLAY_TYPE_EXCLUDING_TAX;
+        return $this->_getConfigDataCall(self::XML_PATH_DISPLAY_CART_KLARNA_FEE, $store) == self::DISPLAY_TYPE_EXCLUDING_TAX;
     }
 
     public function displayCartKlarnaFeeBoth($store = null)
     {
-        return Mage::getStoreConfig(self::XML_PATH_DISPLAY_CART_KLARNA_FEE, $store) == self::DISPLAY_TYPE_BOTH;
+        return $this->_getConfigDataCall(self::XML_PATH_DISPLAY_CART_KLARNA_FEE, $store) == self::DISPLAY_TYPE_BOTH;
     }
 
     public function displaySalesKlarnaFeeInclTax($store = null)
     {
-        return Mage::getStoreConfig(self::XML_PATH_DISPLAY_SALES_KLARNA_FEE, $store) == self::DISPLAY_TYPE_INCLUDING_TAX;
+        return $this->_getConfigDataCall(self::XML_PATH_DISPLAY_SALES_KLARNA_FEE, $store) == self::DISPLAY_TYPE_INCLUDING_TAX;
     }
 
     public function displaySalesKlarnaFeeExclTax($store = null)
     {
-        return Mage::getStoreConfig(self::XML_PATH_DISPLAY_SALES_KLARNA_FEE, $store) == self::DISPLAY_TYPE_EXCLUDING_TAX;
+        return $this->_getConfigDataCall(self::XML_PATH_DISPLAY_SALES_KLARNA_FEE, $store) == self::DISPLAY_TYPE_EXCLUDING_TAX;
     }
 
     public function displaySalesKlarnaFeeBoth($store = null)
     {
-        return Mage::getStoreConfig(self::XML_PATH_DISPLAY_SALES_KLARNA_FEE, $store) == self::DISPLAY_TYPE_BOTH;
+        return $this->_getConfigDataCall(self::XML_PATH_DISPLAY_SALES_KLARNA_FEE, $store) == self::DISPLAY_TYPE_BOTH;
     }
 }
 

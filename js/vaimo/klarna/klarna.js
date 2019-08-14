@@ -171,7 +171,7 @@ function enableUpdatePclassButton()
     $('update_pclass_button').removeClassName('disabled');
 }
 
-function disableUpdatePclassButton()
+function clearUpdatePclassMessage()
 {
     $("update_pclass_message").update('');
 }
@@ -211,7 +211,7 @@ function doUpdatePClass(url)
     });
 
     disableUpdatePclassButton();
-    clearUpdatePclassMessae();
+    clearUpdatePclassMessage();
 }
 
 function insertKlarnaInvoiceElements(merchant, locale, invoiceFee) {
@@ -301,3 +301,6 @@ function insertKlarnaSpecialElements(merchant, locale) {
     }
 }
 
+function klarnaCheckoutGo(url) {
+    window.location.assign(url);
+}

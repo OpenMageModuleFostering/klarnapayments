@@ -52,9 +52,9 @@ class Vaimo_Klarna_Block_Form_Address_Search extends Mage_Core_Block_Template
     public function shippingSameAsBilling()
     {
         $method = $this->getMethodCode();
-        $klarnaForm = Mage::getModel('klarna/klarna_form');
-        $klarnaForm->setQuote($this->getQuote(), $method);
-        $res = $klarnaForm->shippingSameAsBilling();
+        $klarna = Mage::getModel('klarna/klarna');
+        $klarna->setQuote($this->getQuote(), $method);
+        $res = $klarna->shippingSameAsBilling();
         return $res;
     }
 

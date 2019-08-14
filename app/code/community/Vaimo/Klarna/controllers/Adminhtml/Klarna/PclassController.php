@@ -35,10 +35,10 @@ class Vaimo_Klarna_Adminhtml_Klarna_PclassController extends Mage_Adminhtml_Cont
         try {
             $request = $this->getRequest();
 
-            $klarnaPClass = Mage::getModel('klarna/klarna_pclass');
-            $klarnaPClass->setMethod(Vaimo_Klarna_Helper_Data::KLARNA_METHOD_ACCOUNT);
-            $klarnaPClass->setStoreInformation(NULL);
-            $klarnaPClass->reloadAllPClasses();
+            $klarna = Mage::getModel('klarna/klarna');
+            $klarna->setStoreInformation();
+            $klarna->setMethod(Vaimo_Klarna_Helper_Data::KLARNA_METHOD_ACCOUNT);
+            $klarna->reloadAllPClasses();
 
             $block = Mage::getSingleton('core/layout')
                         ->createBlock('klarna/adminhtml_pclass_list');;

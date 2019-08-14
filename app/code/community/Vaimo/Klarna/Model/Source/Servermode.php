@@ -23,14 +23,14 @@
  * @copyright   Copyright (c) 2009-2014 Vaimo AB
  */
 
-class Vaimo_Klarna_Model_Source_Servermode
+class Vaimo_Klarna_Model_Source_Servermode extends Vaimo_Klarna_Model_Source_Abstract
 {
 
     public function toOptionArray()
     {
         return array(
-            array('value' => 'BETA', 'label' => Mage::helper('klarna')->__('Testdrive')),
-            array('value' => 'LIVE', 'label' => Mage::helper('klarna')->__('Live')),
+            array('value' => 'BETA', 'label' => $this->_getHelper()->__('Testdrive')),
+            array('value' => 'LIVE', 'label' => $this->_getHelper()->__('Live')),
         );
     }
 }

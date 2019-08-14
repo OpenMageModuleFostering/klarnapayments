@@ -24,13 +24,13 @@
  */
 
 
-class Vaimo_Klarna_Model_Source_Allspecificcountries
+class Vaimo_Klarna_Model_Source_Allspecificcountries extends Vaimo_Klarna_Model_Source_Abstract
 {
     public function toOptionArray()
     {
         return array(
-            array('value'=>0, 'label'=>Mage::helper('klarna')->__('Default Country Only')),
-            array('value'=>1, 'label'=>Mage::helper('klarna')->__('Multiple Countries Allowed')),
+            array('value' => 0, 'label' => $this->_getHelper()->__('Default Country Only')),
+            array('value' => 1, 'label' => $this->_getHelper()->__('Multiple Countries Allowed')),
         );
     }
 }

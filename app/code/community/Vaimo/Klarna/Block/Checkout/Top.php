@@ -27,9 +27,9 @@ class Vaimo_Klarna_Block_Checkout_Top extends Mage_Checkout_Block_Cart_Abstract
 {
     public function getKlarnaSetup($method)
     {
-        $klarnaForm = Mage::getModel('klarna/klarna_form');
-        $klarnaForm->setQuote($this->getQuote(), $method);
-        return $klarnaForm->getKlarnaSetup();
+        $klarna = Mage::getModel('klarna/klarna');
+        $klarna->setQuote($this->getQuote(), $method);
+        return $klarna->getKlarnaSetup();
     }
 
     public function getKlarnaInvoiceFeeInfo()

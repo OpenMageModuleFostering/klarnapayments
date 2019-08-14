@@ -60,10 +60,10 @@ class Vaimo_Klarna_Block_Adminhtml_Pclass_List extends Mage_Adminhtml_Block_Syst
     {
         try {
             $res = array();
-            $klarnaPClass = Mage::getModel('klarna/klarna_pclass');
-            $klarnaPClass->setMethod(Vaimo_Klarna_Helper_Data::KLARNA_METHOD_ACCOUNT);
-            $klarnaPClass->setStoreInformation(NULL);
-            $res = $klarnaPClass->getDisplayAllPClasses();
+            $klarna = Mage::getModel('klarna/klarna');
+            $klarna->setStoreInformation();
+            $klarna->setMethod(Vaimo_Klarna_Helper_Data::KLARNA_METHOD_ACCOUNT);
+            $res = $klarna->getDisplayAllPClasses();
         } catch (Mage_Core_Exception $e) {
             $res['error'] = $e->getMessage();
         }

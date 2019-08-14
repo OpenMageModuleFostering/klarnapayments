@@ -30,7 +30,7 @@ $info = $this->getPaymentInfo();
     <?php if ($info): ?>
 
         <?php if ($info->getKlarnaReservationId()): ?>
-            <?php if ($this->somethingLeftToCapture()): ?>
+            <?php if ($this->somethingLeftToCapture() || $this->getMethodCode()==Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT): ?>
             <li>
                 <?php echo Mage::helper('klarna')->__('Reservation') . ' ' . $info->getKlarnaReservationId(); ?>
                 <?php

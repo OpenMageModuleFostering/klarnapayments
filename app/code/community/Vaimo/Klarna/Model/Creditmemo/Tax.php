@@ -25,6 +25,25 @@
 
 class Vaimo_Klarna_Model_Creditmemo_Tax extends Mage_Sales_Model_Order_Creditmemo_Total_Tax
 {
+    protected $_moduleHelper = NULL;
+
+    /**
+     * constructor
+     *
+     * @param  $moduleHelper
+     */
+    public function __construct($moduleHelper = NULL)
+    {
+        $this->_moduleHelper = $moduleHelper;
+        if ($this->_moduleHelper==NULL) {
+            $this->_moduleHelper = Mage::helper('klarna');
+        }
+    }
+
+    protected function _getHelper()
+    {
+        return $this->_moduleHelper;
+    }
 
     /**
      * Collect the order total
@@ -40,7 +59,7 @@ class Vaimo_Klarna_Model_Creditmemo_Tax extends Mage_Sales_Model_Order_Creditmem
         if ($order && $invoice) {
             $payment = $order->getPayment();
             if ($payment) {
-                if (!Mage::helper('klarna')->isMethodKlarna($payment->getMethod())) {
+                if (!$this->_getHelper()->isMethodKlarna($payment->getMethod())) {
                     return $this;
                 }
                 $info = $payment->getMethodInstance()->getInfoInstance();

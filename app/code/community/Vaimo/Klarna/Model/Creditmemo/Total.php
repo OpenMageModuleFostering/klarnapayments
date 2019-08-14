@@ -25,6 +25,35 @@
 
 class Vaimo_Klarna_Model_Creditmemo_Total extends Mage_Sales_Model_Order_Creditmemo_Total_Abstract
 {
+    protected $_moduleHelper = NULL;
+
+    /**
+     * constructor
+     *
+     * @param  $moduleHelper
+     */
+    public function __construct($moduleHelper = NULL)
+    {
+        $this->_moduleHelper = $moduleHelper;
+        if ($this->_moduleHelper==NULL) {
+            $this->_moduleHelper = Mage::helper('klarna');
+        }
+    }
+
+    protected function _getHelper()
+    {
+        return $this->_moduleHelper;
+    }
+
+    protected function _isLoggedIn()
+    {
+        return Mage::getSingleton('admin/session')->isLoggedIn();
+    }
+
+    protected function _getRequest($param)
+    {
+        return Mage::app()->getRequest()->getParam($param);
+    }
 
     /**
      * Collect the order total
@@ -42,8 +71,8 @@ class Vaimo_Klarna_Model_Creditmemo_Total extends Mage_Sales_Model_Order_Creditm
          */
         $order = $creditmemo->getOrder();
         $invoice = $creditmemo->getInvoice();
-        if (Mage::getSingleton('admin/session')->isLoggedIn()) {
-            $data = Mage::app()->getRequest()->getParam('creditmemo');
+        if ($this->_isLoggedIn()) {
+            $data = $this->_getRequest('creditmemo');
             if ($data) {
                 if (isset($data['vaimo_klarna_fee_refund'])) {
                     if ($data['vaimo_klarna_fee_refund']=='') {
@@ -61,12 +90,12 @@ class Vaimo_Klarna_Model_Creditmemo_Total extends Mage_Sales_Model_Order_Creditm
         if ($order) {
             $payment = $order->getPayment();
             if ($payment) {
-                if (!Mage::helper('klarna')->isMethodKlarna($payment->getMethod())) {
+                if (!$this->_getHelper()->isMethodKlarna($payment->getMethod())) {
                     return $this;
                 }
                 if (!$invoice) {
                     Mage::getSingleton('adminhtml/session')->addError(
-                        Mage::helper('klarna')->__('You must create the credit memo from the invoice, not directly from the order, to update Klarna with the credited amount/items')
+                        $this->_getHelper()->__('You must create the credit memo from the invoice, not directly from the order, to update Klarna with the credited amount/items')
                     );
                     return $this;
                 }

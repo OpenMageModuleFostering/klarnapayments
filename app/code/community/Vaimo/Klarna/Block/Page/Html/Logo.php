@@ -21,7 +21,6 @@
  * @category    Vaimo
  * @package     Vaimo_Klarna
  * @copyright   Copyright (c) 2009-2014 Vaimo AB
- * @author      
  */
 
 class Vaimo_Klarna_Block_Page_Html_Logo extends Mage_Core_Block_Template
@@ -43,9 +42,9 @@ class Vaimo_Klarna_Block_Page_Html_Logo extends Mage_Core_Block_Template
 
     public function getAvailableMethods()
     {
-        $klarnaWidget = Mage::getModel('klarna/klarna_widget');
-        $klarnaWidget->setQuote($this->getQuote());
-        $res = $klarnaWidget->getAvailableMethods();
+        $klarna = Mage::getModel('klarna/klarna');
+        $klarna->setQuote($this->getQuote());
+        $res = $klarna->getAvailableMethods();
         return $res;
     }
 
@@ -54,27 +53,49 @@ class Vaimo_Klarna_Block_Page_Html_Logo extends Mage_Core_Block_Template
         $res = array();
         $invoice_found = false;
         $account_found = false;
+        $checkout_found = false;
         $logoPosition = Vaimo_Klarna_Helper_Data::KLARNA_LOGOTYPE_POSITION_FRONTEND;
-        $klarnaWidget = Mage::getModel('klarna/klarna_widget');
-        $klarnaWidget->setQuote($this->getQuote());
+        $klarna = Mage::getModel('klarna/klarna');
+        $klarna->setQuote($this->getQuote());
+
+        // Branding change, always show same logotype, except for Klarna Checkout
         foreach ($methods as $method) {
-            $klarnaWidget->setMethod($method);
+            if ($method==Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT) {
+                $checkout_found = true;
+            } else {
+                $invoice_found = true;
+            }
+        }
+        if ($checkout_found) {
+            $res = array($klarna->getKlarnaLogotype($width, $logoPosition, Vaimo_Klarna_Helper_Data::KLARNA_LOGOTYPE_TYPE_CHECKOUT));
+        } elseif ($invoice_found) {
+            $res = array($klarna->getKlarnaLogotype($width, $logoPosition, Vaimo_Klarna_Helper_Data::KLARNA_LOGOTYPE_TYPE_BASIC));
+        }
+
+        /*
+        foreach ($methods as $method) {
+            $klarna->setMethod($method);
             if ($method==Vaimo_Klarna_Helper_Data::KLARNA_METHOD_INVOICE) {
                 $logoType = Vaimo_Klarna_Helper_Data::KLARNA_LOGOTYPE_TYPE_INVOICE;
                 $invoice_found = true;
             } elseif ($method==Vaimo_Klarna_Helper_Data::KLARNA_METHOD_ACCOUNT) {
                 $logoType = Vaimo_Klarna_Helper_Data::KLARNA_LOGOTYPE_TYPE_ACCOUNT;
                 $account_found = true;
+            } elseif ($method==Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT) {
+                $logoType = Vaimo_Klarna_Helper_Data::KLARNA_LOGOTYPE_TYPE_CHECKOUT;
+                $checkout_found = true;
             } else {
                 continue;
             }
-            if ($invoice_found && $account_found && $useBoth) {
-                $res = array($klarnaWidget->getKlarnaLogotype($width, $logoPosition, Vaimo_Klarna_Helper_Data::KLARNA_LOGOTYPE_TYPE_BOTH));
-                break;
-            } else {
-                $res[] = $klarnaWidget->getKlarnaLogotype($width, $logoPosition, $logoType);
-            }
+            $res[] = $klarna->getKlarnaLogotype($width, $logoPosition, $logoType);
         }
+        if ($checkout_found) {
+            $res = array($klarna->getKlarnaLogotype($width, $logoPosition, Vaimo_Klarna_Helper_Data::KLARNA_LOGOTYPE_TYPE_CHECKOUT));
+        } elseif ($invoice_found && $account_found && $useBoth) {
+            $res = array($klarna->getKlarnaLogotype($width, $logoPosition, Vaimo_Klarna_Helper_Data::KLARNA_LOGOTYPE_TYPE_BOTH));
+        }
+        */
+
         return $res;
     }
 }

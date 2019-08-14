@@ -49,10 +49,9 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
             if (isset($this->_pclasses[$method])) {
                 return $this->_pclasses[$method];
             }
-            $klarnaPClass = Mage::getModel('klarna/klarna_pclass');
-            $klarnaPClass->setQuote($this->getQuote(), $method);
-            $klarnaPClass->setPClassTypes($method);
-            $res = $klarnaPClass->getValidCheckoutPClasses();
+            $klarna = Mage::getModel('klarna/klarna');
+            $klarna->setQuote($this->getQuote(), $method);
+            $res = $klarna->getValidCheckoutPClasses($method);
             $data = $this->getMethod()->getInfoInstance();
             if ($data) {
                 $id = $data->getAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_PAYMENT_PLAN);
@@ -68,7 +67,7 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
             }
             $this->_pclasses[$method] = $res;
         } catch (Mage_Core_Exception $e) {
-            if ($klarnaPClass) $klarnaPClass->logKlarnaException($e);
+            if ($klarna) $klarna->logKlarnaException($e);
             $res = NULL;
         }
         return $res;
@@ -78,11 +77,11 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
     {
         try {
             $method = $this->getMethod()->getCode();
-            $klarnaForm = Mage::getModel('klarna/klarna_form');
-            $klarnaForm->setQuote($this->getQuote(), $method);
-            $res = $klarnaForm->useGetAddresses();
+            $klarna = Mage::getModel('klarna/klarna');
+            $klarna->setQuote($this->getQuote(), $method);
+            $res = $klarna->useGetAddresses();
         } catch (Mage_Core_Exception $e) {
-            if ($klarnaForm) $klarnaForm->logKlarnaException($e);
+            if ($klarna) $klarna->logKlarnaException($e);
             $res = false;
         }
         return $res;
@@ -92,11 +91,11 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
     {
         try {
             $method = $this->getMethod()->getCode();
-            $klarnaForm = Mage::getModel('klarna/klarna_form');
-            $klarnaForm->setQuote($this->getQuote(), $method);
-            $res = $klarnaForm->needDateOfBirth();
+            $klarna = Mage::getModel('klarna/klarna');
+            $klarna->setQuote($this->getQuote(), $method);
+            $res = $klarna->needDateOfBirth();
         } catch (Mage_Core_Exception $e) {
-            if ($klarnaForm) $klarnaForm->logKlarnaException($e);
+            if ($klarna) $klarna->logKlarnaException($e);
             $res = false;
         }
         return $res;
@@ -106,11 +105,11 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
     {
         try {
             $method = $this->getMethod()->getCode();
-            $klarnaForm = Mage::getModel('klarna/klarna_form');
-            $klarnaForm->setQuote($this->getQuote(), $method);
-            $res = $klarnaForm->needGender();
+            $klarna = Mage::getModel('klarna/klarna');
+            $klarna->setQuote($this->getQuote(), $method);
+            $res = $klarna->needGender();
         } catch (Mage_Core_Exception $e) {
-            if ($klarnaForm) $klarnaForm->logKlarnaException($e);
+            if ($klarna) $klarna->logKlarnaException($e);
             $res = false;
         }
         return $res;
@@ -120,11 +119,11 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
     {
         try {
             $method = $this->getMethod()->getCode();
-            $klarnaForm = Mage::getModel('klarna/klarna_form');
-            $klarnaForm->setQuote($this->getQuote(), $method);
-            $res = $klarnaForm->needConsent();
+            $klarna = Mage::getModel('klarna/klarna');
+            $klarna->setQuote($this->getQuote(), $method);
+            $res = $klarna->needConsent();
         } catch (Mage_Core_Exception $e) {
-            if ($klarnaForm) $klarnaForm->logKlarnaException($e);
+            if ($klarna) $klarna->logKlarnaException($e);
             $res = false;
         }
         return $res;
@@ -134,17 +133,17 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
     {
         try {
             $method = $this->getMethod()->getCode();
-            $klarnaForm = Mage::getModel('klarna/klarna_form');
-            $klarnaForm->setQuote($this->getQuote(), $method);
-            $res = $klarnaForm->needExtraPaymentPlanInformaton();
+            $klarna = Mage::getModel('klarna/klarna');
+            $klarna->setQuote($this->getQuote(), $method);
+            $res = $klarna->needExtraPaymentPlanInformaton();
         } catch (Mage_Core_Exception $e) {
-            if ($klarnaForm) $klarnaForm->logKlarnaException($e);
+            if ($klarna) $klarna->logKlarnaException($e);
             $res = false;
         }
         return $res;
     }
     
-    private function _getCurrentField($field, $default = '')
+    protected function _getCurrentField($field, $default = '')
     {
         try {
             $res = $default;
@@ -260,7 +259,7 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
      */
     public function getAjaxAddressSearchUrl()
     {
-        return Mage::getSingleton('core/url')->getUrl('klarna/address/search');
+        return Mage::getSingleton('core/url')->getUrl('klarna/address/search', array('_secure' => true));
     }
 
     /**
@@ -270,36 +269,37 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
      */
     public function getAjaxPaymentPlanInformationUrl()
     {
-        return Mage::getSingleton('core/url')->getUrl('klarna/paymentplan/information');
+        return Mage::getSingleton('core/url')->getUrl('klarna/paymentplan/information', array('_secure' => true));
     }
 
     public function getKlarnaLogotype($width)
     {
         $method = $this->getMethod()->getCode();
-        $klarnaForm = Mage::getModel('klarna/klarna_form');
-        $klarnaForm->setQuote($this->getQuote(), $method);
-        return $klarnaForm->getKlarnaLogotype($width, Vaimo_Klarna_Helper_Data::KLARNA_LOGOTYPE_POSITION_CHECKOUT);
+        $klarna = Mage::getModel('klarna/klarna');
+        $klarna->setQuote($this->getQuote(), $method);
+        return $klarna->getKlarnaLogotype($width, Vaimo_Klarna_Helper_Data::KLARNA_LOGOTYPE_POSITION_CHECKOUT);
     }
 
     public function getKlarnaSetup()
     {
         $method = $this->getMethod()->getCode();
-        $klarnaForm = Mage::getModel('klarna/klarna_form');
-        $klarnaForm->setQuote($this->getQuote(), $method);
-        return $klarnaForm->getKlarnaSetup();
+        $klarna = Mage::getModel('klarna/klarna');
+        $klarna->setQuote($this->getQuote(), $method);
+        return $klarna->getKlarnaSetup();
     }
 
     public function getDefaultPaymentPlanInformation($method)
     {
         $res = NULL;
         try {
-            $klarnaPClass = Mage::getModel('klarna/klarna_pclass');
-            $klarnaPClass->setQuote($this->getQuote(), $method);
-            $klarnaPClass->setPClassTypes($method);
-            $pclasses = $klarnaPClass->getValidCheckoutPClasses();
-            foreach ($pclasses as $pclass) {
-                if ($pclass['default']) {
-                    $res = $klarnaPClass->getPClassDetails($pclass['id']);
+            $klarna = Mage::getModel('klarna/klarna');
+            $klarna->setQuote($this->getQuote(), $method);
+            $pclasses = $klarna->getValidCheckoutPClasses($method);
+            if ($pclasses) {
+                foreach ($pclasses as $pclass) {
+                    if ($pclass['default']) {
+                        $res = $klarna->getPClassDetails($pclass['id']);
+                    }
                 }
             }
         } catch (Mage_Core_Exception $e) {
@@ -328,9 +328,19 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
     public function getTermsUrlLink()
     {
         $method = $this->getMethod()->getCode();
-        $klarnaForm = Mage::getModel('klarna/klarna_form');
-        $klarnaForm->setQuote($this->getQuote(), $method);
-        return $klarnaForm->getTermsUrlLink();
+        $klarna = Mage::getModel('klarna/klarna');
+        $klarna->setQuote($this->getQuote(), $method);
+        $url = $klarna->getConfigData("terms_url");
+        if ($url) {
+            if (stristr($url, 'http')) {
+                $_termsLink = '<a href="' . $url . '" target="_blank">' . Mage::helper('klarna')->__('terms and conditions') . '</a>';
+            } else {
+                $_termsLink = '<a href="' . Mage::getSingleton('core/url')->getUrl($url) . '" target="_blank">' . Mage::helper('klarna')->__('terms and conditions') . '</a>';
+            }
+        } else {
+            $_termsLink = '<a href="#" target="_blank">' . Mage::helper('klarna')->__('terms and conditions') . '</a>';
+        }
+        return $_termsLink;
     }
 
     /**
@@ -344,11 +354,11 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
     {
         $str = "";
         $method = $this->getMethod()->getCode();
-        $klarnaForm = Mage::getModel('klarna/klarna_form');
-        $klarnaForm->setQuote($this->getQuote(), $method);
+        $klarna = Mage::getModel('klarna/klarna');
+        $klarna->setQuote($this->getQuote(), $method);
         if (Mage::helper('klarna')->showTitleAsTextOnly()==false) {
-            $str = '<img src="'.$klarnaForm->getKlarnaLogotype(75, Vaimo_Klarna_Helper_Data::KLARNA_LOGOTYPE_POSITION_CHECKOUT).'" alt="" title="" />';
-            $str .= $klarnaForm->getMethodTitle();
+            $str = '<img src="'.$klarna->getKlarnaLogotype(75, Vaimo_Klarna_Helper_Data::KLARNA_LOGOTYPE_POSITION_CHECKOUT).'" alt="" title="" />';
+            $str .= $klarna->getMethodTitleWithFee(Mage::helper('klarna')->getVaimoKlarnaFeeInclVat($this->getQuote(), false));
         }
         return $str;
     }

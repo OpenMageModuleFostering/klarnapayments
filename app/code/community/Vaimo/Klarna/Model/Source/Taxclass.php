@@ -23,12 +23,11 @@
  * @copyright   Copyright (c) 2009-2014 Vaimo AB
  */
 
-class Vaimo_Klarna_Model_Source_Taxclass
+class Vaimo_Klarna_Model_Source_Taxclass extends Vaimo_Klarna_Model_Source_Abstract
 {
     public function toOptionArray()
     {
-        $options = Mage::getModel('tax/class_source_product')->toOptionArray();
-        return $options;
+        return Mage::getModel('tax/class_source_product')->toOptionArray();
     }
 
 }

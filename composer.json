@@ -3,7 +3,7 @@
     "type": "magento-module",
     "license": "Open-Software-License-(OSL)",
     "homepage": "",
-    "description": "Klarna module for invoice and part payment",
+    "description": "Klarna's module for Klarna Checkout, invoice and part payment.",
     "authors": [
     {
         "name": "Klarna",

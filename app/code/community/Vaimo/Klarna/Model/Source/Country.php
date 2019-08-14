@@ -23,19 +23,19 @@
  * @copyright   Copyright (c) 2009-2014 Vaimo AB
  */
 
-class Vaimo_Klarna_Model_Source_Country
+class Vaimo_Klarna_Model_Source_Country extends Vaimo_Klarna_Model_Source_Abstract
 {
 
     public function toOptionArray()
     {
         return array(
-            array('value' => 'AT', 'label' => Mage::helper('core')->__('Austria')),
-            array('value' => 'DK', 'label' => Mage::helper('core')->__('Denmark')),
-            array('value' => 'FI', 'label' => Mage::helper('core')->__('Finland')),
-            array('value' => 'DE', 'label' => Mage::helper('core')->__('Germany')),
-            array('value' => 'NL', 'label' => Mage::helper('core')->__('Netherlands')),
-            array('value' => 'NO', 'label' => Mage::helper('core')->__('Norway')),
-            array('value' => 'SE', 'label' => Mage::helper('core')->__('Sweden')),
+            array('value' => 'AT', 'label' => $this->_getCoreHelper()->__('Austria')),
+            array('value' => 'DK', 'label' => $this->_getCoreHelper()->__('Denmark')),
+            array('value' => 'FI', 'label' => $this->_getCoreHelper()->__('Finland')),
+            array('value' => 'DE', 'label' => $this->_getCoreHelper()->__('Germany')),
+            array('value' => 'NL', 'label' => $this->_getCoreHelper()->__('Netherlands')),
+            array('value' => 'NO', 'label' => $this->_getCoreHelper()->__('Norway')),
+            array('value' => 'SE', 'label' => $this->_getCoreHelper()->__('Sweden')),
         );
     }
 

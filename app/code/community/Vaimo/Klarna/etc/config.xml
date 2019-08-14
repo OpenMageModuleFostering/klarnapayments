@@ -25,7 +25,7 @@
 --><config>
     <modules>
         <Vaimo_Klarna>
-            <version>5.1.6</version>
+            <version>5.2.0</version>
             <name>Vaimo Klarna Module</name>
             <depends>
                 <Mage_Payment/>
@@ -72,7 +72,27 @@
                 </connection>
             </klarna_read>
         </resources>
-        
+
+        <fieldsets>
+            <sales_convert_quote_address>
+                <care_of>
+                    <to_order_address>*</to_order_address>
+                    <to_customer_address>*</to_customer_address>
+                </care_of>
+            </sales_convert_quote_address>
+        </fieldsets>
+
+        <events>
+            <customer_address_format>
+                <observers>
+                    <klarna_address_format>
+                        <class>klarna/observer</class>
+                        <method>customerAddressFormat</method>
+                    </klarna_address_format>
+                </observers>
+            </customer_address_format>
+        </events>
+
         <sales>
             <quote>
                 <totals>
@@ -132,8 +152,11 @@
             </totals>
         </pdf>
     </global>
-    
+
     <frontend>
+        <secure_url>
+            <checkout_klarna>/checkout/klarna</checkout_klarna>
+        </secure_url>
         <layout>
             <updates>
                 <klarna module="klarna">
@@ -149,14 +172,21 @@
                     <frontName>klarna</frontName>
                 </args>
             </klarna>
+            <checkout>
+                <args>
+                    <modules>
+                        <klarna before="Mage_Checkout">Vaimo_Klarna_Checkout</klarna>
+                    </modules>
+                </args>
+            </checkout>
         </routers>
         <translate>
             <modules>
-                <klarna>
+                <Vaimo_Klarna>
                     <files>
                         <default>Vaimo_Klarna.csv</default>
                     </files>
-                </klarna>
+                </Vaimo_Klarna>
             </modules>
         </translate>
         <events>
@@ -176,6 +206,23 @@
                     </klarna_clean_pno_from_quote>
                 </observers>
             </sales_quote_save_before>
+
+            <controller_action_predispatch_checkout_onepage_index>
+                <observers>
+                    <klarna_check_launch_klarnacheckout>
+                        <class>klarna/observer</class>
+                        <method>checkLaunchKlarnaCheckout</method>
+                    </klarna_check_launch_klarnacheckout>
+                </observers>
+            </controller_action_predispatch_checkout_onepage_index>
+            <controller_action_predispatch_onestepcheckout>
+                <observers>
+                    <klarna_check_launch_klarnacheckout>
+                        <class>klarna/observer</class>
+                        <method>checkLaunchKlarnaCheckout</method>
+                    </klarna_check_launch_klarnacheckout>
+                </observers>
+            </controller_action_predispatch_onestepcheckout>
         </events>
     </frontend>
 
@@ -189,11 +236,11 @@
         </layout>
         <translate>
             <modules>
-                <klarna>
+                <Vaimo_Klarna>
                     <files>
                         <default>Vaimo_Klarna.csv</default>
                     </files>
-                </klarna>
+                </Vaimo_Klarna>
             </modules>
         </translate>
         <events>
@@ -268,6 +315,24 @@
                 <host>BETA</host>
                 <allow_separate_address>1</allow_separate_address>
             </vaimo_klarna_special>
+            <vaimo_klarna_checkout>
+                <title>Klarna Checkout</title>
+                <model>klarna/payment_checkout</model>
+                <allowspecific>0</allowspecific>
+                <active>0</active>
+                <sort_order>999</sort_order>
+                <order_status>klarna_reserved</order_status>
+                <order_status_pending>klarna_pending</order_status_pending>
+                <order_status_denied>klarna_denied</order_status_denied>
+                <host>BETA</host>
+                <allow_when_logged_in>1</allow_when_logged_in>
+                <allow_customer_group>99</allow_customer_group>
+                <auto_prefil>1</auto_prefil>
+                <allow_separate_address>2</allow_separate_address>
+                <enable_cart_above_kco>1</enable_cart_above_kco>
+                <enable_other_button>1</enable_other_button>
+                <enable_auto_focus>1</enable_auto_focus>
+            </vaimo_klarna_checkout>
         </payment>
     </default>
 </config>

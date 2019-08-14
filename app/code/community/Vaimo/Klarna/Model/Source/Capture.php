@@ -23,13 +23,13 @@
  * @copyright   Copyright (c) 2009-2014 Vaimo AB
  */
 
-class Vaimo_Klarna_Model_Source_Capture
+class Vaimo_Klarna_Model_Source_Capture extends Vaimo_Klarna_Model_Source_Abstract
 {
     public function toOptionArray()
     {
         return array(
-            array('value' => 0, 'label' => Mage::helper('klarna')->__('Direct Capture')),
-            array('value' => 1, 'label' => Mage::helper('klarna')->__('Capture on Invoice')),
+            array('value' => 0, 'label' => $this->_getHelper()->__('Direct Capture')),
+            array('value' => 1, 'label' => $this->_getHelper()->__('Capture on Invoice')),
         );
     }
 }

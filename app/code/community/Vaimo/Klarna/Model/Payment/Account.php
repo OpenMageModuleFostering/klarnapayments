@@ -33,18 +33,17 @@ class Vaimo_Klarna_Model_Payment_Account extends Vaimo_Klarna_Model_Payment_Abst
     {
         if (parent::isAvailable($quote)==false) return false;
         try {
-            $klarnaAvailable = Mage::getModel('klarna/klarna_available');
-            $klarnaAvailable->setQuote($quote, $this->_code);
+            $klarna = $this->_getKlarnaModel();
+            $klarna->setQuote($quote, $this->_code);
 
-            $klarnaAvailable->setPClassTypes($this->_code);
-            $res = $klarnaAvailable->getValidCheckoutPClasses();
+            $res = $klarna->getValidCheckoutPClasses($this->_code);
 
             if (!$res) {
                 return false;
             }
 
         } catch (Mage_Core_Exception $e) {
-            if ($klarnaAvailable) $klarnaAvailable->logKlarnaException($e);
+            if ($klarna) $klarna->logKlarnaException($e);
             return false;
         }
         return true;
