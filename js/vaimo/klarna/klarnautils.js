@@ -72,9 +72,8 @@ function klarnaCheckoutResume() {
     });
 };
 
-function vanillaAjax(url, dataString, callbackOnSuccess, callbackOnError, callbackOnOther) {
+function vanillaAjax(url, dataString, callbackOnSuccess, callbackOnError, callbackOnOther, async) {
     var xmlhttp;
-
     if (window.XMLHttpRequest) {
         // code for IE7+, Firefox, Chrome, Opera, Safari
         xmlhttp = new XMLHttpRequest();
@@ -83,28 +82,39 @@ function vanillaAjax(url, dataString, callbackOnSuccess, callbackOnError, callba
         xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
     }
 
-    xmlhttp.onreadystatechange = function() {
-        if (xmlhttp.readyState == XMLHttpRequest.DONE ) {
-            var response = xmlhttp.responseText;
-            if(xmlhttp.status == 200){
-                callbackOnSuccess(response);
-            } else if(xmlhttp.status == 400) {
-                callbackOnError(response);
-            } else {
-                callbackOnOther(response);
+    async = true; // Synchronous loading is deprecated by this may come in handy in the future
+    if (async) { 
+        xmlhttp.onreadystatechange = function() {
+            if (xmlhttp.readyState == XMLHttpRequest.DONE ) {
+                var response = xmlhttp.responseText;
+                if (xmlhttp.status == 200 && callbackOnSuccess != ''){
+                    callbackOnSuccess(response);
+                } else if (xmlhttp.status == 400 && callbackOnError != '') {
+                    callbackOnError(response);
+                } else if (callbackOnOther != '') {
+                    callbackOnOther(response);
+                }
             }
         }
+    } else {
+        //xmlhttp.timeout = 4000;
     }
 
-    xmlhttp.open("POST", url, true);
-
-    // Send the proper header information along with the request
+    xmlhttp.open("POST", url, async);
     xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-    /*xmlhttp.setRequestHeader("Content-length", dataString.length);
-    xmlhttp.setRequestHeader("Connection", "close");*/
     xmlhttp.setRequestHeader("X_REQUESTED_WITH", "XMLHttpRequest");
-
     xmlhttp.send(dataString);
+    
+    /*if (!async) {
+        var response = xmlhttp.responseText;
+        if (xmlhttp.status == 200 && callbackOnSuccess != ''){
+            callbackOnSuccess(response);
+        } else if (xmlhttp.status == 400 && callbackOnError != '') {
+            callbackOnError(response);
+        } else if (callbackOnOther != '') {
+            callbackOnOther(response);
+        }
+    }*/
 };
 
 // fade out

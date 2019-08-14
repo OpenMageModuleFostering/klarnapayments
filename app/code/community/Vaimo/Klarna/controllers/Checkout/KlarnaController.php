@@ -42,6 +42,11 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
         return Mage::getSingleton('checkout/cart');
     }
 
+    protected function _getOnepage()
+    {
+        return Mage::getSingleton('checkout/type_onepage');
+    }
+
     /**
      * Get current active quote instance
      *
@@ -370,18 +375,31 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
             $data = $this->getRequest()->getPost('shipping_method', '');
             $resultMessage['shipping_method'] = $data;
 
-            /** @var $onepage Mage_Checkout_Model_Type_Onepage */
-            $onepage = new Mage_Checkout_Model_Type_Onepage(); // Mage::getSingleton('checkout/type_onepage');
             try {
-                $result = $onepage->saveShippingMethod($data);
+                $result = $this->_getOnepage()->saveShippingMethod($data);
                 if (!$result) {
                     Mage::dispatchEvent(
                        'klarnacheckout_controller_klarna_save_shipping_method',
                         array(
                              'request' => $this->getRequest(),
-                             'quote'   => $onepage->getQuote()));
-                    $onepage->getQuote()->collectTotals()->save();
+                             'quote'   => $this->_getOnepage()->getQuote()));
+                    $this->_getOnepage()->getQuote()->collectTotals()->save();
                 }
+/*
+// This code should work just as well, it won't call all the saveShippingMethod functions
+                $quote = $this->_getQuote();
+                $shippingAddress = $quote->getShippingAddress();
+                $shippingAddress->setShippingMethod($data);
+                Mage::dispatchEvent(
+                   'klarnacheckout_controller_klarna_save_shipping_method',
+                    array(
+                         'request' => $this->getRequest(),
+                         'quote'   => $quote
+                         )
+                    );
+                $quote->setTotalsCollectedFlag(false);
+                $quote->collectTotals()->save();
+*/
             }
             catch (Exception $e) {
                 $resultMessage['error'] = $e->getMessage();

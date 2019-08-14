@@ -226,7 +226,7 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
         $create['purchase_currency'] = $this->_getQuote()->getQuoteCurrencyCode();
         $create['locale'] = str_replace('_', '-', Mage::app()->getLocale()->getLocaleCode());
         $create['merchant']['id'] = $this->_klarnaSetup->getMerchantId();
-        $create['merchant']['terms_uri'] = Mage::getUrl($this->_getTransport()->getConfigData('terms_url'));
+        $create['merchant']['terms_uri'] = Mage::helper('klarna')->getTermsUrl($this->_klarnaSetup->getTermsUrl());
         $create['merchant']['checkout_uri'] = Mage::getUrl('checkout/klarna');
         $create['merchant']['confirmation_uri'] = Mage::getUrl('checkout/klarna/success');
         $create['gui']['layout'] = $this->_isMobile() ? 'mobile' : 'desktop';

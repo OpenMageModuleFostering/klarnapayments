@@ -398,7 +398,7 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
             $pushUrl = substr($pushUrl, 0, strlen($pushUrl) - 1);
         }
 
-        $create['merchant_urls']['terms'] = Mage::getUrl($this->_getTransport()->getConfigData('terms_url'));
+        $create['merchant_urls']['terms'] = Mage::helper('klarna')->getTermsUrl($this->_klarnaSetup->getTermsUrl());
         $create['merchant_urls']['checkout'] = Mage::getUrl('checkout/klarna');
         $create['merchant_urls']['confirmation'] = Mage::getUrl('checkout/klarna/success');
         $create['merchant_urls']['push'] = $pushUrl;

@@ -723,6 +723,34 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
        return $res;
     }
     
+    public function getTermsUrlLink($url)
+    {
+        if ($url) {
+            if (stristr($url, 'http')) {
+                $_termsLink = '<a href="' . $url . '" target="_blank">' . $this->__('terms and conditions') . '</a>';
+            } else {
+                $_termsLink = '<a href="' . Mage::getSingleton('core/url')->getUrl($url) . '" target="_blank">' . $this->__('terms and conditions') . '</a>';
+            }
+        } else {
+            $_termsLink = '<a href="#" target="_blank">' . $this->__('terms and conditions') . '</a>';
+        }
+        return $_termsLink;
+    }
+
+    public function getTermsUrl($url)
+    {
+        if ($url) {
+            if (stristr($url, 'http')) {
+                $_termsLink = $url;
+            } else {
+                $_termsLink = Mage::getSingleton('core/url')->getUrl($url);
+            }
+        } else {
+            $_termsLink = '';
+        }
+        return $_termsLink;
+    }
+
     /**
      * Sets the function name, which is used in logs. This is set in each class construct
      *

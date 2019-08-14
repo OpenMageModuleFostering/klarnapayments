@@ -25,7 +25,7 @@ function reloadKlarnaIFrame(results) {
         matrixRateFeeEl = document.getElementById('s_method_matrixrate_matrixrate_free');
 
     // Redraw layout if is in responsive mode
-    if(klarnaResponsive.getLayout() === 'two-column') {
+    if (klarnaResponsive.getLayout() === 'two-column') {
         // Create a node for the fetched block
         var tempEl = document.createElement('span');
         tempEl.innerHTML = objHtml.update_sections.html;
@@ -46,10 +46,10 @@ function reloadKlarnaIFrame(results) {
 
     fadeIn(document.getElementById("klarna_totals"));
 
-    vanillaAjax( // Refresh the Klarna iFrame
+    vanillaAjax ( // Refresh the Klarna iFrame
         klarnaHtml.value,
         '',
-        refreshKlarnaIFrame, '', '');
+        refreshKlarnaIFrame, '', '', false);
 };
 
 function refreshKlarnaIFrame(results) {
@@ -120,13 +120,13 @@ function refreshKlarna(data) {
             vanillaAjax(
                 klarnaCartValue,
                 '',
-                reloadKlarnaIFrame, '', ''
+                reloadKlarnaIFrame, '', '', false
             );
-        } else if (window.reloadKlarnaIFrameFlag) {
+        } else if (window.refreshKlarnaIFrameFlag) {
             vanillaAjax( // Refresh the Klarna iFrame
                 klarnaHtml.value,
                 '',
-                refreshKlarnaIFrame, '', ''
+                reloadKlarnaIFrame, '', '', false
             );
         }
     } else if (obj.error) {
@@ -189,7 +189,7 @@ function updateCartKlarna(type, input, quantity) {
         var ajaxUrl = formID.getAttribute("action");
     }
 
-    _klarnaCheckoutWrapper(function(api) {
+    //_klarnaCheckoutWrapper(function(api) {
         vanillaAjax(ajaxUrl, dataString,
             refreshKlarna,
             function(data) {
@@ -197,9 +197,10 @@ function updateCartKlarna(type, input, quantity) {
             },
             function(data) {
                 alert(data);
-            }
+            },
+            false
         );
-    });
+    //});
      setTimeout(function() { // Fade out the "alert" after 3,5 seconds
         fadeOut(klarnaMsg);
     }, 3500)
@@ -213,8 +214,12 @@ function hideLoader() {
 function massUpdateCartKlarna(typeArray, input, quantity) {
     klarnaCheckoutSuspend();
     window.reloadKlarnaIFrameFlag = false;
+    window.refreshKlarnaIFrameFlag = false;
     for (i = 0; i < typeArray.length; i++) {
-        if (i == typeArray.length-1) { window.reloadKlarnaIFrameFlag = true; }
+        if (i == typeArray.length-1) { 
+            window.reloadKlarnaIFrameFlag = true;
+            window.refreshKlarnaIFrameFlag = true;
+        }
         updateCartKlarna(typeArray[i], input, quantity);
     }
     klarnaCheckoutResume();
@@ -249,7 +254,7 @@ function bindCheckoutControls() {
             this.disabled = 'disabled';
             vanillaAjax(url, 'subscribe_to_newsletter=' + checked, function(){
                 document.getElementById('klarna-checkout-newsletter').disabled = '';
-            });
+            }, '', '', true);
         };
     };
 
@@ -272,7 +277,7 @@ function bindCheckoutControls() {
         for (var q=0; q<shippingMethods.length; q++) {
             shippingMethodItem = shippingMethods[q];
             shippingMethodItem.onchange = function() {
-                massUpdateCartKlarna(["shipping","cart"], '', '');
+                massUpdateCartKlarna(["shipping"], '', ''); // ,"cart"
                 return false;
             };
         };
@@ -448,7 +453,7 @@ var KlarnaLogin = (function () {
             data = form.serialize(false),
             url = form.action;
 
-        vanillaAjax(url, data, this.successCallback.bind(this), this.errorCallback.bind(this));
+        vanillaAjax(url, data, this.successCallback.bind(this), this.errorCallback.bind(this), '', true);
     };
 
     me.prototype.showMessage = function (message) {
@@ -581,7 +586,7 @@ var KlarnaResponsive = (function () {
             tempEl = document.createDocumentFragment();
 
         for(var key in groupedEls) {
-            if(groupedEls.hasOwnProperty(key)) {
+            if(groupedEls.hasOwnProperty(key) && groupedEls[key] != null) {
                 tempEl.appendChild(groupedEls[key]);
             }
         }
@@ -600,9 +605,9 @@ var KlarnaResponsive = (function () {
      */
     function getSidebarElements (sidebarEl, getGroup) {
         var ref = sidebarEl || document,
-            cartEl = document.getElementById('#klarna_cart-container') ? ref.querySelector('#klarna_cart-container') : null,
-            shippingEl = document.getElementById('#klarna_shipping') ? ref.querySelector('#klarna_shipping') : null,
-            discountEl = document.getElementById('#klarna_discount') ? ref.querySelector('#klarna_discount') : null,
+            cartEl = document.getElementById('klarna_cart-container') ? document.getElementById('klarna_cart-container') : ref.querySelector('#klarna_cart-container'),
+            shippingEl = document.getElementById('klarna_shipping') ? document.getElementById('klarna_shipping') : ref.querySelector('#klarna_shipping'),
+            discountEl = document.getElementById('klarna_discount') ? document.getElementById('klarna_discount') : ref.querySelector('#klarna_discount'),
             groupedEls = {
                 cart: cartEl,
                 shipping: shippingEl,
@@ -610,7 +615,7 @@ var KlarnaResponsive = (function () {
             },
             sidebarEls = groupedEls;
 
-        sidebarEls.payment = document.getElementById('#klarna_methods') ? ref.querySelector('#klarna_methods') : null;
+        sidebarEls.payment = document.getElementById('klarna_methods') ? document.getElementById('klarna_methods') : ref.querySelector('#klarna_methods');
 
         return getGroup ? groupedEls : sidebarEls;
     }
@@ -672,7 +677,7 @@ var KlarnaResponsive = (function () {
 
             // Remove all the current sidebar items inside the main content area
             for(var key in sidebarEls) {
-                if(sidebarEls.hasOwnProperty(key)) {
+                if(sidebarEls.hasOwnProperty(key) && sidebarEls[key] != null) {
                     mainContentEl.removeChild(sidebarEls[key]);
                 }
             }
@@ -720,6 +725,7 @@ docReady(function() {
 // If different postcode, it sends back true, which is where we need to update KCO
 // Perhaps we can update shipping section in THAT ajax call, lets see...
 // Using updateCartKlarna('shipping'); is NOT correct at least :)
+/*
     _klarnaCheckout(function(api) {
         api.on({
             'change': function(data) {
@@ -734,13 +740,13 @@ docReady(function() {
                             if (answer) {
                                 massUpdateCartKlarna(["shipping"], '', '');
                             }
-                        }
+                        }, '', '', true
                     );
                  }
              }
          });
     });
-
+*/
 });
 
 function klarnaCheckoutGo(url) {
