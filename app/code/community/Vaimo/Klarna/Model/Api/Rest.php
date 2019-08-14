@@ -182,6 +182,8 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
             } else {
                 $taxRate = $quoteItem->getTaxAmount() / $quoteItem->getRowTotal() * 100;
             }
+
+
             $taxAmount = $calculator->calcTaxAmount($quoteItem->getRowTotalInclTax(), $taxRate, true, true);
             $items[] = array(
                 'type' => 'physical',
@@ -195,6 +197,29 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
                 'total_amount' => round($quoteItem->getRowTotalInclTax() * 100),
                 'total_tax_amount' => round($taxAmount * 100),
             );
+
+/*
+            if ($quoteItem->getTaxAmount() && $taxRate!=0) {
+                $taxAmount = $quoteItem->getTaxAmount();
+                $rowTotalInclTax = $quoteItem->getRowTotal() + $taxAmount;
+            } else {
+                $rowTotalInclTax = $quoteItem->getRowTotalInclTax();
+                $taxAmount = $calculator->calcTaxAmount($rowTotalInclTax, $taxRate, true, true);
+            }
+//            $priceInclTax = $quoteItem->getPriceInclTax();
+            $priceInclTax = round($rowTotalInclTax / $quoteItem->getQty(), 2);
+            $items[] = array(
+                'type' => 'physical',
+                'reference' => $quoteItem->getSku(),
+                'name' => $quoteItem->getName(),
+                'quantity' => round($quoteItem->getQty()),
+                'quantity_unit' => 'pcs',
+                'unit_price' => round($priceInclTax * 100),
+                'tax_rate' => round($taxRate * 100),
+                'total_amount' => round($rowTotalInclTax * 100),
+                'total_tax_amount' => round($taxAmount * 100),
+            );
+*/
         }
 
         foreach ($quote->getTotals() as $key => $total) {

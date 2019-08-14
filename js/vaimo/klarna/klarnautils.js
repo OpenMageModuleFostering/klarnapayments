@@ -102,7 +102,7 @@ function vanillaAjax(url, dataString, callbackOnSuccess, callbackOnError, callba
 
     xmlhttp.open("POST", url, async);
     xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-    xmlhttp.setRequestHeader("X_REQUESTED_WITH", "XMLHttpRequest");
+    xmlhttp.setRequestHeader("X-Requested-With", "XMLHttpRequest");
     xmlhttp.send(dataString);
     
     /*if (!async) {
