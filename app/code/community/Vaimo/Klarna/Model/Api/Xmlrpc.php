@@ -576,7 +576,7 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
             }
             Mage::helper('klarna')->logKlarnaApi($msg);
             Mage::helper('klarna')->logKlarnaException($e);
-            Mage::throwException(Mage::helper('klarna')->decode($e->getMessage()));
+            throw new Mage_Core_Exception(Mage::helper('klarna')->decode($e->getMessage()), $e->getCode());
         }
         return $res;
     }

@@ -126,6 +126,9 @@ class Vaimo_Klarna_Model_Invoice_Pdf_Total extends Mage_Sales_Model_Order_Pdf_To
      */
     public function canDisplay()
     {
+        if (!$this->_getHelper()->isMethodKlarna($this->getOrder()->getPayment()->getMethod())) {
+            return false;
+        }
         $amount = $this->getAmount();
         return ($this->getDisplayZero() || ($amount != 0));
     }

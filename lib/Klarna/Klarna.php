@@ -1186,7 +1186,7 @@ class Klarna
             return trim($forwarded[0]);
         }
 
-        return $tmp_ip;
+        return ($x_fwd ? $x_fwd : $tmp_ip);
     }
 
     /**

@@ -434,7 +434,7 @@ function registerKlarnaApiChange()
         _klarnaCheckout(function(api) {
             api.on({
                 'change': function(data) {
-//                    showLoader();
+                    showLoader(); // very annoying, but needs to be here, or we receive updates mid editing...
                     var url = document.getElementById('klarna-checkout-shipping-update').value;
                     vanillaAjax(url, 'email=' + data.email + 
                             '&firstname=' + data.given_name +
@@ -456,7 +456,7 @@ function registerKlarnaApiChange()
         _klarnaCheckout(function(api) {
             api.on({
                 'shipping_address_change': function(data) {
-//                    showLoader();
+                    showLoader(); // very annoying, but needs to be here, or we receive updates mid editing...
                     var url = document.getElementById('klarna-checkout-shipping-update-postcode').value;
                     vanillaAjax(url, 'email=' + data.email + 
                             '&firstname=' + data.given_name +

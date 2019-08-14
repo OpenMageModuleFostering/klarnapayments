@@ -29,6 +29,8 @@ abstract class Vaimo_Klarna_Model_Api_Abstract extends Varien_Object
 
     protected $_transport = NULL;
 
+    protected $_lastErrorObj = NULL;
+
     public function setTransport($model)
     {
         $this->_transport = $model;
@@ -39,6 +41,33 @@ abstract class Vaimo_Klarna_Model_Api_Abstract extends Varien_Object
         return $this->_transport;
     }
     
+    protected function _getLastError($var = NULL)
+    {
+        if ($this->_lastErrorObj) {
+            if ($var) {
+                return $this->_lastErrorObj->getData($var);
+            } else {
+                return $this->_lastErrorObj;
+            }
+        } else {
+            return NULL;
+        }
+    }
+
+    protected function _updateLastError($response, $arrExtra = NULL)
+    {
+        if ($response) {
+            $this->_lastErrorObj = new Varien_Object(json_decode($response, true));
+            if ($arrExtra) {
+                foreach ($arrExtra as $id => $val) {
+                    $this->_lastErrorObj->setData($id, $val);
+                }
+            }
+        } else {
+            $this->_lastErrorObj = NULL;
+        }
+    }
+
     /**
      * Get current active quote instance
      *

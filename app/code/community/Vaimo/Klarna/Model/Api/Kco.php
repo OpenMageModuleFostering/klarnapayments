@@ -259,17 +259,17 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
         $create = array();
         $create['purchase_country'] = Mage::helper('klarna')->getDefaultCountry();
         $create['purchase_currency'] = $this->_getQuote()->getQuoteCurrencyCode();
-        $create['locale'] = str_replace('_', '-', Mage::app()->getLocale()->getLocaleCode());
-        $sysLocaleArr = explode('-', $create['locale']);
-        if (sizeof($sysLocaleArr)>1) {
-            $create['locale'] = $this->_klarnaSetup->getLanguageCode() . '-' .$sysLocaleArr[1];
-        }
+        $create['locale'] = str_replace('_', '-', $this->_klarnaSetup->getLocaleCode());
         $create['merchant']['id'] = $this->_klarnaSetup->getMerchantId();
         $terms = Mage::helper('klarna')->getTermsUrl($this->_klarnaSetup->getTermsUrl());
         if ($terms) {
             $create['merchant']['terms_uri'] = $terms;
         }
-        $create['merchant']['checkout_uri'] = Mage::getUrl('checkout/klarna');
+        if ($this->_getTransport()->getConfigData('recreate_cart_on_failed_validate')) {
+            $create['merchant']['checkout_uri'] = Mage::getUrl('checkout/klarna', array('_nosid' => true, 'quote_id' => $this->_getQuote()->getId()));
+        } else {
+            $create['merchant']['checkout_uri'] = Mage::getUrl('checkout/klarna');
+        }
         $create['merchant']['confirmation_uri'] = Mage::getUrl('checkout/klarna/success');
         $create['gui']['layout'] = $this->_isMobile() ? 'mobile' : 'desktop';
         if ($this->_getTransport()->getConfigData('enable_auto_focus')==false) {
@@ -489,6 +489,9 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
     public function getKlarnaOrderRaw($checkoutId)
     {
         if ($checkoutId) {
+            if ($this->_klarnaOrder) {
+                return $this->_klarnaOrder;
+            }
             $this->_klarnaOrder = new Klarna_Checkout_Order($this->_getConnector(), Klarna_Checkout_Order::$baseUri . '/' . $checkoutId);
             $this->_klarnaOrder->fetch();
             $order = new Varien_Object($this->_klarnaOrder->marshal());
@@ -510,13 +513,28 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
         if ($checkoutId) {
             Mage::helper('klarna')->logKlarnaApi('initKlarnaOrder checkout id: ' . $checkoutId . ' (quote id: ' . $quoteId . ')');
             $loadf = true;
-            if ($this->_useKlarnaOrderSessionCache) {
-                if ($this->_klarnaOrder) {
-                    $loadf = false;
+            if (!$updateItems) {
+                if ($this->_useKlarnaOrderSessionCache) {
+                    if ($this->_klarnaOrder) {
+                        $loadf = false;
+                    }
                 }
             }
             if ($loadf) {
                 $this->_klarnaOrder = new Klarna_Checkout_Order($this->_getConnector(), Klarna_Checkout_Order::$baseUri . '/' . $checkoutId);
+                if ($updateItems) {
+                    try {
+                        $this->_klarnaOrder->update($this->_getUpdateRequest());
+                    } catch (Exception $e) {
+                        $this->_updateLastError($e->getMessage());
+                        if ($this->_getLastError('http_status_code')=='403' &&
+                            $this->_getLastError('http_status_message')=='Forbidden') {
+                            Mage::helper('klarna')->logKlarnaApi('initKlarnaOrder trying to update, but it is forbidden, so we skip it and just use fetch');
+                        } else {
+                            throw $e;
+                        }
+                    }
+                }
                 $this->_klarnaOrder->fetch();
             }
             $res = $this->_klarnaOrder!=NULL;
@@ -531,26 +549,31 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
         }
 
         if ($klarnaCheckoutId = $this->_getKlarnaCheckoutId()) {
-            try {
-                Mage::helper('klarna')->logKlarnaApi('initKlarnaOrder klarnaCheckoutId id: ' . $klarnaCheckoutId . ' (quote id: ' . $quoteId . ')');
-                $this->_klarnaOrder = new Klarna_Checkout_Order($this->_getConnector(), Klarna_Checkout_Order::$baseUri . '/' . $klarnaCheckoutId);
-                if ($updateItems) {
+            Mage::helper('klarna')->logKlarnaApi('initKlarnaOrder klarnaCheckoutId id: ' . $klarnaCheckoutId . ' (quote id: ' . $quoteId . ')');
+            $this->_klarnaOrder = new Klarna_Checkout_Order($this->_getConnector(), Klarna_Checkout_Order::$baseUri . '/' . $klarnaCheckoutId);
+            if ($updateItems) {
+                try {
                     $this->_klarnaOrder->update($this->_getUpdateRequest());
-                }
-                $this->_klarnaOrder->fetch();
-                $res = $this->_klarnaOrder!=NULL;
-                if ($res) {
-                    if ($this->_getLocationOrderId()) {
-                        $this->_setKlarnaCheckoutId($this->_getLocationOrderId());
+                } catch (Exception $e) {
+                    $this->_updateLastError($e->getMessage());
+                    if ($this->_getLastError('http_status_code')=='403' &&
+                        $this->_getLastError('http_status_message')=='Forbidden') {
+                        Mage::helper('klarna')->logKlarnaApi('initKlarnaOrder trying to update, but it is forbidden, so we skip it and just use fetch');
+                    } else {
+                        throw $e;
                     }
-                    Mage::dispatchEvent('klarnacheckout_init_klarna_order', array('klarna_order' => $this->_klarnaOrder, 'api_version' => $this->getApiVersion()));
                 }
-                Mage::helper('klarna')->logKlarnaApi('initKlarnaOrder res: ' . $res);
-                return $res;
-            } catch (Exception $e) {
-                // when checkout in Klarna was expired, then exception, so we just ignore and create new
-                Mage::helper('klarna')->logKlarnaException($e);
             }
+            $this->_klarnaOrder->fetch();
+            $res = $this->_klarnaOrder!=NULL;
+            if ($res) {
+                if ($this->_getLocationOrderId()) {
+                    $this->_setKlarnaCheckoutId($this->_getLocationOrderId());
+                }
+                Mage::dispatchEvent('klarnacheckout_init_klarna_order', array('klarna_order' => $this->_klarnaOrder, 'api_version' => $this->getApiVersion()));
+            }
+            Mage::helper('klarna')->logKlarnaApi('initKlarnaOrder res: ' . $res);
+            return $res;
         }
 
         if ($createIfNotExists) {
@@ -589,6 +612,14 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
             return $this->_klarnaOrder;
         }
         return NULL;
+    }
+
+    public function getActualKlarnaOrderArray()
+    {
+        if ($this->getActualKlarnaOrder()) {
+            return $this->_klarnaOrder->marshal();
+        }
+        return array();
     }
 
     public function getKlarnaCheckoutGui()
@@ -671,10 +702,11 @@ class Vaimo_Klarna_Model_Api_Kco extends Vaimo_Klarna_Model_Api_Abstract
         foreach ($quote->getAllVisibleItems() as $quoteItem) {
             $foundf = false;
             $data = $createdKlarnaOrder->getData();
+            // $data is actually an object
             if (isset($data['cart'])) {
                 if (isset($data['cart']['items'])) {
                     foreach ($data['cart']['items'] as $klarnaItem) {
-                        if ($klarnaItem['reference']==$quoteItem->getSku() &&
+                        if ($klarnaItem['reference']==substr($quoteItem->getSku(), 0, 64) &&
                             $klarnaItem['quantity']==$quoteItem->getQty()
                         ) {
                             $foundf = true;

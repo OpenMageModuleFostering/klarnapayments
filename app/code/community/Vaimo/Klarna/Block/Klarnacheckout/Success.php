@@ -28,13 +28,18 @@ class Vaimo_Klarna_Block_Klarnacheckout_Success extends Mage_Core_Block_Template
     public function getKlarnaHtml()
     {
         try {
-            $checkoutId = Mage::getSingleton('checkout/session')->getKlarnaCheckoutId();
+            $checkoutId = Mage::getSingleton('checkout/session')->getKlarnaCheckoutPrevId();
 
             /** @var Vaimo_Klarna_Model_Klarnacheckout $klarna */
             $klarna = Mage::getModel('klarna/klarnacheckout');
-            $klarna->setStoreInformation();
-            // Klarna model must know the correct store at this point, which we can not...
-            $klarna->setMethod(Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
+            $quote = Mage::helper('klarna')->findQuote($checkoutId);
+            if ($quote) {
+                $klarna->setQuote($quote, Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
+            } else {
+                // Klarna model must know the correct store at this point, which we can not...
+                $klarna->setStoreInformation();
+                $klarna->setMethod(Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
+            }
             $html = $klarna->getKlarnaOrderHtml($checkoutId, false, false);
         } catch (Exception $e) {
             Mage::helper('klarna')->logKlarnaException($e);
@@ -43,4 +48,65 @@ class Vaimo_Klarna_Block_Klarnacheckout_Success extends Mage_Core_Block_Template
 
         return $html;
     }
+
+    /**
+     * Only returns valid information if order is created during success
+     *
+     * @return Mage_Core_Model_Abstract
+     */
+    public function getOrder()
+    {
+        $orderId = Mage::getSingleton('checkout/session')->getLastOrderId();
+        $order = Mage::getModel('sales/order')->load($orderId);
+        return $order;
+    }
+
+    /**
+     * Only returns valid information if order is created during success
+     *
+     * @return string
+     */
+    public function getRealOrderId()
+    {
+        $res = Mage::getSingleton('checkout/session')->getLastRealOrderId();
+        return $res;
+    }
+
+    public function getViewOrderUrl()
+    {
+        return $this->_getData('view_order_id');
+    }
+
+    /**
+     * Initialize data and prepare it for output
+     */
+    protected function _beforeToHtml()
+    {
+        $this->_prepareLastOrder();
+        return parent::_beforeToHtml();
+    }
+
+    /**
+     * Get last order ID from session, fetch it and check whether it can be viewed, printed etc
+     */
+    protected function _prepareLastOrder()
+    {
+        $orderId = Mage::getSingleton('checkout/session')->getLastOrderId();
+        if ($orderId) {
+            $order = Mage::getModel('sales/order')->load($orderId);
+            if ($order->getId()) {
+                $isVisible = !in_array($order->getState(),
+                    Mage::getSingleton('sales/order_config')->getInvisibleOnFrontStates());
+                $this->addData(array(
+                    'is_order_visible' => $isVisible,
+                    'view_order_id' => $this->getUrl('sales/order/view/', array('order_id' => $orderId)),
+                    'print_url' => $this->getUrl('sales/order/print', array('order_id'=> $orderId)),
+                    'can_print_order' => $isVisible,
+                    'can_view_order'  => Mage::getSingleton('customer/session')->isLoggedIn() && $isVisible,
+                    'order_id'  => $order->getIncrementId(),
+                ));
+            }
+        }
+    }
+
 }

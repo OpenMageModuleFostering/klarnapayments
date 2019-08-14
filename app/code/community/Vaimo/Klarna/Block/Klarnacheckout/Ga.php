@@ -35,6 +35,10 @@ class Vaimo_Klarna_Block_Klarnacheckout_Ga extends Mage_GoogleAnalytics_Block_Ga
     {
         $result = parent::_getOrdersTrackingCode();
 
+        if ($result) {
+            return $result;
+        }
+
         /** @var Klarna_Checkout_Order $klarnaOrder */
         // Not happy with this, but I guess we can't solve it in other ways.
         // can use it without getting hold of and use the actual KlarnaOrder

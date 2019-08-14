@@ -48,6 +48,11 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
         return Mage::getSingleton('checkout/type_onepage');
     }
 
+    protected function _getCoreSession()
+    {
+        return Mage::getSingleton('core/session');
+    }
+
     /**
      * Get current active quote instance
      *
@@ -56,23 +61,6 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
     protected function _getQuote()
     {
         return $this->_getCart()->getQuote();
-    }
-
-    protected function _checkPaymentMethod()
-    {
-        // set payment method
-        $quote = $this->_getQuote();
-
-        if ($quote->getPayment()->getMethod() != Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT) {
-            if ($quote->isVirtual()) {
-                $quote->getBillingAddress()->setPaymentMethod(Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
-            } else {
-                $quote->getShippingAddress()->setPaymentMethod(Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
-            }
-            $quote->getPayment()->setMethod(Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
-        }
-
-        return $this;
     }
 
     /**
@@ -89,7 +77,11 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
         $quote = $this->_getQuote();
         $klarna = Mage::getModel('klarna/klarnacheckout');
         $klarna->setQuote($quote, Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
-        $klarna->checkShippingMethod();
+        $res = $klarna->checkShippingMethod();
+        if ($res!==false) {
+            $res = true;
+        }
+        return $res;
     }
 
     protected function _checkNewsletter()
@@ -97,18 +89,25 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
         $quote = $this->_getQuote();
         $klarna = Mage::getModel('klarna/klarnacheckout');
         $klarna->setQuote($quote, Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
-        $klarna->checkNewsletter();
-        return $this;
+        $res = $klarna->checkNewsletter();
+        return $res;
     }
 
     public function othermethodAction()
     {
+
+        /* Method set to false so when customer gets to standard checkout,
+         * the first payment method is listed. Otherwise klarna_checkout is
+         * carried through, makes the return button selected and causes totals
+         * not to display until customer manually selects required method
+         */
         $quote = $this->_getQuote();
-        // @todo find active method, not just Invoice automatically
-        $quote->getPayment()->setMethod(Vaimo_Klarna_Helper_Data::KLARNA_METHOD_INVOICE);
+        $quote->getPayment()->setMethod(false);
         $quote->setTotalsCollectedFlag(false);
         $quote->collectTotals();
         $quote->save();
+        /* end of clear method code */
+
         $this->_getSession()->setKlarnaUseOtherMethods(true);
         if (Mage::helper('klarna')->isOneStepCheckout()) {
             $this->_redirect('onestepcheckout');
@@ -137,15 +136,60 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
 
     protected function _redirectToCart($store = null)
     {
-        $path = Mage::getStoreConfig('payment/vaimo_klarna_checkout/cart_redirect', $store);
-        if (is_null($path))
-            $path = 'checkout/cart';
+        $path = Mage::helper('klarna')->getKCORedirectToCartUrl($store);
         $this->_redirect($path);
     }
 
     public function indexAction()
     {
+        if (!$this->_getCart()->hasQuote()) {
+            // If recreate_cart_on_failed_validate is set to no, this parameter is not included
+            $id = $this->getRequest()->getParam('quote_id');
+            if ($id) {
+                $order = Mage::getModel('sales/order')->load($id, 'quote_id');
+                if ($order && $order->getId()) {
+                    if ($order->getState() == Mage_Sales_Model_Order::STATE_PENDING_PAYMENT) {
+                        $comment = $this->__('Order created by Validate, but was abandoned');
+                        Mage::helper('klarna')->logKlarnaApi($comment . ' (' . $order->getIncrementId() . ')');
+
+                        $order->addStatusHistoryComment($comment);
+                        $order->cancel();
+                        $order->save();
+
+                        $quoteNew = Mage::getModel('sales/quote');
+                        $quoteOld = Mage::getModel('sales/quote')->load($id);
+
+                        $quoteNew->setStoreId($quoteOld->getStoreId())
+                            ->merge($quoteOld)
+                            ->setKlarnaCheckoutId(NULL)
+                            ->collectTotals()
+                            ->save();
+                        $this->_getSession()->replaceQuote($quoteNew);
+
+                        $comment = $this->__('Canceled order and created new cart from original cart');
+                        Mage::helper('klarna')->logKlarnaApi($comment . ' (' . $quoteNew->getId() . ')');
+
+                        $order->addStatusHistoryComment($comment);
+                        $order->save();
+
+                        $error = $this->__('Payment cancelled or some error occured. Please try again.');
+                        $this->_getSession()->addError($error);
+
+                        $this->_redirectToCart($quoteNew->getStoreId());
+                        return;
+                    }
+                }
+            }
+        }
+
         $quote = $this->_getQuote();
+
+        if (!$quote->getId() || !$quote->hasItems() || $quote->getHasError()) {
+            $this->_redirectToCart($quote->getStoreId());
+            return;
+        }
+
+        $quote->load($quote->getId());
         $klarna = Mage::getModel('klarna/klarnacheckout');
         $klarna->setQuote($quote, Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
         if (!$klarna->getKlarnaCheckoutEnabled()) {
@@ -154,11 +198,6 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
             } else {
                 $this->_redirect('checkout/onepage');
             }
-            return;
-        }
-
-        if (!$quote->hasItems() || $quote->getHasError()) {
-            $this->_redirectToCart($quote->getStoreId());
             return;
         }
 
@@ -172,13 +211,21 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
             return;
         }
 
-        $this->_checkPaymentMethod();
-        $this->_checkShippingMethod();
-        $this->_checkNewsletter();
+        $updateQuote = false;
+        if (Mage::helper('klarna')->checkPaymentMethod($quote)) {
+            $updateQuote = true;
+        }
+        if ($this->_checkShippingMethod()) {
+            $updateQuote = true;
+        }
+        if ($this->_checkNewsletter()) {
+            $updateQuote = true;
+        }
 
-        $quote->collectTotals();
-        $quote->save();
-
+        if ($updateQuote) {
+            $quote->collectTotals();
+            $quote->save();
+        }
         $this->loadLayout();
         $this->_initLayoutMessages('customer/session');
         $this->getLayout()->getBlock('head')->setTitle($this->__('Klarna Checkout'));
@@ -259,14 +306,19 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
 
         //$quote = Mage::getModel('sales/quote')->load($checkoutId, 'klarna_checkout_id');
         $quote = Mage::helper('klarna')->findQuote($checkoutId);
-        $klarna = Mage::getModel('klarna/klarnacheckout');
-        $klarna->setQuote($quote, Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
 
-        $post_body = file_get_contents('php://input');
-        $data = json_decode($post_body, true);
-        Mage::helper('klarna')->logDebugInfo('taxshippingupdate data', $data);
+        if ($quote && $quote->getId()) {
+            $klarna = Mage::getModel('klarna/klarnacheckout');
+            $klarna->setQuote($quote, Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
 
-        $result = $klarna->updateTaxAndShipping($data);
+            $post_body = file_get_contents('php://input');
+            $data = json_decode($post_body, true);
+            Mage::helper('klarna')->logDebugInfo('taxshippingupdate data', $data);
+
+            $result = $klarna->updateTaxAndShipping($quote, $data);
+        } else {
+            $result = '';
+        }
 
         Mage::helper('klarna')->logDebugInfo('taxshippingupdate response', $result);
         $this->getResponse()->setBody(Zend_Json::encode($result));
@@ -281,13 +333,18 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
         $checkoutId = $this->getRequest()->getParam('klarna_order');
         //$quote = Mage::getModel('sales/quote')->load($checkoutId, 'klarna_checkout_id');
         $quote = Mage::helper('klarna')->findQuote($checkoutId);
-        $payment = $quote->getPayment();
-        $errors = $payment->getAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_VALIDATE_ERRORS);
-        Mage::helper('klarna')->logKlarnaApi('failedAction errors: ' . $errors);
-        if ($errors) {
-            $payment->unsAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_VALIDATE_ERRORS);
-            $payment->save();
-            $this->_getSession()->addError($errors);
+        if ($quote && $quote->getId()) {
+            $payment = $quote->getPayment();
+            $errors = $payment->getAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_VALIDATE_ERRORS);
+            Mage::helper('klarna')->logKlarnaApi('failedAction errors: ' . $errors);
+            if ($errors) {
+                $payment->unsAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_VALIDATE_ERRORS);
+                $payment->save();
+                $this->_getSession()->addError($errors);
+            }
+        } else {
+            $error = $this->__('Cart not available. Please try again');
+            $this->_getSession()->addError($error);
         }
 
         Mage::helper('klarna')->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_END_TAG);
@@ -295,7 +352,7 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
         $this->_redirectToCart($quote->getStoreId());
         return;
     }
-    
+
     protected function _initPushOrValidate($checkoutId)
     {
         $quote = Mage::helper('klarna')->findQuote($checkoutId);
@@ -307,7 +364,7 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
         }
         return $quote;
     }
-    
+
     protected function _initPushQueue($checkoutId)
     {
         $pushQueue = Mage::getModel('klarna/pushqueue');
@@ -327,7 +384,7 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
 
         $checkoutId = $this->getRequest()->getParam('klarna_order');
         $quote = $this->_initPushOrValidate($checkoutId);
-        
+
         Mage::helper('klarna')->logKlarnaApi('validateAction checkout id: ' . $checkoutId);
         if (!$quote) {
             Mage::helper('klarna')->logKlarnaApi('validateAction checkout quote not found!');
@@ -350,8 +407,9 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
 
         if ($checkoutId) {
             try {
-                // validateQuote returns true if successful, a string if failed
                 $createOrderOnValidate = $klarna->getConfigData('create_order_on_validation');
+
+                // validateQuote returns true if successful, a string if failed
                 $result = $klarna->validateQuote($checkoutId, $createOrderOnValidate, $createdKlarnaOrder);
 
                 Mage::helper('klarna')->logKlarnaApi('validateAction result = ' . $result);
@@ -367,10 +425,18 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
                     $this->getResponse()
                         ->setHttpResponseCode(303)
                         ->setHeader('Location', Mage::getUrl('checkout/klarna/validateFailed', array('klarna_order' => $checkoutId)));
+                    return;
                 }
                 $this->getResponse()
                     ->setHttpResponseCode(200);
             } catch (Exception $e) {
+                if ($quote && $quote->getId()) {
+                    $payment = $quote->getPayment();
+                    if ($payment && $payment->getId()) {
+                        $payment->setAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_VALIDATE_ERRORS, $e->getMessage());
+                        $payment->save();
+                    }
+                }
                 Mage::helper('klarna')->logKlarnaException($e);
                 $this->getResponse()
                     ->setHttpResponseCode(303)
@@ -385,6 +451,11 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
         Mage::helper('klarna')->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_START_TAG);
 
         $checkoutId = $this->getRequest()->getParam('klarna_order');
+        if (!$checkoutId) {
+            Mage::helper('klarna')->logKlarnaApi('pushAction klarna_order missing!');
+            Mage::helper('klarna')->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_END_TAG);
+            return;
+        }
         $quote = $this->_initPushOrValidate($checkoutId);
         $pushQueue = $this->_initPushQueue($checkoutId);
 
@@ -398,7 +469,7 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
         /** @var Vaimo_Klarna_Model_Klarnacheckout $klarna */
         $klarna = Mage::getModel('klarna/klarnacheckout');
         $klarna->setQuote($quote, Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
-        
+
         if (substr($checkoutId, -1, 1) == '/') {
             $checkoutId = substr($checkoutId, 0, strlen($checkoutId) - 1);
         }
@@ -406,7 +477,7 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
         if ($checkoutId) {
             try {
                 // createOrder returns the order if successful, otherwise an error string
-                $result = $klarna->createOrder($checkoutId);
+                $result = $klarna->createOrder($checkoutId, false);
 
                 if (is_array($result)) {
                     if ($result['status']=='success') {
@@ -444,55 +515,115 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
                 $checkoutId = $this->_getSession()->getKlarnaCheckoutPrevId();
                 if ($checkoutId) {
                     $revisitedf = true;
-                    Mage::helper('klarna')->logKlarnaApi('successAction revisited, checkout id: ' . $checkoutId);
                 }
+            }
+            if (!$checkoutId) {
+                Mage::helper('klarna')->logKlarnaApi('successAction checkout id is empty, so we do nothing');
+                exit(1);
+            }
+            if (!$revisitedf) {
+                Mage::helper('klarna')->logKlarnaApi('successAction checkout id: ' . $checkoutId);
+            } else {
+                Mage::helper('klarna')->logKlarnaApi('successAction revisited, checkout id: ' . $checkoutId);
             }
             //$quote = Mage::getModel('sales/quote')->load($checkoutId, 'klarna_checkout_id');
             $quote = Mage::helper('klarna')->findQuote($checkoutId);
+            if (!$quote || !$quote->getId()) {
+                Mage::throwException($this->__('Cart not available. Please try again') . ': ' . $checkoutId . ' revisitedf = ' . $revisitedf);
+            }
             $klarna = Mage::getModel('klarna/klarnacheckout');
             $klarna->setQuote($quote, Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
-            if (!$revisitedf) {
-                Mage::helper('klarna')->logKlarnaApi('successAction checkout id: ' . $checkoutId);
 
-                if (!$checkoutId) {
-                    Mage::helper('klarna')->logKlarnaApi('successAction checkout id is empty, so we do nothing');
-                    //$this->_redirect('');
-                    //return;
-                    exit(1);
+        } catch (Exception $e) {
+            // Will show empty success page... however unlikely it is to get here, it's not very good
+            Mage::helper('klarna')->logKlarnaException($e);
+            return $this;
+        }
+
+        $canDisplaySuccess = null;
+        // Sometimes there is a timeout or incorrect status is given by the call to Klarna,
+        // especially when running against test server
+        // Now we try 5 times at least, before showing blank page...
+        $useCurrentOrderSession = true;
+        for ($cnt = 0; $cnt < 5; $cnt++) {
+            try {
+                $status = $klarna->getCheckoutStatus($checkoutId, $useCurrentOrderSession);
+                $canDisplaySuccess =
+                    $status == 'checkout_complete' || 
+                    $status == 'created' ||
+                    $status == 'AUTHORIZED';
+                if (!$canDisplaySuccess) {
+                    Mage::helper('klarna')->logDebugInfo(
+                        'successAction got incorrect status: ' . $status . ' ' .
+                        'for klarna order id: ' . $checkoutId . '. ' .
+                        'Retrying (' . ($cnt + 1) . ' / 5)'
+                        );
+                    $useCurrentOrderSession = false; // Reinitiate communication
+                } else {
+                    break;
                 }
+            } catch (Exception $e) {
+                Mage::helper('klarna')->logKlarnaException($e);
+                Mage::helper('klarna')->logDebugInfo(
+                    'successAction caused an exception: ' . $e->getMessage() .
+                    'Retrying (' . ($cnt + 1) . ' / 5)'
+                    );
+                $useCurrentOrderSession = false; // Reinitiate communication
             }
+        }
 
-            $status = $klarna->getCheckoutStatus($checkoutId);
-            $canDisplaySuccess = $status == 'checkout_complete' || $status == 'created';
-
+        try {
             if (!$canDisplaySuccess) {
                 Mage::helper('klarna')->logKlarnaApi('successAction ERROR: order not created: ' . $status);
-                $this->_redirect('');
-                return;
+                $error = $this->__('Checkout incomplete, please try again.');
+                $this->_getSession()->addError($error);
+                $this->_redirectToCart($quote->getStoreId());
+                return $this;
             } else {
                 Mage::helper('klarna')->logKlarnaApi('successAction displaying success');
             }
 
-            // close the quote if push hasn't closed it already
-            //$quote = $this->_getQuote(); // Should be loaded already...
+            $createOrderOnSuccess = $klarna->getConfigData('create_order_on_success');
+
             if (!$revisitedf) {
+
                 if ($quote->getId() && $quote->getIsActive()) {
-                    Mage::helper('klarna')->logKlarnaApi('successAction closing quote');
-                    /** @var Mage_Core_Model_Resource $resource */
-                    $resource = Mage::getSingleton('core/resource');
-                    $read = $resource->getConnection('core_read');
-                    $read->update($resource->getTableName('sales/quote'), array('is_active' => 0), 'entity_id = ' . $quote->getId());
+
+                    // successQuote returns true if successful, a string if failed
+                    $createdKlarnaOrder = new Varien_Object($klarna->getActualKlarnaOrderArray());
+                    $result = $klarna->successQuote($checkoutId, $createOrderOnSuccess, $createdKlarnaOrder);
+                    Mage::helper('klarna')->logKlarnaApi('successQuote result = ' . $result);
+
+                    $order = Mage::getModel('sales/order')->load($quote->getId(), 'quote_id');
+
+                    if ($order && $order->getId()) {
+                        Mage::helper('klarna')->logDebugInfo('successQuote successfully created order with no: ' . $order->getIncrementId());
+                    }
+
                 }
 
-                $this->_getSession()->setLastQuoteId($quote->getId());
+                $this->_getCart()->unsetData('quote');
                 $this->_getSession()->clearHelperData();
                 $this->_getSession()->clear();
-                $this->_getCart()->unsetData('quote');
+                $this->_getSession()->setLastQuoteId($quote->getId());
+                $this->_getSession()->setLastSuccessQuoteId($quote->getId());
+                $order = Mage::getModel('sales/order')->load($quote->getId(), 'quote_id');
+                if ($order && $order->getId()) {
+                    $this->_getSession()->setLastOrderId($order->getId());
+                    $this->_getSession()->setLastRealOrderId($order->getIncrementId());
+                }
+                $this->_getSession()->setKlarnaCheckoutPrevId($checkoutId);
+                $this->_getSession()->setKlarnaCheckoutId(''); // This needs to be cleared, to be able to create new orders
+                $this->_getSession()->setKlarnaUseOtherMethods(false);
             }
 
             $this->loadLayout();
             $this->_initLayoutMessages('customer/session');
             $this->getLayout()->getBlock('head')->setTitle($this->__('Klarna Checkout'));
+
+            if ($this->_getSession()->getLastOrderId()) {
+                Mage::dispatchEvent('checkout_onepage_controller_success_action', array('order_ids' => array($this->_getSession()->getLastOrderId())));
+            }
 
 // This is KCO specific for the current API... This must find another solution
             if ($block = Mage::app()->getFrontController()->getAction()->getLayout()->getBlock('google_analytics')) {
@@ -501,13 +632,12 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
 
             $this->renderLayout();
 
-            $this->_getSession()->setKlarnaCheckoutId(''); // This needs to be cleared, to be able to create new orders
-            $this->_getSession()->setKlarnaCheckoutPrevId($checkoutId);
-            $this->_getSession()->setKlarnaUseOtherMethods(false);
             Mage::helper('klarna')->logKlarnaApi('successAction displayed success');
             Mage::helper('klarna')->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_END_TAG);
         } catch (Exception $e) {
+            // Will show empty success page... however unlikely it is to get here, it's not very good
             Mage::helper('klarna')->logKlarnaException($e);
+            return $this;
         }
     }
 
@@ -679,19 +809,20 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
                     }
                 }
                 $cart = $this->_getCart();
-                if (! $cart->getCustomerSession()->getCustomer()->getId() && $cart->getQuote()->getCustomerId()) {
-                    $cart->getQuote()->setCustomerId(null);
+                $quote = $cart->getQuote();
+                if (! $cart->getCustomerSession()->getCustomer()->getId() && $quote->getCustomerId()) {
+                    $quote->setCustomerId(null);
                 }
                 $cartData = $cart->suggestItemsQty($cartData);
                 $cart->updateItems($cartData);
 
                 // Addon to check qty vs stock to support ajax response
-                $items = $cart->getQuote()->getItemsCollection();
+                $items = $quote->getItemsCollection();
 
                 foreach ($items as $item) {
                     $item->checkData();
                 }
-                $errors = $cart->getQuote()->getErrors();
+                $errors = $quote->getErrors();
                 $messages = array();
 
                 foreach ($errors as $error) {
@@ -702,12 +833,14 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
                     Mage::throwException(implode(', ', $messages));
                 }
 
+                $quote->getShippingAddress()->setCollectShippingRates(true);
+                $quote->collectTotals();
                 $this->_checkShippingMethod();
                 $cart->save();
 
                 // Addon for ajax to redirect to cart
                 if ($this->_getCart()->getSummaryQty() <= 0) {
-                    $result['redirect_url'] = Mage::getUrl('checkout/cart');
+                    $result['redirect_url'] = Mage::getBaseUrl() . Mage::helper('klarna')->getKCORedirectToCartUrl($this->getQuote()->getStoreId());
                 }
             }
             $this->_getSession()->setCartWasUpdated(true);

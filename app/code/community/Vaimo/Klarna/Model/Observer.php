@@ -240,4 +240,11 @@ class Vaimo_Klarna_Model_Observer extends Mage_Core_Model_Abstract
             }
         }
     }
+
+    public function updateQuoteMergeAfter($observer)
+    {
+        $quote = $observer->getEvent()->getQuote();
+        $source =  $observer->getEvent()->getSource();
+        $quote->setKlarnaCheckoutId($source->getKlarnaCheckoutId());
+    }
 }

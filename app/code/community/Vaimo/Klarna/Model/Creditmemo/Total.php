@@ -45,16 +45,6 @@ class Vaimo_Klarna_Model_Creditmemo_Total extends Mage_Sales_Model_Order_Creditm
         return $this->_moduleHelper;
     }
 
-    protected function _isLoggedIn()
-    {
-        return Mage::getSingleton('admin/session')->isLoggedIn();
-    }
-
-    protected function _getRequest($param)
-    {
-        return Mage::app()->getRequest()->getParam($param);
-    }
-
     /**
      * Collect the order total
      *
@@ -71,21 +61,7 @@ class Vaimo_Klarna_Model_Creditmemo_Total extends Mage_Sales_Model_Order_Creditm
          */
         $order = $creditmemo->getOrder();
         $invoice = $creditmemo->getInvoice();
-        if ($this->_isLoggedIn()) {
-            $data = $this->_getRequest('creditmemo');
-            if ($data) {
-                if (isset($data['vaimo_klarna_fee_refund'])) {
-                    if ($data['vaimo_klarna_fee_refund']=='') {
-                        $data['vaimo_klarna_fee_refund'] = 0;
-                    }
-                    $refundAmount = $data['vaimo_klarna_fee_refund'];
-                    $store = $order->getStore();
-                    $baseRefundAmount = $store->convertPrice($refundAmount, false);
-                    $creditmemo->setVaimoKlarnaFeeRefund($refundAmount);
-                    $creditmemo->setVaimoKlarnaBaseFeeRefund($baseRefundAmount);
-                }
-            }
-        }
+        $this->_getHelper()->prepareVaimoKlarnaFeeRefund($creditmemo);
 
         if ($order) {
             $payment = $order->getPayment();

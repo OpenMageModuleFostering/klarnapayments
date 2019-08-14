@@ -45,7 +45,7 @@
                             <show_in_store>1</show_in_store>
                             <show_in_website>1</show_in_website>
                         </active>
-                        <merchant_id translate="label">
+                        <merchant_id translate="label comment">
                             <label>Merchant ID</label>
                             <frontend_type>text</frontend_type>
                             <sort_order>10</sort_order>
@@ -54,7 +54,7 @@
                             <show_in_website>1</show_in_website>
                             <comment>The merchant id that you have received from Klarna</comment>
                         </merchant_id>
-                        <shared_secret translate="label">
+                        <shared_secret translate="label comment">
                             <label>Shared secret</label>
                             <frontend_type>text</frontend_type>
                             <sort_order>15</sort_order>
@@ -71,7 +71,7 @@
                             <show_in_store>1</show_in_store>
                             <show_in_website>1</show_in_website>
                         </title>
-                        <host translate="label">
+                        <host translate="label comment">
                             <label>Server</label>
                             <frontend_type>select</frontend_type>
                             <source_model>klarna/source_servermode</source_model>
@@ -90,7 +90,7 @@
                             <show_in_store>1</show_in_store>
                             <show_in_website>1</show_in_website>
                         </order_status>
-                        <invoice_fee translate="label">
+                        <invoice_fee translate="label comment">
                             <label>Invoice fee</label>
                             <sort_order>50</sort_order>
                             <show_in_default>1</show_in_default>
@@ -113,7 +113,7 @@
                             <show_in_store>1</show_in_store>
                             <show_in_website>1</show_in_website>
                         </minimum_order_cost>
-                        <pending_status_action translate="label">
+                        <pending_status_action translate="label comment">
                             <label>Cancel pending reservations</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -123,7 +123,7 @@
                             <show_in_website>1</show_in_website>
                             <comment>Automatically cancel orders when the reservation becomes pending</comment>
                         </pending_status_action>
-                        <send_klarna_email translate="label">
+                        <send_klarna_email translate="label comment">
                             <label>Send invoice via e-mail</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -133,7 +133,7 @@
                             <show_in_website>1</show_in_website>
                             <comment>If set to yes, Klarna will send out the invoices as soon as the reservation is activated</comment>
                         </send_klarna_email>
-                        <allow_separate_address translate="label">
+                        <allow_separate_address translate="label comment">
                             <label>Allow separate addresses</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -143,7 +143,7 @@
                             <show_in_website>1</show_in_website>
                             <comment>Allow shipping address to be different from billing address. You might need acceptance from Klarna if activated</comment>
                         </allow_separate_address>
-                        <disable_company_purchase translate="label">
+                        <disable_company_purchase translate="label comment">
                             <label>Disable method for company purchase</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -153,7 +153,7 @@
                             <show_in_website>1</show_in_website>
                             <comment>Disable this method when company field is filled in during checkout</comment>
                         </disable_company_purchase>
-                        <disable_backend_calls translate="label">
+                        <disable_backend_calls translate="label comment">
                             <label>Disable Klarna Backend</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -163,7 +163,18 @@
                             <show_in_website>1</show_in_website>
                             <comment>Disable all calls to Klarna from Admin, such as Capture, Credit and Cancel. This feature can be used if those functions are maintained by an external system</comment>
                         </disable_backend_calls>
-                        <terms_url translate="label">
+                        <show_extended_error_message translate="label comment tooltip">
+                            <label>Show Extended Error Message</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>240</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_store>1</show_in_store>
+                            <show_in_website>1</show_in_website>
+                            <comment><![CDATA["Yes" - show error messages provided by Klarna. "No" - show default error message]]></comment>
+                            <tooltip><![CDATA[Show extended error message in case if authorization was failed]]></tooltip>
+                        </show_extended_error_message>
+                        <terms_url translate="label comment">
                             <label>URL to terms and conditions</label>
                             <frontend_type>text</frontend_type>
                             <sort_order>700</sort_order>
@@ -172,7 +183,7 @@
                             <show_in_website>1</show_in_website>
                             <comment>URL to this stores own terms and conditions (only used in Germany and Austria)</comment>
                         </terms_url>
-                        <klarna_language>
+                        <klarna_language translate="label">
                             <label>Language</label>
                             <frontend_type>select</frontend_type>
                             <source_model>klarna/source_language</source_model>
@@ -225,7 +236,7 @@
                             <show_in_store>1</show_in_store>
                             <show_in_website>1</show_in_website>
                         </active>
-                        <merchant_id translate="label">
+                        <merchant_id translate="label comment">
                             <label>Merchant ID</label>
                             <frontend_type>text</frontend_type>
                             <sort_order>10</sort_order>
@@ -234,7 +245,7 @@
                             <show_in_website>1</show_in_website>
                             <comment>The merchant id that you have received from Klarna</comment>
                         </merchant_id>
-                        <shared_secret translate="label">
+                        <shared_secret translate="label comment">
                             <label>Shared secret</label>
                             <frontend_type>text</frontend_type>
                             <sort_order>15</sort_order>
@@ -261,7 +272,7 @@
                             <show_in_store>1</show_in_store>
                             <show_in_website>1</show_in_website>
                         </title>
-                        <host translate="label">
+                        <host translate="label comment">
                             <label>Server</label>
                             <frontend_type>select</frontend_type>
                             <source_model>klarna/source_servermode</source_model>
@@ -280,7 +291,7 @@
                             <show_in_store>1</show_in_store>
                             <show_in_website>1</show_in_website>
                         </order_status>
-                        <pending_status_action translate="label">
+                        <pending_status_action translate="label comment">
                             <label>Cancel pending reservations</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -290,7 +301,7 @@
                             <show_in_website>1</show_in_website>
                             <comment>Automatically cancel orders when the reservation becomes pending</comment>
                         </pending_status_action>
-                        <send_klarna_email translate="label">
+                        <send_klarna_email translate="label comment">
                             <label>Send invoice via e-mail</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -300,7 +311,7 @@
                             <show_in_website>1</show_in_website>
                             <comment>If set to yes, Klarna will send out the invoices as soon as the reservation is activated</comment>
                         </send_klarna_email>
-                        <allow_separate_address translate="label">
+                        <allow_separate_address translate="label comment">
                             <label>Allow separate addresses</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -310,7 +321,7 @@
                             <show_in_website>1</show_in_website>
                             <comment>Allow shipping address to be different from billing address. You might need acceptance from Klarna if activated</comment>
                         </allow_separate_address>
-                        <disable_company_purchase translate="label">
+                        <disable_company_purchase translate="label comment">
                             <label>Disable method for company purchase</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -320,7 +331,7 @@
                             <show_in_website>1</show_in_website>
                             <comment>Disable this method when company field is filled in during checkout</comment>
                         </disable_company_purchase>
-                        <disable_backend_calls translate="label">
+                        <disable_backend_calls translate="label comment">
                             <label>Disable Klarna Backend</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -330,7 +341,18 @@
                             <show_in_website>1</show_in_website>
                             <comment>Disable all calls to Klarna from Admin, such as Capture, Credit and Cancel. This feature can be used if those functions are maintained by an external system</comment>
                         </disable_backend_calls>
-                        <disable_product_widget translate="label">
+                        <show_extended_error_message translate="label comment tooltip">
+                            <label>Show Extended Error Message</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>240</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_store>1</show_in_store>
+                            <show_in_website>1</show_in_website>
+                            <comment><![CDATA["Yes" - show error messages provided by Klarna. "No" - show default error message]]></comment>
+                            <tooltip><![CDATA[Show extended error message in case if authorization was failed]]></tooltip>
+                        </show_extended_error_message>
+                        <disable_product_widget translate="label comment">
                             <label>Disable payment widget on product page</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -340,7 +362,7 @@
                             <show_in_website>1</show_in_website>
                             <comment>If set to yes, the payment information from Klarna will not appear on the product page</comment>
                         </disable_product_widget>
-                        <terms_url translate="label">
+                        <terms_url translate="label comment">
                             <label>URL to terms and conditions</label>
                             <frontend_type>text</frontend_type>
                             <sort_order>700</sort_order>
@@ -349,7 +371,7 @@
                             <show_in_website>1</show_in_website>
                             <comment>URL to this stores own terms and conditions (only used in Germany and Austria)</comment>
                         </terms_url>
-                        <klarna_language>
+                        <klarna_language translate="label">
                             <label>Language</label>
                             <frontend_type>select</frontend_type>
                             <source_model>klarna/source_language</source_model>
@@ -402,7 +424,7 @@
                             <show_in_store>1</show_in_store>
                             <show_in_website>1</show_in_website>
                         </active>
-                        <merchant_id translate="label">
+                        <merchant_id translate="label comment">
                             <label>Merchant ID</label>
                             <frontend_type>text</frontend_type>
                             <sort_order>10</sort_order>
@@ -411,7 +433,7 @@
                             <show_in_website>1</show_in_website>
                             <comment>The merchant id that you have received from Klarna</comment>
                         </merchant_id>
-                        <shared_secret translate="label">
+                        <shared_secret translate="label comment">
                             <label>Shared secret</label>
                             <frontend_type>text</frontend_type>
                             <sort_order>15</sort_order>
@@ -428,7 +450,7 @@
                             <show_in_store>1</show_in_store>
                             <show_in_website>1</show_in_website>
                         </title>
-                        <host translate="label">
+                        <host translate="label comment">
                             <label>Server</label>
                             <frontend_type>select</frontend_type>
                             <source_model>klarna/source_servermode</source_model>
@@ -447,7 +469,7 @@
                             <show_in_store>1</show_in_store>
                             <show_in_website>1</show_in_website>
                         </order_status>
-                        <pending_status_action translate="label">
+                        <pending_status_action translate="label comment">
                             <label>Cancel pending reservations</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -457,7 +479,7 @@
                             <show_in_website>1</show_in_website>
                             <comment>Automatically cancel orders when the reservation becomes pending</comment>
                         </pending_status_action>
-                        <send_klarna_email translate="label">
+                        <send_klarna_email translate="label comment">
                             <label>Send invoice via e-mail</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -467,7 +489,7 @@
                             <show_in_website>1</show_in_website>
                             <comment>If set to yes, Klarna will send out the invoices as soon as the reservation is activated</comment>
                         </send_klarna_email>
-                        <allow_separate_address translate="label">
+                        <allow_separate_address translate="label comment">
                             <label>Allow separate addresses</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -477,7 +499,7 @@
                             <show_in_website>1</show_in_website>
                             <comment>Allow shipping address to be different from billing address. You might need acceptance from Klarna if activated</comment>
                         </allow_separate_address>
-                        <disable_company_purchase translate="label">
+                        <disable_company_purchase translate="label comment">
                             <label>Disable method for company purchase</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -487,7 +509,7 @@
                             <show_in_website>1</show_in_website>
                             <comment>Disable this method when company field is filled in during checkout</comment>
                         </disable_company_purchase>
-                        <disable_backend_calls translate="label">
+                        <disable_backend_calls translate="label comment">
                             <label>Disable Klarna Backend</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -497,7 +519,18 @@
                             <show_in_website>1</show_in_website>
                             <comment>Disable all calls to Klarna from Admin, such as Capture, Credit and Cancel. This feature can be used if those functions are maintained by an external system</comment>
                         </disable_backend_calls>
-                        <terms_url translate="label">
+                        <show_extended_error_message translate="label comment tooltip">
+                            <label>Show Extended Error Message</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>240</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_store>1</show_in_store>
+                            <show_in_website>1</show_in_website>
+                            <comment><![CDATA["Yes" - show error messages provided by Klarna. "No" - show default error message]]></comment>
+                            <tooltip><![CDATA[Show extended error message in case if authorization was failed]]></tooltip>
+                        </show_extended_error_message>
+                        <terms_url translate="label comment">
                             <label>URL to terms and conditions</label>
                             <frontend_type>text</frontend_type>
                             <sort_order>700</sort_order>
@@ -506,7 +539,7 @@
                             <show_in_website>1</show_in_website>
                             <comment>URL to this stores own terms and conditions (only used in Germany and Austria)</comment>
                         </terms_url>
-                        <cdn_logotype_override translate="label">
+                        <cdn_logotype_override translate="label comment">
                             <label>URL to special logotype</label>
                             <frontend_type>text</frontend_type>
                             <sort_order>710</sort_order>
@@ -525,7 +558,7 @@
                             <show_in_website>1</show_in_website>
                         </cdn_terms_override>
 -->
-                        <klarna_language>
+                        <klarna_language translate="label">
                             <label>Language</label>
                             <frontend_type>select</frontend_type>
                             <source_model>klarna/source_language</source_model>
@@ -587,7 +620,7 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </api_version>
-                        <merchant_id translate="label">
+                        <merchant_id translate="label comment">
                             <label>Merchant ID</label>
                             <frontend_type>text</frontend_type>
                             <sort_order>30</sort_order>
@@ -596,7 +629,7 @@
                             <show_in_store>1</show_in_store>
                             <comment>The merchant id that you have received from Klarna</comment>
                         </merchant_id>
-                        <shared_secret translate="label">
+                        <shared_secret translate="label comment">
                             <label>Shared secret</label>
                             <frontend_type>text</frontend_type>
                             <sort_order>40</sort_order>
@@ -605,7 +638,7 @@
                             <show_in_store>1</show_in_store>
                             <comment>The shared secret that you have received from Klarna</comment>
                         </shared_secret>
-                        <host translate="label">
+                        <host translate="label comment">
                             <label>Server</label>
                             <frontend_type>select</frontend_type>
                             <source_model>klarna/source_servermode</source_model>
@@ -615,7 +648,7 @@
                             <show_in_store>1</show_in_store>
                             <comment>Choose what server to make calls to</comment>
                         </host>
-                        <auto_prefil translate="label">
+                        <auto_prefil translate="label comment">
                             <label>Auto prefill known Klarna details</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -634,7 +667,7 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
                         </order_status>
-                        <disable_backend_calls translate="label">
+                        <disable_backend_calls translate="label comment">
                             <label>Disable Klarna Backend</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -644,7 +677,7 @@
                             <show_in_website>1</show_in_website>
                             <comment>Disable all calls to Klarna from Admin, such as Capture, Credit and Cancel. This feature can be used if those functions are maintained by an external system</comment>
                         </disable_backend_calls>
-                        <disable_product_widget translate="label">
+                        <disable_product_widget translate="label comment">
                             <label>Disable payment widget on product page</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -654,7 +687,18 @@
                             <show_in_store>1</show_in_store>
                             <comment>If set to yes, the payment information from Klarna will not appear on the product page</comment>
                         </disable_product_widget>
-                        <terms_url translate="label">
+                        <show_extended_error_message translate="label comment tooltip">
+                            <label>Show Extended Error Message</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>85</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_store>1</show_in_store>
+                            <show_in_website>1</show_in_website>
+                            <comment><![CDATA["Yes" - show error messages provided by Klarna. "No" - show default error message]]></comment>
+                            <tooltip><![CDATA[Show extended error message in case if authorization was failed]]></tooltip>
+                        </show_extended_error_message>
+                        <terms_url translate="label comment">
                             <label>URL to terms and conditions</label>
                             <frontend_type>text</frontend_type>
                             <sort_order>90</sort_order>
@@ -663,7 +707,7 @@
                             <show_in_store>1</show_in_store>
                             <comment>URL to this stores own terms and conditions</comment>
                         </terms_url>
-                        <cart_redirect translate="label">
+                        <cart_redirect translate="label comment">
                             <label>Cart redirect</label>
                             <frontend_type>text</frontend_type>
                             <sort_order>95</sort_order>
@@ -681,7 +725,7 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </klarna_layout>
-                        <klarna_language>
+                        <klarna_language translate="label comment">
                             <label>Language</label>
                             <frontend_type>select</frontend_type>
                             <source_model>klarna/source_language</source_model>
@@ -691,7 +735,7 @@
                             <show_in_website>1</show_in_website>
                             <comment>Can be used if site is in a different language than the official language of current country</comment>
                         </klarna_language>
-                        <show_login_form translate="label">
+                        <show_login_form translate="label comment">
                             <label>Show login form</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -701,7 +745,7 @@
                             <show_in_store>1</show_in_store>
                             <comment>Only for 2 column layout</comment>
                         </show_login_form>
-                        <extra_order_attribute translate="label">
+                        <extra_order_attribute translate="label comment">
                             <label>Extra order ID attribute</label>
                             <frontend_type>text</frontend_type>
                             <sort_order>150</sort_order>
@@ -710,7 +754,7 @@
                             <show_in_store>1</show_in_store>
                             <comment>Will be used in the orderid2 field on the Klarna order</comment>
                         </extra_order_attribute>
-                        <allow_separate_address translate="label">
+                        <allow_separate_address translate="label comment">
                             <label>Allow separate addresses</label>
                             <frontend_type>select</frontend_type>
                             <source_model>klarna/source_yesnodefault</source_model>
@@ -729,7 +773,7 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </force_phonenumber>
-                        <packstation_enabled translate="label">
+                        <packstation_enabled translate="label comment">
                             <label>Enable DHL Packstation</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -757,7 +801,7 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </enable_auto_focus>
-                        <enable_trigger_changed_js>
+                        <enable_trigger_changed_js translate="label">
                             <label>Enable javascript trigger for address update</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -766,7 +810,7 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </enable_trigger_changed_js>
-                        <auto_register_guest translate="label">
+                        <auto_register_guest translate="label comment">
                             <label>Automatically register guests on checkout</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -776,11 +820,21 @@
                             <show_in_website>1</show_in_website>
                             <comment>If disabled and Guest Checkout is allowed in Magento Checkout Options, orders will be placed as guests.</comment>
                         </auto_register_guest>
-                        <user_defined_json translate="label">
+                        <create_order_on_success translate="label comment">
+                            <label>Create order on Success</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>290</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>Create pending order on Success and only update it when completed (will work together with creating it on Validate).</comment>
+                        </create_order_on_success>
+                        <user_defined_json translate="label comment">
                             <label>User Defined Variables</label>
                             <backend_model>klarna/adminhtml_system_config_backend_admin_json</backend_model>
                             <frontend_type>textarea</frontend_type>
-                            <sort_order>290</sort_order>
+                            <sort_order>390</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
@@ -794,7 +848,7 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </heading_https_only>
-                        <enable_validation translate="label">
+                        <enable_validation translate="label comment">
                             <label>Enable Validation of Order before Klarna proceeds</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -804,7 +858,7 @@
                             <show_in_store>1</show_in_store>
                             <comment>An extra validation is made for the cart, stock levels for example, just before the order is created in Klarna.</comment>
                         </enable_validation>
-                        <create_order_on_validation translate="label">
+                        <create_order_on_validation translate="label comment">
                             <label>Create order on Validation</label>
                             <frontend_type>select</frontend_type>
                             <depends><enable_validation>1</enable_validation></depends>
@@ -815,7 +869,19 @@
                             <show_in_store>1</show_in_store>
                             <comment>Create pending order on Validation and only update it when completed.</comment>
                         </create_order_on_validation>
-                        <enable_postcode_update translate="label">
+                        <recreate_cart_on_failed_validate translate="label comment">
+                            <label>Recreate Cart if validation Fails</label>
+                            <frontend_type>select</frontend_type>
+                            <depends><enable_validation>1</enable_validation></depends>
+                            <depends><create_order_on_validation>1</create_order_on_validation></depends>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>616</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>If order creation during validation fails, for whatever reason, recreate cart so customer can try again or use another method</comment>
+                        </recreate_cart_on_failed_validate>
+                        <enable_postcode_update translate="label comment">
                             <label>Enable tax and shipping updates</label>
                             <frontend_type>select</frontend_type>
                             <depends><enable_trigger_changed_js>1</enable_trigger_changed_js></depends>
@@ -834,7 +900,7 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </heading_other_method_button>
-                        <enable_other_button translate="label">
+                        <enable_other_button translate="label comment">
                             <label>Enabled</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -844,7 +910,7 @@
                             <show_in_store>1</show_in_store>
                             <comment>If enabled, one button will be placed on klarna checkout page and one in the payment section of standard checkout</comment>
                         </enable_other_button>
-                        <label_other_button translate="label">
+                        <label_other_button translate="label comment">
                             <label>Label for Other Payment Methods button</label>
                             <frontend_type>text</frontend_type>
                             <depends><enable_other_button>1</enable_other_button></depends>
@@ -854,7 +920,7 @@
                             <show_in_store>1</show_in_store>
                             <comment>This can be free text or a complete URL to a reasonably sized image</comment>
                         </label_other_button>
-                        <label_back_button translate="label">
+                        <label_back_button translate="label comment">
                             <label>Label for Back to Klarna Checkout button</label>
                             <frontend_type>text</frontend_type>
                             <depends><enable_other_button>1</enable_other_button></depends>
@@ -864,7 +930,7 @@
                             <show_in_store>1</show_in_store>
                             <comment>This can be free text or a complete URL to a reasonably sized image</comment>
                         </label_back_button>
-                        <auto_reset_other_method_button translate="label">
+                        <auto_reset_other_method_button translate="label comment">
                             <label>Automatically reactivate Klarna Checkout</label>
                             <frontend_type>select</frontend_type>
                             <depends><enable_other_button>1</enable_other_button></depends>
@@ -875,7 +941,7 @@
                             <show_in_store>1</show_in_store>
                             <comment>If enabled, it will go to Klarna Checkout next time checkout is requested, if user exits standard checkout by going to another page. Attention! If there are many customizations in standard checkout, it might cause this reactivation as well!</comment>
                         </auto_reset_other_method_button>
-                        <explicit_usage translate="label">
+                        <explicit_usage translate="label comment">
                             <label>Only run Klarma Checkout if Explicitly called</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -894,7 +960,7 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </heading_newsletter>
-                        <enable_newsletter translate="label">
+                        <enable_newsletter translate="label comment">
                             <label>Enabled</label>
                             <frontend_type>select</frontend_type>
                             <source_model>klarna/source_newsletter</source_model>
@@ -930,7 +996,7 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </activate_ab_testing>
-                        <allowed_ip_range translate="label">
+                        <allowed_ip_range translate="label comment">
                             <label>Enable for IP range (last digit)</label>
                             <frontend_type>text</frontend_type>
                             <depends><activate_ab_testing>1</activate_ab_testing></depends>
@@ -940,7 +1006,7 @@
                             <show_in_store>1</show_in_store>
                             <comment>Specify 2 numbers between 0 and 255, separated by dash. Example: '0-50'. Empty value enables all IP addresses</comment>
                         </allowed_ip_range>
-                        <allow_when_logged_in translate="label">
+                        <allow_when_logged_in translate="label comment">
                             <label>Enable for logged in Customers</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -951,7 +1017,7 @@
                             <show_in_store>1</show_in_store>
                             <comment>If not enabled, logged in customers will use standard Magento checkout</comment>
                         </allow_when_logged_in>
-                        <allow_customer_group translate="label">
+                        <allow_customer_group translate="label comment">
                             <label>Enable for specific customer groups</label>
                             <frontend_type>multiselect</frontend_type>
                             <source_model>klarna/source_customergroup</source_model>
@@ -979,7 +1045,7 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </other_countries>
-                        <shipping_countries translate="label">
+                        <shipping_countries translate="label comment">
                             <label>Shipping Countries</label>
                             <frontend_type>multiselect</frontend_type>
                             <depends><other_countries>1</other_countries></depends>
@@ -990,7 +1056,7 @@
                             <show_in_store>1</show_in_store>
                             <comment>List of allowed shipping countries. If none selected, none will be supported. List will appear in Klarna Checkout</comment>
                         </shipping_countries>
-                        <shipping_options translate="label">
+                        <shipping_options translate="label comment">
                             <label>Include Shipping Options</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>

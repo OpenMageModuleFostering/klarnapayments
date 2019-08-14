@@ -23,7 +23,32 @@
  * @copyright   Copyright (c) 2009-2014 Vaimo AB
  */
 ?>
-
 <div id="vaimo_klarna_klarnacheckout_success">
-<?php echo $this->getKlarnaHtml() ?>
+
+    <?php
+    /*
+     * This now works, if you wish to output it together with the iframe. It will contain the order id, if:
+     *
+     * The Order gets created during validation OR during success
+     * OR
+     * The push has arrived BEFORE success
+     *
+     * If none of those criterias are met, it will not display anything, as OrderId will not be set.
+     *
+     * There is no design done for this, this is a pure customisation suggestion
+     *
+     */
+    ?>
+
+    <?php if (false):?>
+    <?php if ($this->getOrderId()):?>
+        <?php if ($this->getCanViewOrder()) :?>
+            <p><?php echo $this->__('Your order # is: %s.', sprintf('<a href="%s">%s</a>', $this->escapeHtml($this->getViewOrderUrl()), $this->escapeHtml($this->getOrderId()))) ?></p>
+        <?php  else :?>
+            <p><?php echo $this->__('Your order # is: %s.', $this->escapeHtml($this->getOrderId())) ?></p>
+        <?php endif;?>
+    <?php endif;?>
+    <?php endif;?>
+
+    <?php echo $this->getKlarnaHtml() ?>
 </div>

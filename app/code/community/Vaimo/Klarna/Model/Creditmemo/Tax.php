@@ -56,6 +56,8 @@ class Vaimo_Klarna_Model_Creditmemo_Tax extends Mage_Sales_Model_Order_Creditmem
     {
         $order = $creditmemo->getOrder();
         $invoice = $creditmemo->getInvoice();
+        $this->_getHelper()->prepareVaimoKlarnaFeeRefund($creditmemo);
+
         if ($order && $invoice) {
             $payment = $order->getPayment();
             if ($payment) {

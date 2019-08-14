@@ -287,18 +287,20 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
      */
     protected function _updateCountry()
     {
-        if ($this->_shippingAddress && $this->_shippingAddress->getCountry()) {
-            $this->_countryCode = strtoupper($this->_shippingAddress->getCountry());
-        } elseif ($this->_billingAddress && $this->_billingAddress->getCountry()) {
-            $this->_countryCode = strtoupper($this->_billingAddress->getCountry());
-        }
-        if ($this->_countryCode!=$this->_getDefaultCountry()) {
-            $this->_updateNonDefaultCountryLanguage();
-        } else {
-            // It's only necessary to call this if updateNonDefaultCountryLanguage
-            // has been called. A minor speed improvement possible here, as
-            // _updateCountry() is called quite a number of times.
-            $this->_setDefaultLanguageCode();
+        if ($this->getMethod()!=Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT) {
+            if ($this->_shippingAddress && $this->_shippingAddress->getCountry()) {
+                $this->_countryCode = strtoupper($this->_shippingAddress->getCountry());
+            } elseif ($this->_billingAddress && $this->_billingAddress->getCountry()) {
+                $this->_countryCode = strtoupper($this->_billingAddress->getCountry());
+            }
+            if ($this->_countryCode!=$this->_getDefaultCountry()) {
+                $this->_updateNonDefaultCountryLanguage();
+            } else {
+                // It's only necessary to call this if updateNonDefaultCountryLanguage
+                // has been called. A minor speed improvement possible here, as
+                // _updateCountry() is called quite a number of times.
+                $this->_setDefaultLanguageCode();
+            }
         }
     }
     

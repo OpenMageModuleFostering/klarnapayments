@@ -107,6 +107,36 @@ abstract class Vaimo_Klarna_Model_Klarnacheckout_Abstract extends Vaimo_Klarna_M
         Mage::getModel('newsletter/subscriber')->subscribe($email);
     }
 
+    protected function _addressIsSame($billingAddress, $shippingAddress)
+    {
+        if ($billingAddress->getFirstname() != $shippingAddress->getFirstname() ||
+            $billingAddress->getLastname() != $shippingAddress->getLastname() ||
+//            $billingAddress->getCareOf() != $shippingAddress->getCareOf() ||
+            $billingAddress->getStreet() != $shippingAddress->getStreet() ||
+            $billingAddress->getPostcode() != $shippingAddress->getPostcode() ||
+            $billingAddress->getCity() != $shippingAddress->getCity() ||
+            $billingAddress->getCountryId() != $shippingAddress->getCountryId() ||
+//            $billingAddress->getEmail() != $shippingAddress->getEmail() ||
+            $billingAddress->getTelephone() != $shippingAddress->getTelephone()
+        ) {
+            return false;
+        }
+        return true;
+    }
+
+    protected function _customerHasAddress($customer, $address)
+    {
+        $res = false;
+        $collection = $customer->getAddressesCollection();
+        foreach ($collection as $customerAddress) {
+            if ($this->_addressIsSame($address, $customerAddress)) {
+                $res = true;
+                break;
+            }
+        }
+        return $res;
+    }
+
     protected function _prepareGuestCustomerQuote(Mage_Sales_Model_Quote $quote)
     {
         $billing    = $quote->getBillingAddress();
@@ -161,13 +191,10 @@ abstract class Vaimo_Klarna_Model_Klarnacheckout_Abstract extends Vaimo_Klarna_M
         $customer->setFirstname($customerBilling->getFirstname());
         $customer->setLastname($customerBilling->getLastname());
         $customer->setEmail($customerBilling->getEmail());
-
         $password = $customer->generatePassword();
         $customer->setPassword($password);
         $customer->setConfirmation($password);
 
-//        $customer->setPassword($customer->decryptPassword($quote->getPasswordHash()));
-//        $customer->setPasswordHash($customer->hashPassword($customer->getPassword()));
         $quote->setCustomer($customer)->setCustomerId(true);
     }
 
@@ -176,28 +203,42 @@ abstract class Vaimo_Klarna_Model_Klarnacheckout_Abstract extends Vaimo_Klarna_M
         $billing    = $quote->getBillingAddress();
         $shipping   = $quote->isVirtual() ? null : $quote->getShippingAddress();
         $customer = $this->_loadCustomer($quote->getCustomerId());
+        $skipDefaultBilling = false;
+        $skipDefaultShipping = false;
 
         if (!$billing->getCustomerId() || $billing->getSaveInAddressBook()) {
             $customerBilling = $billing->exportCustomerAddress();
-            $customer->addAddress($customerBilling);
-            $billing->setCustomerAddress($customerBilling);
+            if (!$this->_customerHasAddress($customer, $customerBilling)) {
+                $customer->addAddress($customerBilling);
+                $billing->setCustomerAddress($customerBilling);
+            } else {
+                $skipDefaultBilling = true;
+            }
         }
 
         if ($shipping && !$shipping->getSameAsBilling() &&
             (!$shipping->getCustomerId() || $shipping->getSaveInAddressBook())) {
             $customerShipping = $shipping->exportCustomerAddress();
-            $customer->addAddress($customerShipping);
-            $shipping->setCustomerAddress($customerShipping);
+            if (!$this->_customerHasAddress($customer, $customerShipping)) {
+                $customer->addAddress($customerShipping);
+                $shipping->setCustomerAddress($customerShipping);
+            } else {
+                $skipDefaultShipping = true;
+            }
         }
 
-        if (isset($customerBilling) && !$customer->getDefaultBilling()) {
-            $customerBilling->setIsDefaultBilling(true);
+        if (!$skipDefaultBilling) {
+            if (isset($customerBilling) && !$customer->getDefaultBilling()) {
+                $customerBilling->setIsDefaultBilling(true);
+            }
         }
 
-        if ($shipping && isset($customerShipping) && !$customer->getDefaultShipping()) {
-            $customerShipping->setIsDefaultShipping(true);
-        } else if (isset($customerBilling) && !$customer->getDefaultShipping()) {
-            $customerBilling->setIsDefaultShipping(true);
+        if (!$skipDefaultShipping) {
+            if ($shipping && isset($customerShipping) && !$customer->getDefaultShipping()) {
+                $customerShipping->setIsDefaultShipping(true);
+            } else if (isset($customerBilling) && !$customer->getDefaultShipping()) {
+                $customerBilling->setIsDefaultShipping(true);
+            }
         }
 
         $quote->setCustomer($customer);

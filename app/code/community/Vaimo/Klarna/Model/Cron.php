@@ -58,10 +58,17 @@ class Vaimo_Klarna_Model_Cron extends Mage_Core_Model_Abstract
             $helper->setFunctionNameForLog('cron treatPushQueue');
             $helper->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_START_TAG);
             foreach ($collection as $pushQueue) {
+                $helper->logKlarnaApi('Queue id: ' . $pushQueue->getId());
                 $checkoutId = $pushQueue->getKlarnaOrderNumber();
                 $quote = $helper->findQuote($checkoutId);
-                if ($quote == null)
+                if (!$quote || !$quote->getId()) {
+                    $pushQueue->setMessage('Quote missing, skipping');
+                    $attempt = $pushQueue->getRetryAttempts();
+                    $pushQueue->setRetryAttempts($attempt + 1);
+                    $pushQueue->save();
+                    $helper->logKlarnaApi('Quote missing, skipping');
                     continue;
+                }
 
                 /** @var Vaimo_Klarna_Model_Klarnacheckout $klarna */
                 $klarna = Mage::getModel('klarna/klarnacheckout');
@@ -69,14 +76,11 @@ class Vaimo_Klarna_Model_Cron extends Mage_Core_Model_Abstract
                 if (substr($checkoutId, -1, 1) == '/') {
                     $checkoutId = substr($checkoutId, 0, strlen($checkoutId) - 1);
                 }
-                $helper->logKlarnaApi('pushAction checkout id: ' . $checkoutId);
-                if (!$quote->getId()) {
-                    $helper->logKlarnaApi('pushAction checkout quote not found!');
-                }
 
                 if ($checkoutId) {
                     try {
                         // createOrder returns the order if successful, otherwise an error string
+                        $helper->logKlarnaApi('Calling create order with id: ' . $checkoutId);
                         $result = $klarna->createOrder($checkoutId);
 
                         if (is_array($result)) {
@@ -107,6 +111,7 @@ class Vaimo_Klarna_Model_Cron extends Mage_Core_Model_Abstract
                         $pushQueue->setRetryAttempts($attempt + 1);
                         $pushQueue->save();
                         $helper->logKlarnaException($e);
+                        $helper->logKlarnaApi('Exception ' . $e->getMessage());
                     }
                 }
             }

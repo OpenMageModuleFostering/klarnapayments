@@ -310,6 +310,19 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     }
 
     /**
+     * Returns checkout/cart unless specific redirect specified
+     *
+     */
+    public function getKCORedirectToCartUrl($store = null)
+    {
+        $res = Mage::getStoreConfig('payment/vaimo_klarna_checkout/cart_redirect', $store);
+        if (!$res) {
+            $res = 'checkout/cart';
+        }
+        return $res;
+    }
+
+    /**
      * Check if FireCheckout is activated or not
      *
      * @return bool
@@ -971,6 +984,10 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
 
     public function findQuote($klarna_id)
     {
+        if (!$klarna_id) {
+            Mage::helper('klarna')->logKlarnaApi('findQuote no klarna_id provided!');
+            return null;
+        }
         /** @var Mage_Core_Model_Resource $resource */
         $resource = Mage::getSingleton('core/resource');
         /** @var Varien_Db_Adapter_Interface $read */
@@ -991,6 +1008,7 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
             ->setStoreId($r['store_id'])
             ->load($r['entity_id']);
 
+        $quote->setTotalsCollectedFlag(true);
         return $quote;
     }
 
@@ -1034,4 +1052,68 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
         return self::$isEnterprise;
     }
 
+
+    protected function _isAdminUserLoggedIn()
+    {
+        return Mage::getSingleton('admin/session')->isLoggedIn();
+    }
+
+
+    public function prepareVaimoKlarnaFeeRefund(Mage_Sales_Model_Order_Creditmemo $creditmemo)
+    {
+        if (!$this->_isAdminUserLoggedIn() || $creditmemo->hasVaimoKlarnaFeeRefund()) {
+            return $this;
+        }
+
+        $data = $this->_getRequest()->getParam('creditmemo', array());
+        if (!isset($data['vaimo_klarna_fee_refund'])) {
+            return $this;
+        }
+        $refundAmount = empty($data['vaimo_klarna_fee_refund']) ? 0 : $data['vaimo_klarna_fee_refund'];
+
+        $store = $creditmemo->getOrder()->getStore();
+        $baseRefundAmount = $store->convertPrice($refundAmount, false);
+
+        $creditmemo->setVaimoKlarnaFeeRefund($refundAmount)
+            ->setVaimoKlarnaBaseFeeRefund($baseRefundAmount);
+
+        return $this;
+    }
+
+    public function checkPaymentMethod($quote, $logf = false)
+    {
+        if ($quote->getPayment()->getMethod() != Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT) {
+            if ($logf) {
+                $this->logDebugInfo('_createTheOrder quote ' . $quote->getId() .
+                    ' not proper method (' . $quote->getPayment()->getMethod() .
+                    '), changing to ' .
+                    Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
+            }
+            if ($quote->isVirtual()) {
+                $quote->getBillingAddress()->setPaymentMethod(Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
+            } else {
+                $quote->getShippingAddress()->setPaymentMethod(Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
+            }
+            $quote->getPayment()->setMethod(Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Check if exception is triggered by local XML-RPC library
+     *
+     * @param  Exception $e
+     * @return boolean
+     */
+    public function isXmlRpcException(Exception $e)
+    {
+        if (empty($GLOBALS['xmlrpcerr']) || empty($GLOBALS['xmlrpcstr'])) {
+            return false;
+        }
+
+        $xmlRpcErrorCode = array_search($e->getCode(), $GLOBALS['xmlrpcerr']);
+        return ($xmlRpcErrorCode !== false)
+            && (strpos($e->getMessage(), $GLOBALS['xmlrpcstr'][$xmlRpcErrorCode]) === 0);
+    }
 }

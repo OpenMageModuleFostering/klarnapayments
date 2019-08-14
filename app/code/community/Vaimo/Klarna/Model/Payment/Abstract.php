@@ -25,6 +25,8 @@
 
 class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abstract
 {
+    const EXTENDED_ERROR_MESSAGE = 'show_extended_error_message';
+
     protected $_isGateway               = false;
     protected $_canAuthorize            = true;
     protected $_canVoid                 = true;
@@ -303,6 +305,18 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
     }
 
     /**
+     * Check if exception message can be shown to customer
+     *
+     * @param  Exception $e
+     * @return boolean
+     */
+    protected function _canShowExceptionMessage(Exception $e)
+    {
+        return $this->_getConfigData(self::EXTENDED_ERROR_MESSAGE)
+            && $e->getCode() && $e->getMessage() && !$this->_getHelper()->isXmlRpcException($e);
+    }
+
+    /**
      * Authorize the purchase
      *
      * @param Varien_Object $payment Magento payment model
@@ -363,7 +377,16 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
             $payment->setTransactionId($transactionId)
                 ->setIsTransactionClosed(0);
         } catch (Mage_Core_Exception $e) {
-            Mage::throwException($this->_getHelper()->__('Technical problem occurred while using %s payment method. Please try again later.', $klarna->getMethodTitleWithFee()));
+            if ($this->_canShowExceptionMessage($e)) {
+                Mage::throwException($e->getMessage());
+            } else {
+                Mage::throwException(
+                    $this->_getHelper()->__(
+                        'Technical problem occurred while using %s payment method. Please try again later.',
+                        $klarna->getMethodTitleWithFee()
+                    )
+                );
+            }
         }
         return $this;
     }

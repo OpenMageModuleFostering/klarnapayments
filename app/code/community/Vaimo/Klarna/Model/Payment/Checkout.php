@@ -44,21 +44,6 @@ class Vaimo_Klarna_Model_Payment_Checkout extends Vaimo_Klarna_Model_Payment_Abs
     {
         $available = $this->_isAvailableParent($quote);
         if (!$available) return false;
-/*
-        if (parent::isAvailable($quote) == false) return false;
-        try {
-            $klarna = $this->_getKlarnaModel();
-            $klarna->setQuote($quote, $this->_code);
-
-            $allowedMin = (int)$klarna->getConfigData('minimum_order_cost');
-            $grandTotal = $quote->getGrandTotal();
-
-            if ($this->_roundPrice($grandTotal) < $allowedMin) return false;
-        } catch (Mage_Core_Exception $e) {
-            $this->_getHelper()->logKlarnaException($e);
-            return false;
-        }
-*/
         return true;
     }
 
