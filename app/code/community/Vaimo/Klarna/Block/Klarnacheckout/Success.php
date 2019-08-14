@@ -37,6 +37,7 @@ class Vaimo_Klarna_Block_Klarnacheckout_Success extends Mage_Core_Block_Template
             $klarna->setMethod(Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
             $html = $klarna->getKlarnaOrderHtml($checkoutId, false, false);
         } catch (Exception $e) {
+            Mage::helper('klarna')->logKlarnaException($e);
             $html = $e->getMessage();
         }
 

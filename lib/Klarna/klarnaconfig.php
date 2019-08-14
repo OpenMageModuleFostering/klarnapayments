@@ -9,7 +9,7 @@
  * @author    MS Dev <ms.modules@klarna.com>
  * @copyright 2012 Klarna AB (http://klarna.com)
  * @license   http://opensource.org/licenses/BSD-2-Clause BSD-2
- * @link      http://integration.klarna.com/
+ * @link      https://developers.klarna.com/
  */
 
 /**
@@ -30,8 +30,6 @@
  * currency    - Currency constant or code (int|string)
  * mode        - Klarna::BETA or Klarna::LIVE
  * ssl         - Use HTTPS or HTTP. (bool)
- * candice     - Status reporting to Klarna, to detect erroneous
- *               integrations, etc. (bool)
  * pcStorage   - Storage module, e.g. 'json'
  * pcURI       - URI to where the PClasses are stored, e.g.
  *               '/srv/shop/pclasses.json'
@@ -43,7 +41,7 @@
  * @author    MS Dev <ms.modules@klarna.com>
  * @copyright 2012 Klarna AB (http://klarna.com)
  * @license   http://opensource.org/licenses/BSD-2-Clause BSD-2
- * @link      http://integration.klarna.com/
+ * @link      https://developers.klarna.com/
  */
 class KlarnaConfig implements ArrayAccess
 {

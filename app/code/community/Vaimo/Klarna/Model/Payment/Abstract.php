@@ -85,6 +85,9 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
 
     public function canCapture()
     {
+        $klarna = $this->_getKlarnaModel();
+        $klarna->setQuote($this->getQuote(), $this->_code);
+        if ($klarna->getConfigData('disable_backend_calls')) return false;
         return true;
     }
 
@@ -127,7 +130,23 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
         if ($this->_getHelper()->showTitleAsTextOnly()) {
             $klarna = $this->_getKlarnaModel();
             $klarna->setQuote($this->getQuote(), $this->_code);
-            return $klarna->getMethodTitleWithFee($this->_getHelper()->getVaimoKlarnaFeeInclVat($this->getQuote(), false));
+            $presetTitle = NULL;
+            $serviceMethods = $klarna->getCheckoutService($this->_code);
+            if ($serviceMethods) {
+                foreach ($serviceMethods as $serviceMethod) {
+                    if (isset($serviceMethod['group'])) {
+                        if (isset($serviceMethod['group']['title']) && isset($serviceMethod['title'])) {
+                            $presetTitle = $serviceMethod['group']['title'];
+                            if ($serviceMethod['vaimo_klarna_method']==Vaimo_Klarna_Helper_Data::KLARNA_METHOD_INVOICE ||
+                                $serviceMethod['vaimo_klarna_method']==Vaimo_Klarna_Helper_Data::KLARNA_METHOD_SPECIAL) {
+                                $presetTitle .= ' ' . $serviceMethod['title'];
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            return $klarna->getMethodTitleWithFee($this->_getHelper()->getVaimoKlarnaFeeInclVat($this->getQuote(), false), $presetTitle);
         } else {
             return '';
         }
@@ -153,17 +172,16 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
     public function isAvailable( $quote = null )
     {
         $available = $this->_isAvailableParent($quote);
-        if(!$available) return false;
+        if (!$available) return false;
 
-        $klarna = null;
         try {
             $active = $this->_getConfigData('active'); // Only call to this
 
-            if(!$active) return false;
-            if(is_null($quote)) return false;
+            if (!$active) return false;
+            if (is_null($quote)) return false;
 
             $grandTotal = $quote->getGrandTotal();
-            if(empty ($grandTotal) || $grandTotal <= 0) return false;
+            if (empty ($grandTotal) || $grandTotal <= 0) return false;
 
             $klarna = $this->_getKlarnaModel();
             $klarna->setQuote($quote, $this->_code);
@@ -188,7 +206,7 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
                 }
             }
         } catch (Mage_Core_Exception $e) {
-            if ($klarna) $klarna->logKlarnaException($e);
+            $this->_getHelper()->logKlarnaException($e);
             return false;
         }
         return true;
@@ -220,7 +238,7 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
                 $klarna->addPostValues(array('gender' => '-1')); // If this is not set in post, set it to -1.
             }
 
-            $klarnaAddr = $klarna->toKlarnaAddress($klarna->getShippingAddress());
+            $klarnaAddr = $klarna->toKlarnaAddress($klarna->getBillingAddress()); // Shipping
 
             // These ifs were in a sense copied from old klarna module
             // Don't send in reference for non-company purchase.
@@ -323,10 +341,10 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
                 Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_RESERVATION_STATUS, $transactionStatus
             );
             $payment->setAdditionalInformation(
-                Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_HOST, $klarna->getConfigData("host")
+                Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_HOST, $klarna->getConfigData('host')
             );
             $payment->setAdditionalInformation(
-                Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_MERCHANT_ID, $klarna->getConfigData("merchant_id")
+                Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_MERCHANT_ID, $klarna->getConfigData('merchant_id')
             );
 
             if ($transactionStatus==Vaimo_Klarna_Helper_Data::KLARNA_STATUS_PENDING) {

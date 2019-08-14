@@ -49,7 +49,7 @@ class Vaimo_Klarna_Model_Invoice_Tax extends Mage_Sales_Model_Order_Invoice_Tota
     {
         $order = $invoice->getOrder();
 
-        if($order->hasInvoices() != 0) {
+        if ($order->hasInvoices() != 0) {
             return $this;
         }
 

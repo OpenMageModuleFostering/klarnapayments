@@ -80,11 +80,6 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
     protected $_billingAddress = NULL;
 
     /**
-     * Contains the name of the function currently inheriting this class, only used for logs
-     */
-    protected $_functionName = NULL;
-    
-    /**
      * Languages supported by Klarna
      */
     protected $_supportedLanguages = array(
@@ -111,7 +106,7 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
                                     );
 
     
-    protected $_moduleHelper = NULL;
+    protected $_moduleHelper = NULL;    
 
     /**
      * Constructor
@@ -168,7 +163,7 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
             $this->_languageCode = $this->getConfigData('klarna_language');
         } else {
             $localeCode = $this->_getConfigDataCall(Mage_Core_Model_Locale::XML_PATH_DEFAULT_LOCALE, $this->_getStoreId() );
-            $this->_languageCode = $this->_getLocaleCode($localeCode);
+            $this->_languageCode = $this->_getLocaleLanguageCode($localeCode);
         }
         if (!in_array($this->_languageCode, $this->_supportedLanguages)) {
             $this->_languageCode = 'en';
@@ -182,7 +177,8 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
      */
     protected function _getDefaultCountry()
     {
-        return strtoupper($this->_getConfigDataCall(Mage_Core_Model_Locale::XML_PATH_DEFAULT_COUNTRY, $this->_getStoreId()));
+        $res = $this->_getHelper()->getDefaultCountry($this->_getStoreId());
+        return strtoupper($res);
     }
 
     /**
@@ -239,7 +235,7 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
      *
      * @return string
      */
-    protected function _getLocaleCode($localeCode)
+    protected function _getLocaleLanguageCode($localeCode)
     {
         $res = NULL;
         $preg_result = preg_match("/([a-z]+)_[A-Z]+/", $localeCode, $collection);
@@ -315,7 +311,9 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
      */
     protected function _setShippingAddress($address)
     {
-        $this->_shippingAddress = $address;
+        if ($address) {
+            $this->_shippingAddress = $address;
+        }
         $this->_updateCountry();
     }
 
@@ -329,6 +327,9 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
     protected function _setBillingAddress($address)
     {
         $this->_billingAddress = $address;
+        if ($this->_shippingAddress==NULL) {
+            $this->_shippingAddress = $address;
+        }
         $this->_updateCountry();
     }
 
@@ -358,18 +359,6 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
         $this->_setShippingAddress($order->getShippingAddress());
         $this->_setBillingAddress($order->getBillingAddress());
         $this->_currencyCode = $order->getOrderCurrencyCode();
-    }
-
-    /**
-     * Sets the function name, which is used in logs. This is set in each class construct
-     *
-     * @param string $functionName
-     *
-     * @return void
-     */
-    protected function _setFunctionName($functionName)
-    {
-        $this->_functionName = $functionName;
     }
 
     /**
@@ -550,6 +539,23 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
     }
     
     /**
+     * Some countries supports to get more details to create request
+     *
+     * @return boolean
+     */
+    public function moreDetailsToKCORequest()
+    {
+        switch ($this->_getCountryCode()) {
+//            case 'NL':
+            case 'DE':
+            case 'AT':
+                return true;
+            default:
+                return false;
+        }
+    }
+    
+    /**
      * Norway has special rules regarding the details of the payment plan you are selecting
      *
      * @return boolean
@@ -655,7 +661,7 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
                 $res = true;
                 break;
         }
-        switch ($this->getConfigData("allow_separate_address")) {
+        switch ($this->getConfigData('allow_separate_address')) {
             case 0:
                 $res = false;
                 break;
@@ -675,6 +681,7 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
     public function shouldDisplayAutofillWarning()
     {
         switch ($this->_getCountryCode()) {
+            case 'AT':
             case 'DE':
                 $this->setMethod(Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
                 return $this->getConfigData('active');
@@ -801,6 +808,16 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
     }
     
     /**
+     * Returns this locale string
+     *
+     * @return string
+     */
+    protected function _getLocale()
+    {
+        return $this->_getLanguageCode() . "_" . $this->_getCountryCode();
+    }
+    
+    /**
      * Returns this class currency code
      *
      * @return string
@@ -917,16 +934,6 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
         return $this->_shippingAddress;
     }
     
-    /**
-     * Returns the function name set by the constructors in this class
-     *
-     * @return string
-     */
-    protected function _getFunctionName()
-    {
-        return $this->_functionName;
-    }
-    
     protected function _formatPrice($price)
     {
         return Mage::app()->getStore($this->getQuote()->getStoreId())->formatPrice($price, false);
@@ -937,9 +944,13 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
      *
      * @return string
      */
-    public function getMethodTitleWithFee($fee = NULL)
+    public function getMethodTitleWithFee($fee = NULL, $presetTitle = NULL)
     {
-        $res = $this->_getHelper()->__($this->getConfigData('title'));
+        if ($presetTitle) {
+            $res = $presetTitle;
+        } else {
+            $res = $this->_getHelper()->__($this->getConfigData('title'));
+        }
         if ($this->getQuote() && $this->getMethod()==Vaimo_Klarna_Helper_Data::KLARNA_METHOD_INVOICE) {
             if ($fee) {
                 $res .= ' (' . $this->_formatPrice($fee) . ')';
@@ -961,21 +972,21 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
     public function getKlarnaSetup()
     {
         try {
-            if (!$this->getConfigData("active")) {
+            if (!$this->getConfigData('active')) {
                 if ($this->getMethod()!=Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT) {
                     Mage::throwException($this->_getHelper()->__('Current payment method not available'));
                 }
             }
             $res = new Varien_Object(
                 array(
-                    'merchant_id' => $this->getConfigData("merchant_id"),
-                    'shared_secret' => $this->getConfigData("shared_secret"),
+                    'merchant_id' => $this->getConfigData('merchant_id'),
+                    'shared_secret' => $this->getConfigData('shared_secret'),
                     'country_code' => $this->_getCountryCode(),
                     'language_code' => $this->_getLanguageCode(),
-                    'locale_code' => $this->_getLanguageCode() . "_" . $this->_getCountryCode(),
+                    'locale_code' => $this->_getLocale(),
                     'currency_code' => $this->_getCurrencyCode(),
-                    'terms_url' => $this->getConfigData("terms_url"),
-                    'host' => $this->getConfigData("host"),
+                    'terms_url' => $this->getConfigData('terms_url'),
+                    'host' => $this->getConfigData('host'),
                     )
                 );
         } catch( Exception $e ) {
@@ -984,111 +995,10 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
                 $res = $this->getKlarnaSetup();
             } else {
                 $res = new Varien_Object();
-                $this->logKlarnaException($e);
+                $this->_getHelper()->logKlarnaException($e);
             }
         }
         return $res;
-    }
-
-    /**
-     * Log function that does the writing to log file
-     *
-     * @param string $filename  What file to write to, will be placed in site/var/klarna/ folder
-     * @param string $msg       Text to log
-     *
-     * @return void
-     */
-    protected function _log($filename, $msg)
-    {
-        Mage::log(getmypid() . ' ' . $msg, null, $filename, true);
-    }
-    
-    /**
-     * Log function that does the writing to log file
-     *
-     * @param string $filename  What file to write to, will be placed in site/var/klarna/ folder
-     * @param string $msg       Text to log
-     *
-     * @return void
-     */
-    protected function _logAlways($filename, $msg)
-    {
-        $logDir  = Mage::getBaseDir('var') . DS . 'log' . DS;
-        $logFile = $logDir . $filename;
-
-        try {
-            if (!is_dir($logDir)) {
-                mkdir($logDir);
-                chmod($logDir, 0777);
-            }
-            if( file_exists($logFile) ){
-                $fp = fopen( $logFile, "a" );
-            } else {
-                $fp = fopen( $logFile, "w" );
-            }
-            if( !$fp ) return null;
-            fwrite( $fp, date("Y/m/d H:i:s") . ' ' . $this->_getFunctionName() . ': ' . $msg . "\n" );
-            fclose( $fp );
-        } catch( Exception $e ) {
-            return;
-        }
-    }
-    
-    /**
-     * Log function that logs all Klarna API calls and replies, this to see what functions are called and what reply they get
-     *
-     * @param string $comment Text to log
-     *
-     * @return void
-     */
-    public function logKlarnaApi($comment)
-    {
-        $this->_log('klarnaapi.log', $comment);
-    }
-    
-    /**
-     * Log function used for various debug log information, array is optional
-     *
-     * @param string $info  Header of what is being logged
-     * @param array $arr    The array to be logged
-     *
-     * @return void
-     */
-    public function logDebugInfo($info, $arr = NULL)
-    {
-        if (!$arr) {
-            $this->_log('klarnadebug.log', $info);
-        } else {
-            if (is_array($arr)) {
-                $this->_log('klarnadebug.log', print_r($arr, true));
-            } elseif (is_object($arr)) {
-                $this->_log('klarnadebug.log', print_r(array($arr), true));
-            }
-        }
-    }
-    
-    protected function _logMagentoException($e)
-    {
-        Mage::logException($e);
-    }
-    
-    /**
-     * If there is an exception, this log function should be used
-     * This is mainly meant for exceptions concerning klarna API calls, but can be used for any exception
-     *
-     * @param Exception $exception
-     *
-     * @return void
-     */
-    public function logKlarnaException($e)
-    {
-        $this->_logMagentoException($e);
-        $errstr = 'Exception:';
-        if ($e->getCode()) $errstr = $errstr . ' Code: ' . $e->getCode();
-        if ($e->getMessage()) $errstr = $errstr . ' Message: ' . $e->getMessage(); // $this->_decode()
-        if ($e->getLine()) $errstr = $errstr . ' Row: ' . $e->getLine();
-        if ($e->getFile()) $errstr = $errstr . ' File: ' . $e->getFile();
-        $this->_logAlways('klarnaerror.log', $errstr);
     }
 
     /**

@@ -68,7 +68,7 @@ $limit_for_radiobuttons = 2; // When you have more addresses than this, create d
             <?php endforeach; ?>
 
             <?php if ($this->shippingSameAsBilling()): ?>
-                <li class="klarna_notification"><?php echo Mage::helper('klarna')->__('Please note that both shipping and invoice address will be updated to this address when you place your order'); ?></li>
+                <li class="klarna_notification"><?php echo Mage::helper('klarna')->__('Please note that both shipping and billing address will be updated to this address when you place your order'); ?></li>
             <?php else: ?>
                 <li class="klarna_notification"><?php echo Mage::helper('klarna')->__('Please note that shipping address will be updated to this address when you place your order'); ?></li>
             <?php endif; ?>
@@ -159,7 +159,7 @@ $limit_for_radiobuttons = 2; // When you have more addresses than this, create d
             </select>
 
             <?php if ($this->shippingSameAsBilling()): ?>
-                <li class="klarna_notification"><?php echo Mage::helper('klarna')->__('Please note that both shipping and invoice address will be updated to this address when you place your order'); ?></li>
+                <li class="klarna_notification"><?php echo Mage::helper('klarna')->__('Please note that both shipping and billing address will be updated to this address when you place your order'); ?></li>
             <?php else: ?>
                 <li class="klarna_notification"><?php echo Mage::helper('klarna')->__('Please note that shipping address will be updated to this address when you place your order'); ?></li>
             <?php endif; ?>

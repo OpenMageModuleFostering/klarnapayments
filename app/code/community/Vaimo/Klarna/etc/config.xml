@@ -25,7 +25,7 @@
 --><config>
     <modules>
         <Vaimo_Klarna>
-            <version>5.2.0</version>
+            <version>5.2.11</version>
             <name>Vaimo Klarna Module</name>
             <depends>
                 <Mage_Payment/>
@@ -83,12 +83,20 @@
         </fieldsets>
 
         <events>
+            <sales_order_payment_capture>
+                <observers>
+                    <klarna>
+                        <class>klarna/observer</class>
+                        <method>prePaymentCapture</method>
+                    </klarna>
+                </observers>
+            </sales_order_payment_capture>
             <customer_address_format>
                 <observers>
-                    <klarna_address_format>
+                    <klarna>
                         <class>klarna/observer</class>
                         <method>customerAddressFormat</method>
-                    </klarna_address_format>
+                    </klarna>
                 </observers>
             </customer_address_format>
         </events>
@@ -192,39 +200,67 @@
         <events>
             <sales_quote_payment_import_data_before>
                 <observers>
-                    <klarna_clean_additional_information>
+                    <klarna>
                         <class>klarna/observer</class>
                         <method>cleanAdditionalInformation</method>
-                    </klarna_clean_additional_information>
+                    </klarna>
                 </observers>
             </sales_quote_payment_import_data_before>
             <sales_quote_save_before>
                 <observers>
-                    <klarna_clean_pno_from_quote>
+                    <klarna>
                         <class>klarna/observer</class>
                         <method>cleanPnoFromQuote</method>
-                    </klarna_clean_pno_from_quote>
+                    </klarna>
                 </observers>
             </sales_quote_save_before>
-
+            <sales_order_save_after>
+                <observers>
+                    <klarna>
+                        <class>klarna/observer</class>
+                        <method>resetCheckoutCookie</method>
+                    </klarna>
+                </observers>
+            </sales_order_save_after>
             <controller_action_predispatch_checkout_onepage_index>
                 <observers>
-                    <klarna_check_launch_klarnacheckout>
+                    <klarna>
                         <class>klarna/observer</class>
                         <method>checkLaunchKlarnaCheckout</method>
-                    </klarna_check_launch_klarnacheckout>
+                    </klarna>
                 </observers>
             </controller_action_predispatch_checkout_onepage_index>
             <controller_action_predispatch_onestepcheckout>
                 <observers>
-                    <klarna_check_launch_klarnacheckout>
+                    <klarna>
                         <class>klarna/observer</class>
                         <method>checkLaunchKlarnaCheckout</method>
-                    </klarna_check_launch_klarnacheckout>
+                    </klarna>
                 </observers>
             </controller_action_predispatch_onestepcheckout>
+            <controller_action_predispatch>
+                <observers>
+                    <klarna>
+                        <class>klarna/observer</class>
+                        <method>checkDisableUseOtherMethods</method>
+                    </klarna>
+                </observers>
+            </controller_action_predispatch>
         </events>
     </frontend>
+
+    <crontab>
+        <jobs>
+            <update_transactions>
+                <schedule>
+                    <cron_expr>* */2 * * *</cron_expr>
+                </schedule>
+                <run>
+                    <model>klarna/cron::statusUpdateOfPendingOrders</model>
+                </run>
+            </update_transactions>
+        </jobs>
+    </crontab>
 
     <adminhtml>
         <layout>
@@ -244,14 +280,15 @@
             </modules>
         </translate>
         <events>
-            <sales_order_payment_capture>
+            <core_block_abstract_prepare_layout_after>
                 <observers>
-                    <klarna_pre_payment_capture>
-                        <class>klarna/observer</class>
-                        <method>prePaymentCapture</method>
-                    </klarna_pre_payment_capture>
+                    <klarna>
+                        <type>singleton</type>
+                            <class>klarna/observer</class>
+                            <method>addMassAction</method>
+                    </klarna>
                 </observers>
-            </sales_order_payment_capture>
+            </core_block_abstract_prepare_layout_after>
         </events>
     </adminhtml>
 
@@ -327,11 +364,13 @@
                 <host>BETA</host>
                 <allow_when_logged_in>1</allow_when_logged_in>
                 <allow_customer_group>99</allow_customer_group>
+                <klarna_layout>0</klarna_layout>
                 <auto_prefil>1</auto_prefil>
                 <allow_separate_address>2</allow_separate_address>
                 <enable_cart_above_kco>1</enable_cart_above_kco>
                 <enable_other_button>1</enable_other_button>
                 <enable_auto_focus>1</enable_auto_focus>
+                <shipping_countries>US,MX,CA,GL</shipping_countries>
             </vaimo_klarna_checkout>
         </payment>
     </default>

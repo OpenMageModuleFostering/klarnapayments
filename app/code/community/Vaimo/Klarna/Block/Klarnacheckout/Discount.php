@@ -28,15 +28,18 @@ class Vaimo_Klarna_Block_Klarnacheckout_Discount extends Mage_Core_Block_Templat
     public function _beforeToHtml()
     {
         parent::_beforeToHtml();
-        if (class_exists('Enterprise_GiftCard_Model_Giftcard', true)) {
+        try {
+            if (class_exists('Enterprise_GiftCard_Model_Giftcard', true)) {
             /** @var Mage_Core_Block_Template $giftCardAccountBlock */
-            $giftCardAccountBlock = $this->getLayout()->createBlock(
-                'enterprise_giftcardaccount/checkout_cart_giftcardaccount', 'checkout.cart.giftcardaccount'
-            );
-            if ($giftCardAccountBlock) {
-                $giftCardAccountBlock->setTemplate('vaimo/klarna/klarnacheckout/discount/giftcardaccount.phtml');
-                $this->setChild('giftcards', $giftCardAccountBlock);
+                $giftCardAccountBlock = $this->getLayout()->createBlock(
+                    'enterprise_giftcardaccount/checkout_cart_giftcardaccount', 'checkout.cart.giftcardaccount'
+                );
+                if ($giftCardAccountBlock) {
+                    $giftCardAccountBlock->setTemplate('vaimo/klarna/klarnacheckout/discount/giftcardaccount.phtml');
+                    $this->setChild('giftcards', $giftCardAccountBlock);
+                }
             }
+        } catch (Exception $e) {
         }
         return $this;
     }

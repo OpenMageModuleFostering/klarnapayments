@@ -25,6 +25,8 @@
 
 $klarnaSetup = $this->getKlarnaSetup();
 $invoiceFee = $this->getKlarnaInvoiceFeeInfo();
+$serviceMethods = $this->getCheckoutService();
+$_showServiceMethods = false;
 
 ?>
 
@@ -36,21 +38,43 @@ $invoiceFee = $this->getKlarnaInvoiceFeeInfo();
 
 <ul id="payment_form_<?php echo $this->getMethodCode(); ?>" class="form-list" style="display: none;">
 
-    <?php if (Mage::helper('klarna')->showTitleAsTextOnly()): ?>
-        <?php if (Mage::helper('klarna')->isOneStepCheckout()): ?>
-            <?php echo '<img src="' . $this->getKlarnaLogotype(90) . '" />'; ?>
+    <?php foreach ($serviceMethods as $serviceMethod): ?>
+        <?php if ($serviceMethod): ?>
+            <?php if (Mage::helper('klarna')->showTitleAsTextOnly()): ?>
+                <?php if (Mage::helper('klarna')->isOneStepCheckout()): ?>
+                    <?php echo $this->useServiceLogotypes($serviceMethod, 90); ?>
+                <?php else: ?>
+                    <li>
+                        <?php echo $this->useServiceLogotypes($serviceMethod, 125); ?>
+                    </li>
+                <?php endif; ?>
+            <?php endif; ?>
+            <?php $_showServiceMethods = true; ?>
+            <?php break; ?>
         <?php else: ?>
-            <li>
-                <?php echo '<img src="' . $this->getKlarnaLogotype(125) . '" />'; ?>
-            </li>
+            <?php if (Mage::helper('klarna')->showTitleAsTextOnly()): ?>
+                <?php if (Mage::helper('klarna')->isOneStepCheckout()): ?>
+                    <?php echo '<img src="' . $this->getKlarnaLogotype(90) . '" />'; ?>
+                <?php else: ?>
+                    <li>
+                        <?php echo '<img src="' . $this->getKlarnaLogotype(125) . '" />'; ?>
+                    </li>
+                <?php endif; ?>
+            <?php endif; ?>
         <?php endif; ?>
-    <?php endif; ?>
+    <?php endforeach; ?>
 
     <li class="klarna_readme">
         <span id="klarna_invoice_readme"></span>
     </li>
 
-    <li>
+    <?php if ($_showServiceMethods): ?>
+
+        <?php echo $this->getCheckoutServiceHtml(); ?>
+
+    <?php endif; ?>
+
+    <li class="klarna_input_wrapper">
         <ul id="<?php echo $this->getMethodCode(); ?>_input_fields" class="klarna-input-box">
 
             <?php echo $this->getNotificationsHtml(); ?>

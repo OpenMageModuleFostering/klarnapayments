@@ -30,7 +30,7 @@ class Vaimo_Klarna_Model_Klarnacheckout extends Vaimo_Klarna_Model_Klarnacheckou
     public function __construct($setStoreInfo = true, $moduleHelper = NULL, $coreHttpHelper = NULL, $coreUrlHelper = NULL, $customerHelper = NULL)
     {
         parent::__construct($setStoreInfo, $moduleHelper, $coreHttpHelper, $coreUrlHelper, $customerHelper);
-        $this->_setFunctionName('klarnacheckout');
+        $this->_getHelper()->setFunctionNameForLog('klarnacheckout');
     }
 
     /**
@@ -72,7 +72,7 @@ class Vaimo_Klarna_Model_Klarnacheckout extends Vaimo_Klarna_Model_Klarnacheckou
      */
     protected function _init($functionName)
     {
-        $this->_setFunctionName($this->_getFunctionName() . '-' . $functionName);
+        $this->_getHelper()->setFunctionNameForLog($this->_getHelper()->getFunctionNameForLog() . '-' . $functionName);
         $this->_initApi($this->_getStoreId(), $this->getMethod(), $functionName);
         $this->_api->init($this->getKlarnaSetup());
         $this->_api->setTransport($this->_getTransport());
@@ -82,25 +82,66 @@ class Vaimo_Klarna_Model_Klarnacheckout extends Vaimo_Klarna_Model_Klarnacheckou
     public function getKlarnaOrderHtml($checkoutId = null, $createIfNotExists = false, $updateItems = false)
     {
         $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_KCODISPLAY_ORDER);
+        if ($checkoutId) {
+            $this->_getHelper()->logKlarnaApi('Call with checkout ID ' . $checkoutId);
+        } else {
+            $this->_getHelper()->logKlarnaApi('Call with checkout ID NULL');
+        }
         $this->_api->initKlarnaOrder($checkoutId, $createIfNotExists, $updateItems);
-        return $this->_api->getKlarnaCheckoutGui();
+        $res = $this->_api->getKlarnaCheckoutGui();
+        $this->_getHelper()->logKlarnaApi('Call complete');
+        return $res;
     }
     
+    /**
+     * When we call this function, order is already done and complete. We can then cache
+     * the information we get from Klarna so when we call initKlarnaOrder again (from
+     * phtml files) we can use the cached order instead of fetching it again.
+     * 
+     * @param string $checkoutId
+     * 
+     * @return string
+     */
     public function getCheckoutStatus($checkoutId = null)
     {
         $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_KCODISPLAY_ORDER);
+        if ($checkoutId) {
+            $this->_getHelper()->logKlarnaApi('Call with checkout ID ' . $checkoutId);
+        } else {
+            $this->_getHelper()->logKlarnaApi('Call with checkout ID NULL');
+        }
+        $this->_api->setKlarnaOrderSessionCache(true);
         $this->_api->initKlarnaOrder($checkoutId);
-        return $this->_api->getKlarnaCheckoutStatus();
+        $res = $this->_api->getKlarnaCheckoutStatus();
+        $this->_getHelper()->logKlarnaApi('Call complete');
+        return $res;
     }
     
     /*
-     * This function MUST BE DELETED, the code calling it and using the result must be
-     * rewritten!
+     * Not happy with this, but I guess we can't solve it in other ways.
      *
      */
     public function getActualKlarnaOrder()
     {
         return $this->_api->getActualKlarnaOrder();
+    }
+    
+    /*
+     * Will return the klarna order or null, if it doesn't find it
+     * Not used by this module, but as a service for others.
+     *
+     */
+    public function getKlarnaOrderRaw($checkoutId)
+    {
+        $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_KCODISPLAY_ORDER);
+        if ($checkoutId) {
+            $this->_getHelper()->logKlarnaApi('Call with checkout ID ' . $checkoutId);
+        } else {
+            $this->_getHelper()->logKlarnaApi('Call with checkout ID NULL');
+        }
+        $res = $this->_api->getKlarnaOrderRaw($checkoutId);
+        $this->_getHelper()->logKlarnaApi('Call complete');
+        return $res;
     }
     
     public function validateQuote($checkoutId)
@@ -109,12 +150,12 @@ class Vaimo_Klarna_Model_Klarnacheckout extends Vaimo_Klarna_Model_Klarnacheckou
         $quote = $this->_loadQuoteByKey($checkoutId, 'klarna_checkout_id');
 
         if (!$quote->getId()) {
-            $this->logDebugInfo('validateQuote could not get quote');
+            $this->_getHelper()->logDebugInfo('validateQuote could not get quote');
             return 'could not get quote';
         }
 
         if (!$quote->hasItems()) {
-            $this->logDebugInfo('validateQuote has no items');
+            $this->_getHelper()->logDebugInfo('validateQuote has no items');
             return 'has no items';
         }
 
@@ -124,17 +165,17 @@ class Vaimo_Klarna_Model_Klarnacheckout extends Vaimo_Klarna_Model_Klarnacheckou
             foreach ($quote->getErrors() as $error) {
                 $result[] = $error->getText();
             }
-            $this->logDebugInfo('validateQuote errors: ' . implode(" ", $result));
+            $this->_getHelper()->logDebugInfo('validateQuote errors: ' . implode(" ", $result));
             return implode("\n", $result);
         }
 
         if (!$quote->validateMinimumAmount()) {
-            $this->logDebugInfo('validateQuote below minimum amount');
+            $this->_getHelper()->logDebugInfo('validateQuote below minimum amount');
             return 'minimum amount';
         }
 
         $quote->reserveOrderId()->save();
-        $this->logDebugInfo('validateQuote reserved order id: ' . $quote->getReservedOrderId());
+        $this->_getHelper()->logDebugInfo('validateQuote reserved order id: ' . $quote->getReservedOrderId());
 
         return true;
     }
@@ -142,34 +183,41 @@ class Vaimo_Klarna_Model_Klarnacheckout extends Vaimo_Klarna_Model_Klarnacheckou
     public function createOrder($checkoutId = null)
     {
         $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_KCOCREATE_ORDER);
+        if ($checkoutId) {
+            $this->_getHelper()->logKlarnaApi('Call with checkout ID ' . $checkoutId);
+        } else {
+            $this->_getHelper()->logKlarnaApi('Call with checkout ID NULL');
+        }
         if (!$this->_api->initKlarnaOrder($checkoutId)) {
-            $this->logDebugInfo('createOrder could not get klarna order');
+            $this->_getHelper()->logDebugInfo('createOrder could not get klarna order');
             return 'could not get klarna order';
         }
 
         $quote = $this->_api->loadQuote();
         if (!$quote) {
-            $this->logDebugInfo('createOrder could not get quote');
+            $this->_getHelper()->logDebugInfo('createOrder could not get quote');
             return 'could not get quote';
         }
         $this->setQuote($quote);
 
         $varienOrder = $this->_api->initVarienOrder();
         if (!$varienOrder) {
-            $this->logDebugInfo('createOrder could not create varienOrder');
+            $this->_getHelper()->logDebugInfo('createOrder could not create varienOrder');
             return 'could not create varienOrder';
         }
 
-        $billingStreetAddress  = $varienOrder->getBillingAddress('street_address');
+        $billingStreetAddress   = $varienOrder->getBillingAddress('street_address');
         $billingStreetAddress2  = $varienOrder->getBillingAddress('street_address2');
-        $billingStreetName     = $varienOrder->getBillingAddress('street_name');
-        $billingStreetNumber   = $varienOrder->getBillingAddress('street_number');
-        $shippingStreetAddress = $varienOrder->getShippingAddress('street_address');
+        $billingStreetName      = $varienOrder->getBillingAddress('street_name');
+        $billingStreetNumber    = $varienOrder->getBillingAddress('street_number');
+        $billingRegionCode      = $varienOrder->getBillingAddress('region');
+        $shippingStreetAddress  = $varienOrder->getShippingAddress('street_address');
         $shippingStreetAddress2 = $varienOrder->getShippingAddress('street_address2');
-        $shippingStreetName    = $varienOrder->getShippingAddress('street_name');
-        $shippingStreetNumber  = $varienOrder->getShippingAddress('street_number');
+        $shippingStreetName     = $varienOrder->getShippingAddress('street_name');
+        $shippingStreetNumber   = $varienOrder->getShippingAddress('street_number');
+        $shippingRegionCode     = $varienOrder->getShippingAddress('region');
 
-        if(!$billingStreetAddress && $billingStreetName && $billingStreetNumber) {
+        if (!$billingStreetAddress && $billingStreetName && $billingStreetNumber) {
             $streetAddress = $varienOrder->getBillingAddress();
             $streetAddress['street_address'] = $billingStreetName . ' ' . $billingStreetNumber;
             $varienOrder->setBillingAddress($streetAddress);
@@ -180,7 +228,7 @@ class Vaimo_Klarna_Model_Klarnacheckout extends Vaimo_Klarna_Model_Klarnacheckou
             $varienOrder->setBillingAddress($streetAddress);
         }
 
-        if(!$shippingStreetAddress && $shippingStreetName && $shippingStreetNumber) {
+        if (!$shippingStreetAddress && $shippingStreetName && $shippingStreetNumber) {
             $streetAddress = $varienOrder->getShippingAddress();
             $streetAddress['street_address'] = $shippingStreetName . ' ' . $shippingStreetNumber;
             $varienOrder->setShippingAddress($streetAddress);
@@ -191,14 +239,19 @@ class Vaimo_Klarna_Model_Klarnacheckout extends Vaimo_Klarna_Model_Klarnacheckou
             $varienOrder->setShippingAddress($streetAddress);
         }
 
-        if ($varienOrder->getStatus() != 'checkout_complete') {
-            $this->logDebugInfo('createOrder status not complete');
+        if ($varienOrder->getStatus() != 'checkout_complete' && $varienOrder->getStatus() != 'created') {
+            $this->_getHelper()->logDebugInfo('createOrder status not complete');
             return 'status not complete';
         }
 
         $orderId = $this->_findAlreadyCreatedOrder($quote->getId());
         if ($orderId>0) {
-            $this->logDebugInfo('createOrder order already created ' . $orderId);
+            $this->_getHelper()->logDebugInfo('createOrder order already created ' . $orderId);
+            if (($varienOrder->getStatus() == 'checkout_complete') || ($varienOrder->getStatus() == 'created')) {
+                $order = $this->_loadOrderByKey($quote->getId());
+                $this->_api->updateKlarnaOrder($order, true);
+                $this->_getHelper()->logDebugInfo('updating order status on already crated order ' . $orderId);
+            }
             return 'order already created';
         }
         $isNewCustomer = false;
@@ -242,6 +295,10 @@ class Vaimo_Klarna_Model_Klarnacheckout extends Vaimo_Klarna_Model_Klarnacheckou
             $billingAddress->setEmail($varienOrder->getBillingAddress('email'));
             $billingAddress->setTelephone($varienOrder->getBillingAddress('phone'));
             $billingAddress->setSaveInAddressBook(1);
+            if ($billingRegionCode) {
+                $billingRegionId = Mage::getModel('directory/region')->loadByCode($billingRegionCode, $billingAddress->getCountryId());
+                $billingAddress->setRegionId($billingRegionId->getId());
+            }
         }
 
 //        $this->_validateCustomerData($data);
@@ -256,8 +313,12 @@ class Vaimo_Klarna_Model_Klarnacheckout extends Vaimo_Klarna_Model_Klarnacheckou
         $shippingAddress->setCountryId(strtoupper($varienOrder->getShippingAddress('country')));
         $shippingAddress->setEmail($varienOrder->getShippingAddress('email'));
         $shippingAddress->setTelephone($varienOrder->getShippingAddress('phone'));
+        if ($shippingRegionCode) {
+            $shippingRegionId = Mage::getModel('directory/region')->loadByCode($shippingRegionCode, $shippingAddress->getCountryId());
+            $shippingAddress->setRegionId($shippingRegionId->getId());
+        }
 
-        if ($this->getConfigData("packstation_enabled")) {
+        if ($this->getConfigData('packstation_enabled')) {
             $shippingAddress->setSameAsBilling(0);
         } else {
             $shippingAddress->setSameAsBilling(1);
@@ -286,7 +347,7 @@ class Vaimo_Klarna_Model_Klarnacheckout extends Vaimo_Klarna_Model_Klarnacheckou
             try {
                 $this->_involveNewCustomer($quote);
             } catch (Exception $e) {
-                $this->logKlarnaException($e);
+                $this->_getHelper()->logKlarnaException($e);
             }
         }
 
@@ -332,7 +393,7 @@ class Vaimo_Klarna_Model_Klarnacheckout extends Vaimo_Klarna_Model_Klarnacheckou
             try {
                 $order->sendNewOrderEmail();
             } catch (Exception $e) {
-                $this->logKlarnaException($e);
+                $this->_getHelper()->logKlarnaException($e);
             }
         }
 
@@ -342,12 +403,14 @@ class Vaimo_Klarna_Model_Klarnacheckout extends Vaimo_Klarna_Model_Klarnacheckou
                 $this->_addToSubscription($varienOrder->getBillingAddress('email'));
             }
         } catch(Exception $e) {
-            $this->logKlarnaException($e);
+            $this->_getHelper()->logKlarnaException($e);
         }
 
         $this->_getHelper()->dispatchMethodEvent($order, Vaimo_Klarna_Helper_Data::KLARNA_DISPATCH_RESERVED, $order->getTotalDue(), $this->getMethod());
 
-        $this->logDebugInfo('createOrder successfully created order with no: ' . $order->getIncrementId());
+        Mage::dispatchEvent('checkout_onepage_controller_success_action', array('order_ids' => $order->getId()) );
+
+        $this->_getHelper()->logDebugInfo('createOrder successfully created order with no: ' . $order->getIncrementId());
 
         $this->_api->updateKlarnaOrder($order);
 
@@ -372,7 +435,7 @@ class Vaimo_Klarna_Model_Klarnacheckout extends Vaimo_Klarna_Model_Klarnacheckou
 
             if (!in_array(Vaimo_Klarna_Helper_Data::KLARNA_CHECKOUT_ALLOW_ALL_GROUP_ID, $allowedCustomerGroups)) {
                 $customerGroupId = $this->_getCustomerSession()->getCustomerGroupId();
-                if(!in_array($customerGroupId, $allowedCustomerGroups)) {
+                if (!in_array($customerGroupId, $allowedCustomerGroups)) {
                     return false;
                 }
             }

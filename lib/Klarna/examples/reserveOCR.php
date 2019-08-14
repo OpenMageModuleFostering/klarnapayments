@@ -8,52 +8,25 @@ require_once dirname(dirname(__FILE__)) .
 require_once dirname(dirname(__FILE__)) .
     '/transport/xmlrpc-3.0.0.beta/lib/xmlrpc_wrappers.inc';
 
-/**
- * 1. Initialize and setup the Klarna instance.
- */
-
 $k = new Klarna();
 
 $k->config(
-    123456,               // Merchant ID
-    'sharedSecret',       // Shared Secret
-    KlarnaCountry::SE,    // Country
-    KlarnaLanguage::SV,   // Language
-    KlarnaCurrency::SEK,  // Currency
+    0,                    // Merchant ID
+    'sharedSecret',       // Shared secret
+    KlarnaCountry::SE,    // Purchase country
+    KlarnaLanguage::SV,   // Purchase language
+    KlarnaCurrency::SEK,  // Purchase currency
     Klarna::BETA,         // Server
-    'json',               // PClass Storage
-    '/srv/pclasses.json', // PClass Storage URI path
-    true,                 // SSL
-    true                  // Remote logging of response times of xmlrpc calls
+    'json',               // PClass storage
+    './pclasses.json'     // PClass storage URI path
 );
 
-// OR you can set the config to loads from a file, for example /srv/klarna.json:
-// $k->setConfig(new KlarnaConfig('/srv/klarna.json'));
-
-/**
- * 2. Reserve the OCR numbers.
- */
-
 try {
-    // Reserve the OCR number(s):
-    // [[reserveOCR]]
-    $result = $k->reserveOCR(
-        1 // Number of OCR numbers you wish to reserve.
-    );
-    // [[reserveOCR]]
+    $ocrs = $k->reserveOCR(1);
 
-    // [[reserveOCR:response]]
-    array(
-        "41789461815156"
-    );
-    // [[reserveOCR:response]]
+    // $ocrs is a list of string OCR numbers.
 
-    echo "Result: \n";
-    foreach ($result as $r) {
-        echo "{$r}\n";
-    }
-    /* $result now contains an array of OCR numbers, proceed accordingly. */
+    echo "OK\n";
 } catch(Exception $e) {
-    // Something went wrong, print the message:
     echo "{$e->getMessage()} (#{$e->getCode()})\n";
 }

@@ -104,7 +104,7 @@ abstract class Vaimo_Klarna_Model_Klarnacheckout_Abstract extends Vaimo_Klarna_M
 
     protected function _addToSubscription($email)
     {
-        Mage::getModel('newsletter/subscriber')->subscribe(email);
+        Mage::getModel('newsletter/subscriber')->subscribe($email);
     }
 
     protected function _prepareNewCustomerQuote(Mage_Sales_Model_Quote $quote)

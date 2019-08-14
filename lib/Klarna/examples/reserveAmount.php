@@ -8,33 +8,19 @@ require_once dirname(dirname(__FILE__)) .
 require_once dirname(dirname(__FILE__)) .
     '/transport/xmlrpc-3.0.0.beta/lib/xmlrpc_wrappers.inc';
 
-/**
- * 1. Initialize and setup the Klarna instance.
- */
-
 $k = new Klarna();
 
 $k->config(
-    123456,               // Merchant ID
-    'sharedSecret',       // Shared Secret
-    KlarnaCountry::SE,    // Country
-    KlarnaLanguage::SV,   // Language
-    KlarnaCurrency::SEK,  // Currency
+    0,                    // Merchant ID
+    'sharedSecret',       // Shared secret
+    KlarnaCountry::SE,    // Purchase country
+    KlarnaLanguage::SV,   // Purchase language
+    KlarnaCurrency::SEK,  // Purchase currency
     Klarna::BETA,         // Server
-    'json',               // PClass Storage
-    '/srv/pclasses.json', // PClass Storage URI path
-    true,                 // SSL
-    true                  // Remote logging of response times of xmlrpc calls
+    'json',               // PClass storage
+    './pclasses.json'     // PClass storage URI path
 );
 
-// OR you can set the config to loads from a file, for example /srv/klarna.json:
-// $k->setConfig(new KlarnaConfig('/srv/klarna.json'));
-
-/**
- * 2. Add the article(s), shipping and/or handling fee.
- */
-
-// Here we add a normal product to our goods list.
 $k->addArticle(
     4,                      // Quantity
     "MG200MMS",             // Article number
@@ -45,126 +31,42 @@ $k->addArticle(
     KlarnaFlags::INC_VAT    // Price is including VAT.
 );
 
-// Next we might want to add a shipment fee for the product
-$k->addArticle(
-    1,
-    "",
-    "Shipping fee",
-    14.5,
-    25,
-    0,
-    // Price is including VAT and is shipment fee
-    KlarnaFlags::INC_VAT | KlarnaFlags::IS_SHIPMENT
-);
+$k->addArticle(1, "", "Shipping fee", 14.5, 25, 0, KlarnaFlags::INC_VAT | KlarnaFlags::IS_SHIPMENT);
+$k->addArticle(1, "", "Handling fee", 11.5, 25, 0, KlarnaFlags::INC_VAT | KlarnaFlags::IS_HANDLING);
 
-// Lastly, we want to use an invoice/handling fee as well
-$k->addArticle(
-    1,
-    "",
-    "Handling fee",
-    11.5,
-    25,
-    0,
-    // Price is including VAT and is handling/invoice fee
-    KlarnaFlags::INC_VAT | KlarnaFlags::IS_HANDLING
-);
-
-/**
- * 3. Create and set the address(es).
- */
-
-// Create the address object and specify the values.
 $addr = new KlarnaAddr(
-    'always_approved@klarna.com', // email
-    '',                           // Telno, only one phone number is needed.
-    '0762560000',                 // Cellno
-    'Testperson-se',              // Firstname
-    'Approved',                   // Lastname
-    '',                           // No care of, C/O.
-    'St?rgatan 1',                // Street
-    '12345',                      // Zip Code
+    'always_approved@klarna.com', // Email address
+    '',                           // Telephone number, only one phone number is needed
+    '0762560000',                 // Cell phone number
+    'Testperson-se',              // First name (given name)
+    'Approved',                   // Last name (family name)
+    '',                           // No care of, C/O
+    'Stårgatan 1',                // Street address
+    '12345',                      // Zip code
     'Ankeborg',                   // City
     KlarnaCountry::SE,            // Country
-    null,                         // HouseNo for German and Dutch customers.
-    null                          // House Extension. Dutch customers only.
+    null,                         // House number (AT/DE/NL only)
+    null                          // House extension (NL only)
 );
 
-// Next we tell the Klarna instance to use the address in the next order.
-$k->setAddress(KlarnaFlags::IS_BILLING, $addr);  // Billing / invoice address
-$k->setAddress(KlarnaFlags::IS_SHIPPING, $addr); // Shipping / delivery address
-
-/**
- * 4. Specify relevant information from your store. (OPTIONAL)
- */
-
-// Set store specific information so you can e.g. search and associate invoices
-// with order numbers.
-$k->setEstoreInfo(
-    '175012',       // Order ID 1
-    '1999110234',   // Order ID 2
-    ''              // Optional username, email or identifier
-);
-
-// If you don't have the order id available at this stage, you can later use the
-// method updateOrderNo().
-
-/**
- * 5. Set additional information. (OPTIONAL)
- */
-
-/** Comment **/
-
-$k->setComment('A text string stored in the invoice commentary area.');
-
-/** Shipment type **/
-
-// Normal shipment is defaulted, delays the start of invoice expiration/due-date.
-$k->setShipmentInfo('delay_adjust', KlarnaFlags::EXPRESS_SHIPMENT);
-
-/**
- * 6. Invoke reserveAmount and transmit the data.
- */
+$k->setAddress(KlarnaFlags::IS_BILLING, $addr);
+$k->setAddress(KlarnaFlags::IS_SHIPPING, $addr);
 
 try {
-    // Transmit all the specified data, from the steps above, to Klarna.
-    // [[reserveAmount]]
     $result = $k->reserveAmount(
-        '4103219202', // PNO (Date of birth for DE and NL).
-        null,       // Gender.
-        // Amount. -1 specifies that calculation should calculate the amount
-        // using the goods list
-        -1,
-        KlarnaFlags::NO_FLAG,   // Flags to affect behavior.
-        // -1 notes that this is an invoice purchase, for part payment purchase
-        // you will have a pclass object on which you use getId().
+        '4103219202', // PNO (Date of birth for AT/DE/NL)
+        null, // KlarnaFlags::MALE, KlarnaFlags::FEMALE (AT/DE/NL only)
+        -1,   // Automatically calculate and reserve the cart total amount
+        KlarnaFlags::NO_FLAG,
         KlarnaPClass::INVOICE
     );
-    // [[reserveAmount]]
 
-    // [[reserveAmount:response]]
-    array(
-        "123456",
-        1
-    );
-    // [[reserveAmount:response]]
-
-
-    //Check the order status
-    if ($result[1] == KlarnaFlags::PENDING) {
-        /* The order is under manual review and will be accepted or denied at a
-           later stage. Use cronjob with checkOrderStatus() or visit Klarna
-           Online to check to see if the status has changed. You should still
-           show it to the customer as it was accepted, to avoid further attempts
-           to fraud.
-         */
-    }
-
-    // Here we get the reservation number
     $rno = $result[0];
+    $status = $result[1];
 
-    echo "status: {$result[1]}\nrno: {$result[0]}\n";
-    // Order is complete, store it in a database.
+    // $status is KlarnaFlags::PENDING or KlarnaFlags::ACCEPTED.
+
+    echo "OK: reservation {$rno} - order status {$status}\n";
 } catch(Exception $e) {
-    // The purchase was denied or something went wrong, print the message:
     echo "{$e->getMessage()} (#{$e->getCode()})\n";
 }
