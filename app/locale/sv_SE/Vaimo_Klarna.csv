@@ -166,3 +166,6 @@
 "E-mail", "E-post"
 "Password", "Lösenord"
 "Login", "Logga in"
+"Shipping Countries","Leverans till länder"
+"Specific for API V.3.1. List of allowed shipping countries. If none selected, none will be supported. List will appear in Klarna Checkout","Endast för API V.3.1. Lista över tillåtna länder att leverera till. Är ingen vald, visas ingen. Listan visas i Klarna Checkout"
+"Please note that your official address will be used for shipping address when you place your order","Leveransadressen kommer att uppdateras till din officiella adress när du lägger ordern"

@@ -60,6 +60,7 @@ class Vaimo_Klarna_LoginController extends Mage_Core_Controller_Front_Action
                 }
                 if ($logged_in) {
                     $r["message"] = $blk->__("Logged in");
+                    $r["reload_checkout"] = 1;
                 } else {
                     $r["r_code"] = -3;
                     $r["message"] = $blk->__("Wrong password");

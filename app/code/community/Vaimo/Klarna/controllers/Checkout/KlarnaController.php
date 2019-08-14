@@ -32,6 +32,7 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
     {
         return Mage::getSingleton('checkout/session');
     }
+
     /**
      * Retrieve shopping cart model object
      *
@@ -40,6 +41,11 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
     protected function _getCart()
     {
         return Mage::getSingleton('checkout/cart');
+    }
+
+    protected function _getOnepage()
+    {
+        return Mage::getSingleton('checkout/type_onepage');
     }
 
     /**
@@ -64,7 +70,6 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
                 $quote->getShippingAddress()->setPaymentMethod(Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
             }
             $quote->getPayment()->setMethod(Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
-            $quote->save();
         }
 
         return $this;
@@ -75,23 +80,32 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
         // set shipping method
         $quote = $this->_getQuote();
         $shippingAddress = $quote->getShippingAddress();
-        if (!$shippingAddress->getShippingMethod()) {
+        if (!$quote->isVirtual() && $shippingAddress && !$shippingAddress->getShippingMethod()) {
             $quote->setRemoteIp($quote->getRemoteIp());
-            if (version_compare(Mage::getVersion(), '1.6.2', '>=')) {
-                $countryId = Mage::helper('core')->getDefaultCountry();
-            } else {
-                $countryId = Mage::getStoreConfig('general/country/default');
+            $taxCalculationModel = Mage::getSingleton('tax/calculation');
+            $request = $taxCalculationModel->getRateRequest(
+                $quote->getShippingAddress(),
+                $quote->getBillingAddress(),
+                NULL,
+                $quote->getStoreId()
+            );
+            $shippingAddress->setCountryId($request->getCountryId());
+            $shippingAddress->setRegionId($request->getRegionId());
+            $shippingAddress->setPostcode($request->getPostcode());
+            // Massive workaround... because Shipping Origin is per website, not store...
+            if (Mage::helper('klarna')->getDefaultCountry()!=$shippingAddress->getCountryId()) {
+                if (!$shippingAddress->getRegionId() && !$shippingAddress->getPostcode()) {
+                    $shippingAddress->setCountryId(Mage::helper('klarna')->getDefaultCountry());
+                }
             }
-            $shippingAddress->setCountryId($countryId);
             $shippingAddress->setCollectShippingRates(true);
+            $shippingAddress->collectTotals();
             $shippingAddress->collectShippingRates();
             $rates = $shippingAddress->getGroupedAllShippingRates();
             foreach ($rates as $carrierRates) {
                 foreach ($carrierRates as $rate) {
                     $shippingAddress->setShippingMethod($rate->getCode());
                     $quote->setTotalsCollectedFlag(false);
-                    $quote->collectTotals();
-                    $quote->save();
                     break;
                 }
                 break;
@@ -106,7 +120,7 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
         $quote = $this->_getQuote();
         $klarna = Mage::getModel('klarna/klarnacheckout');
         $klarna->setQuote($quote, Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
-        $klarna->CheckNewsletter();
+        $klarna->checkNewsletter();
         return $this;
     }
 
@@ -176,6 +190,9 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
         $this->_checkShippingMethod();
         $this->_checkNewsletter();
 
+        $quote->collectTotals();
+        $quote->save();
+
         $this->loadLayout();
         $this->_initLayoutMessages('customer/session');
         $this->getLayout()->getBlock('head')->setTitle($this->__('Klarna Checkout'));
@@ -190,30 +207,142 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
         $quote->save();
     }
 
+    protected function _updateAddressField($address, $field, $value)
+    {
+        $res = false;
+        if ($value && $address->getData($field)!=$value) {
+            $address->setData($field, $value);
+            $res = true;
+        }
+        return $res;
+    }
+
+    public function addressUpdateAction()
+    {
+        $result = false;
+        $quote = $this->_getQuote();
+
+        $firstname = $this->getRequest()->getParam('firstname');
+        $lastname = $this->getRequest()->getParam('lastname');
+        $street = $this->getRequest()->getParam('street');
+        $postcode = $this->getRequest()->getParam('postcode');
+        $city = $this->getRequest()->getParam('city');
+        $region = strtoupper($this->getRequest()->getParam('region'));
+        $telephone = $this->getRequest()->getParam('telephone');
+        $country = strtoupper($this->getRequest()->getParam('country'));
+
+        $country_id = NULL;
+        $region_id = NULL;
+
+        if ($country) {
+            $countryRec = Mage::getModel('directory/country')->loadByCode($country, 'iso3_code');
+            if ($countryRec) {
+                $country_id = $countryRec->getId();
+            }
+        }
+        if ($region && $country_id) {
+            $regionRec = Mage::getModel('directory/region')->loadByCode($region, $country_id);
+            if ($regionRec) {
+                $region_id = $regionRec->getId();
+            }
+        }
+
+        $address = $quote->getShippingAddress();
+
+        if ($this->_updateAddressField($address, 'firstname', $firstname)) $result = true;
+        if ($this->_updateAddressField($address, 'lastname', $lastname)) $result = true;
+        if ($this->_updateAddressField($address, 'street', $street)) $result = true;
+        if ($this->_updateAddressField($address, 'postcode', $postcode)) $result = true;
+        if ($this->_updateAddressField($address, 'city', $city)) $result = true;
+        if ($this->_updateAddressField($address, 'telephone', $telephone)) $result = true;
+        if ($this->_updateAddressField($address, 'country_id', $country_id)) $result = true;
+        if ($this->_updateAddressField($address, 'region_id', $region_id)) $result = true;
+        if ($result) {
+            $quote->setTotalsCollectedFlag(false);
+            $quote->collectTotals();
+            $quote->save();
+        }
+        $this->getResponse()->setBody(Zend_Json::encode($result));
+    }
+
+    public function taxshippingupdateAction()
+    {
+        Mage::helper('klarna')->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_START_TAG);
+        $checkoutId = $this->getRequest()->getParam('klarna_order');
+        Mage::helper('klarna')->logKlarnaApi('taxshippingupdate callback received for ID ' . $checkoutId);
+
+        $quote = Mage::getModel('sales/quote')->load($checkoutId, 'klarna_checkout_id');
+        $klarna = Mage::getModel('klarna/klarnacheckout');
+        $klarna->setQuote($quote, Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
+
+        $post_body = file_get_contents('php://input');
+        $data = json_decode($post_body, true);
+        Mage::helper('klarna')->logDebugInfo('taxshippingupdate data', $data);
+
+        $result = $klarna->updateTaxAndShipping($data);
+
+        Mage::helper('klarna')->logDebugInfo('taxshippingupdate response', $result);
+        $this->getResponse()->setBody(Zend_Json::encode($result));
+        
+        Mage::helper('klarna')->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_END_TAG);
+    }
+
+    public function validateFailedAction()
+    {
+        Mage::helper('klarna')->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_START_TAG);
+
+        $checkoutId = $this->getRequest()->getParam('klarna_order');
+        $quote = Mage::getModel('sales/quote')->load($checkoutId, 'klarna_checkout_id');
+        $payment = $quote->getPayment();
+        $errors = $payment->getAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_VALIDATE_ERRORS);
+        Mage::helper('klarna')->logKlarnaApi('failedAction errors: ' . $errors);
+        if ($errors) {
+            $payment->unsAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_VALIDATE_ERRORS);
+            $payment->save();
+            $this->_getSession()->addError($errors);
+        }
+
+        Mage::helper('klarna')->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_END_TAG);
+
+        $this->_redirect('checkout/cart');
+        return;
+    }
+    
     public function validateAction()
     {
+        Mage::helper('klarna')->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_START_TAG);
+
         $checkoutId = $this->getRequest()->getParam('klarna_order');
         $quote = Mage::getModel('sales/quote')->load($checkoutId, 'klarna_checkout_id');
         $klarna = Mage::getModel('klarna/klarnacheckout');
         $klarna->setQuote($quote, Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
 
-        if (substr($checkoutId, -1, 1) == '/') {
-            $checkoutId = substr($checkoutId, 0, strlen($checkoutId) - 1);
-        }
         Mage::helper('klarna')->logKlarnaApi('validateAction checkout id: ' . $checkoutId);
 
-        $result = $klarna->validateQuote($checkoutId);
+        $result = $klarna->validateQuote();
+
         Mage::helper('klarna')->logKlarnaApi('validateAction result = ' . $result);
+        Mage::helper('klarna')->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_END_TAG);
 
         if ($result !== true) {
+            $payment = $quote->getPayment();
+
+            if ($payment->getId()) {
+                $payment->setAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_VALIDATE_ERRORS, $result);
+                $payment->save();
+            }
+
             $this->getResponse()
                 ->setHttpResponseCode(303)
-                ->setHeader('Location', Mage::getUrl('checkout/cart'));
+                ->setHeader('Location', Mage::getUrl('checkout/klarna/validateFailed', array('klarna_order' => $checkoutId)));
         }
+        $this->getResponse()
+            ->setHttpResponseCode(200);
     }
 
     public function pushAction()
     {
+        Mage::helper('klarna')->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_START_TAG);
         $checkoutId = $this->getRequest()->getParam('klarna_order');
         $quote = Mage::getModel('sales/quote')->load($checkoutId, 'klarna_checkout_id');
 
@@ -242,11 +371,13 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
                 Mage::helper('klarna')->logKlarnaException($e);
             }
         }
+        Mage::helper('klarna')->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_END_TAG);
     }
 
     public function successAction()
     {
         try {
+            Mage::helper('klarna')->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_START_TAG);
             $checkoutId = $this->_getSession()->getKlarnaCheckoutId();
             $quote = Mage::getModel('sales/quote')->load($checkoutId, 'klarna_checkout_id');
             $klarna = Mage::getModel('klarna/klarnacheckout');
@@ -254,8 +385,10 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
             Mage::helper('klarna')->logKlarnaApi('successAction checkout id: ' . $checkoutId);
 
             if (!$checkoutId) {
-                $this->_redirect('');
-                return;
+                Mage::helper('klarna')->logKlarnaApi('successAction checkout id is empty, so we do nothing');
+                //$this->_redirect('');
+                //return;
+                exit(1);
             }
 
             $status = $klarna->getCheckoutStatus($checkoutId);
@@ -298,6 +431,7 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
             $this->_getSession()->setKlarnaCheckoutId('');
             $this->_getSession()->setKlarnaUseOtherMethods(false);
             Mage::helper('klarna')->logKlarnaApi('successAction displayed success');
+            Mage::helper('klarna')->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_END_TAG);
         } catch (Exception $e) {
             Mage::helper('klarna')->logKlarnaException($e);
         }
@@ -311,18 +445,31 @@ class Vaimo_Klarna_Checkout_KlarnaController extends Mage_Core_Controller_Front_
             $data = $this->getRequest()->getPost('shipping_method', '');
             $resultMessage['shipping_method'] = $data;
 
-            /** @var $onepage Mage_Checkout_Model_Type_Onepage */
-            $onepage = new Mage_Checkout_Model_Type_Onepage(); // Mage::getSingleton('checkout/type_onepage');
             try {
-                $result = $onepage->saveShippingMethod($data);
+                $result = $this->_getOnepage()->saveShippingMethod($data);
                 if (!$result) {
                     Mage::dispatchEvent(
                        'klarnacheckout_controller_klarna_save_shipping_method',
                         array(
                              'request' => $this->getRequest(),
-                             'quote'   => $onepage->getQuote()));
-                    $onepage->getQuote()->collectTotals()->save();
+                             'quote'   => $this->_getOnepage()->getQuote()));
+                    $this->_getOnepage()->getQuote()->collectTotals()->save();
                 }
+/*
+// This code should work just as well, it won't call all the saveShippingMethod functions
+                $quote = $this->_getQuote();
+                $shippingAddress = $quote->getShippingAddress();
+                $shippingAddress->setShippingMethod($data);
+                Mage::dispatchEvent(
+                   'klarnacheckout_controller_klarna_save_shipping_method',
+                    array(
+                         'request' => $this->getRequest(),
+                         'quote'   => $quote
+                         )
+                    );
+                $quote->setTotalsCollectedFlag(false);
+                $quote->collectTotals()->save();
+*/
             }
             catch (Exception $e) {
                 $resultMessage['error'] = $e->getMessage();

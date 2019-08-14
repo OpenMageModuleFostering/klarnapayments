@@ -518,6 +518,7 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
         } else {
             $mode = Klarna::BETA;
         }
+        $this->_klarnaApi->clear();
         $this->_klarnaApi->config(
             $this->_klarnaSetup->getMerchantId(),
             $this->_klarnaSetup->getSharedSecret(),
@@ -995,6 +996,13 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
 
         foreach ($this->_getTransport()->getExtras() as $extra) {
             $this->_addArtNo($extra);
+        }
+    }
+
+    public function setShippingDetails($shipmentDetails)
+    {
+        if ($shipmentDetails) {
+            $this->_klarnaApi->setShipmentInfo('shipment_details', $shipmentDetails);
         }
     }
 

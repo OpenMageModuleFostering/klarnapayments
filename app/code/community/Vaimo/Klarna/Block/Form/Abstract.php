@@ -365,16 +365,7 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
         $klarna = Mage::getModel('klarna/klarna');
         $klarna->setQuote($this->getQuote(), $method);
         $url = $klarna->getConfigData('terms_url');
-        if ($url) {
-            if (stristr($url, 'http')) {
-                $_termsLink = '<a href="' . $url . '" target="_blank">' . Mage::helper('klarna')->__('terms and conditions') . '</a>';
-            } else {
-                $_termsLink = '<a href="' . Mage::getSingleton('core/url')->getUrl($url) . '" target="_blank">' . Mage::helper('klarna')->__('terms and conditions') . '</a>';
-            }
-        } else {
-            $_termsLink = '<a href="#" target="_blank">' . Mage::helper('klarna')->__('terms and conditions') . '</a>';
-        }
-        return $_termsLink;
+        return Mage::helper('klarna')->getTermsUrlLink($url);
     }
 
     /**

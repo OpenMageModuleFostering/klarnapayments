@@ -749,7 +749,35 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </enable_auto_focus>
-
+                        <enable_validation translate="label">
+                            <label>Enable Validation of Order before Klarna proceeds</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>260</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>An extra validation is made for the cart, stock levels for example, just before the order is created in Klarna. Works only if HTTPS is activated for checkout.</comment>
+                        </enable_validation>
+                        <enable_postcode_update translate="label">
+                            <label>Enable tax and shipping updates</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>270</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>Klarna contacts Magento to recalculate taxes and shippment amounts when address is updated. Works only if HTTPS is activated for checkout.</comment>
+                        </enable_postcode_update>
+                        <enable_trigger_changed_js>
+                            <label>Enable javascript trigger for address update</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>280</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </enable_trigger_changed_js>
                         <heading_other_method_button translate="label">
                             <label>Support of other payment methods</label>
                             <frontend_model>adminhtml/system_config_form_field_heading</frontend_model>
@@ -861,24 +889,6 @@
                             <show_in_store>1</show_in_store>
                             <comment>If you do not belong to a selected customer group, standard Magento checkout will be used. None selected, means enabled for all</comment>
                         </allow_customer_group>
-                        <!--
-                        <user_defined_parameters translate="label">
-                            <label>Extra user defined parameters sent to Klarna</label>
-                            <frontend_model>adminhtml/system_config_form_field_heading</frontend_model>
-                            <sort_order>900</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                        </user_defined_parameters>
-                        <extra_parameters>
-                            <frontend_model>klarna/system_config_form_field_position_attribute_set</frontend_model>
-                            <backend_model>adminhtml/system_config_backend_serialized_array</backend_model>
-                            <sort_order>910</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                        </extra_parameters>
-                        -->
                         <user_defined_json translate="label">
                             <label>User Defined Variables</label>
                             <backend_model>klarna/adminhtml_system_config_backend_admin_json</backend_model>
@@ -889,6 +899,26 @@
                             <show_in_store>1</show_in_store>
                             <comment>JSON encoded array. Please consult Klarna before using this, incorrect information may cause the integration to stop working</comment>
                         </user_defined_json>
+                        <shipping_countries translate="label">
+                            <label>Shipping Countries</label>
+                            <frontend_type>multiselect</frontend_type>
+                            <sort_order>930</sort_order>
+                            <source_model>adminhtml/system_config_source_country</source_model>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>Specific for API V.3.1. List of allowed shipping countries. If none selected, none will be supported. List will appear in Klarna Checkout</comment>
+                        </shipping_countries>
+                        <shipping_options translate="label">
+                            <label>Shipping Countries</label>
+                            <frontend_type>multiselect</frontend_type>
+                            <sort_order>930</sort_order>
+                            <source_model>adminhtml/system_config_source_country</source_model>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>Specific for API V.3.1. List of available shipping options appear in Klarna Checkout.</comment>
+                        </shipping_options>
                     </fields>
                 </vaimo_klarna_checkout>
             </groups>

@@ -25,7 +25,7 @@
 --><config>
     <modules>
         <Vaimo_Klarna>
-            <version>5.2.8</version>
+            <version>5.3.1</version>
             <name>Vaimo Klarna Module</name>
             <depends>
                 <Mage_Payment/>
@@ -83,6 +83,14 @@
         </fieldsets>
 
         <events>
+            <sales_order_payment_capture>
+                <observers>
+                    <klarna>
+                        <class>klarna/observer</class>
+                        <method>prePaymentCapture</method>
+                    </klarna>
+                </observers>
+            </sales_order_payment_capture>
             <customer_address_format>
                 <observers>
                     <klarna>
@@ -91,6 +99,14 @@
                     </klarna>
                 </observers>
             </customer_address_format>
+            <sales_order_save_before>
+                <observers>
+                    <klarna>
+                        <class>klarna/observer</class>
+                        <method>checkForKlarnaStatusChange</method>
+                    </klarna>
+                </observers>
+            </sales_order_save_before>
         </events>
 
         <sales>
@@ -245,7 +261,7 @@
         <jobs>
             <update_transactions>
                 <schedule>
-                    <cron_expr>* */2 * * *</cron_expr>
+                    <cron_expr>0 */2 * * *</cron_expr>
                 </schedule>
                 <run>
                     <model>klarna/cron::statusUpdateOfPendingOrders</model>
@@ -272,14 +288,6 @@
             </modules>
         </translate>
         <events>
-            <sales_order_payment_capture>
-                <observers>
-                    <klarna>
-                        <class>klarna/observer</class>
-                        <method>prePaymentCapture</method>
-                    </klarna>
-                </observers>
-            </sales_order_payment_capture>
             <core_block_abstract_prepare_layout_after>
                 <observers>
                     <klarna>
@@ -370,6 +378,7 @@
                 <enable_cart_above_kco>1</enable_cart_above_kco>
                 <enable_other_button>1</enable_other_button>
                 <enable_auto_focus>1</enable_auto_focus>
+                <shipping_countries>US,MX,CA,GL</shipping_countries>
             </vaimo_klarna_checkout>
         </payment>
     </default>

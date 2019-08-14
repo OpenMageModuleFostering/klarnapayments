@@ -45,7 +45,16 @@ class Vaimo_Klarna_Block_Klarnacheckout_Klarnacheckout extends Mage_Core_Block_T
             Mage::helper('klarna')->logKlarnaException($e);
             $html = $e->getMessage();
             if (!$html) {
-                $html = Mage::helper('klarna')->__('Klarna Checkout is not responding properly. Please try again in a while or choose another payment method.');
+                $extraInfo = '';
+                if ($e->getInternalMessage()) {
+                    if (stristr($e->getInternalMessage(), 'Bad format')) {
+                        $extraInfo = ' (' . $e->getInternalMessage() . ')';
+                    }
+                }
+                $html = Mage::helper('klarna')->__(
+                    'Klarna Checkout is not responding properly. Please try again in a while or choose another payment method.' . 
+                    $extraInfo
+                );
             }
         }
 

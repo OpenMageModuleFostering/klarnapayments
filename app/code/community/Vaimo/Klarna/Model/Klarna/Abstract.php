@@ -1119,5 +1119,71 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
         }
     }
 
-
+    protected function _createShippingDetails($order, $invoiceItems)
+    {
+        $res = NULL;
+        /**
+         * If customer selects to create shipment directly from invoice, it will generate the
+         * shipment AFTER the invoice. So I check the post here, in order to use that information.
+         */
+        if (isset($_POST)) {
+            $usePostShipment = false;
+            if (isset($_POST['invoice'])) {
+                if (isset($_POST['invoice']['do_shipment'])) {
+                    if ($_POST['invoice']['do_shipment']=="1") {
+                        $usePostShipment = true;
+                    }
+                }
+            }
+            if ($usePostShipment) {
+                if (isset($_POST['tracking'])) {
+                    foreach ($_POST['tracking'] as $tracking) {
+                        $title = Mage::helper('klarna')->__("Unknown");
+                        $number = "";
+                        if (isset($tracking['title'])) {
+                            $title = $tracking['title'];
+                        }
+                        if (isset($tracking['number'])) {
+                            $number = $tracking['number'];
+                        }
+                        $shippingDetail = array(
+                            'tracking_number' => $number,
+                            'shipping_company' => $title,
+                        );
+                        if (!$res) {
+                            $res = array();
+                        }
+                        $res[] = $shippingDetail;
+                    }
+                }
+            }
+        }
+        foreach ($order->getShipmentsCollection() as $_shipment) {
+            $shippingDetail = NULL;
+            foreach ($_shipment->getItemsCollection() as $item) {
+                foreach ($invoiceItems as $invoiceItem) {
+                    if ($item->getOrderItemId()==$invoiceItem->getOrderItemId()) {
+                        foreach ($_shipment->getTracksCollection() as $tracking) {
+                            $shippingDetail = array(
+                                'tracking_number' => $tracking->getTrackNumber(),
+                                //'tracking_url' => $this->helper('shipping')->getTrackingPopupUrlBySalesModel($order), //Mage::getModel('core/url')->getUrl('sales/order/track', array('order_id' => $order->getId())),
+                                'shipping_company' => $tracking->getTitle(),
+                            );
+                            if (!$res) {
+                                $res = array();
+                            }
+                            $res[] = $shippingDetail;
+                        }
+                    }
+                    if ($shippingDetail) {
+                        break;
+                    }
+                }
+                if ($shippingDetail) {
+                    break;
+                }
+            }
+        }
+        return $res;
+    }
 }

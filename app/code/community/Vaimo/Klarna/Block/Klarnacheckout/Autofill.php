@@ -47,6 +47,7 @@ class Vaimo_Klarna_Block_Klarnacheckout_Autofill extends Mage_Core_Block_Templat
         }
         return $res;
     }
+    
     public function getTermsLink()
     {
         try {

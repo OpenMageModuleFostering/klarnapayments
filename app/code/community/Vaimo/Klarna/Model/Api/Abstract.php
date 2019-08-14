@@ -62,7 +62,7 @@ abstract class Vaimo_Klarna_Model_Api_Abstract extends Varien_Object
     protected function _addUserDefinedVariables(&$create)
     {
         $json = $this->_getTransport()->getConfigData('user_defined_json');
-        if ($json) {
+        if ($json && $json != " ") {
             $extras = Mage::helper('klarna')->JsonDecode($json);
             if (is_array($extras)) {
                 $create = array_merge_recursive($create, $extras);

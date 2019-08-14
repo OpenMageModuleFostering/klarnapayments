@@ -34,7 +34,7 @@ class Vaimo_Klarna_Model_Adminhtml_System_Config_Backend_Admin_Json extends Mage
     protected function _beforeSave()
     {
         $json = $this->getValue();
-        if ($json) {
+        if ($json && $json != " ") { // Allow for people to add a space in the textfield, to make it "empty"
             $extras = Mage::helper('klarna')->JsonDecode($json);
             if (!is_array($extras)) {
                 Mage::throwException(Mage::helper('klarna')->__('JSON string not valid') . ': ' . $extras);

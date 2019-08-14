@@ -86,4 +86,28 @@ class Vaimo_Klarna_Block_Klarnacheckout_Othermethod extends Mage_Core_Block_Temp
 
         return $res;
     }
+    
+    /**
+     * Should not have been in here, but didn't want to create a new block for this one 
+     * function. So I added it here instead, as it's being loaded at the same time...
+     */
+    public function triggerChangedJSInputId()
+    {
+        try {
+            $klarna = Mage::getModel('klarna/klarnacheckout');
+            $klarna->setQuote($this->getQuote(), Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
+            if ($klarna->getConfigData('enable_trigger_changed_js')) {
+                if ($klarna->getConfigData('enable_postcode_update')) {
+                    $res = 'klarna-checkout-shipping-update-postcode';
+                } else {
+                    $res = 'klarna-checkout-shipping-update';
+                }
+            }
+        } catch (Exception $e) {
+            $res = false;
+        }
+
+        return $res;
+    }
+    
 }

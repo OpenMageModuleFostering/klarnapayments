@@ -43,9 +43,9 @@ class Vaimo_Klarna_Model_Api extends Varien_Object
     /**
      * @return Vaimo_Klarna_Model_Api_Rest
      */
-    protected function _getKlarnaCheckOutRestApiForUK()
+    protected function _getKlarnaCheckOutRestApi($apiVersion)
     {
-        return Mage::getSingleton('klarna/api_rest');
+        return Mage::getSingleton('klarna/api_rest')->setApiVersion($apiVersion);
     }
 
     /**
@@ -82,8 +82,10 @@ class Vaimo_Klarna_Model_Api extends Varien_Object
                 return $this->_getKlarnaPaymentMethodXmlRpcApi();
                 break;
             case Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT:
-                if ($this->_getKlarnaCheckOutApiVersion($storeId) == 3) {
-                    return $this->_getKlarnaCheckOutRestApiForUK();
+                $apiVersion = $this->_getKlarnaCheckOutApiVersion($storeId);
+                if ($apiVersion == Vaimo_Klarna_Helper_Data::KLARNA_KCO_API_VERSION_UK ||
+                    $apiVersion == Vaimo_Klarna_Helper_Data::KLARNA_KCO_API_VERSION_USA) {
+                    return $this->_getKlarnaCheckOutRestApi($apiVersion);
                 } else {
                     switch ($call) {
                         case Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_RESERVE:

@@ -36,8 +36,18 @@
 
                 <?php if ($this->shippingSameAsBilling()): ?>
                     <li class="klarna_notification"><?php echo Mage::helper('klarna')->__('Please note that your official address will be used for shipping and billing address when you place your order'); ?></li>
+                <?php else: ?>
+                    <li class="klarna_notification"><?php echo Mage::helper('klarna')->__('Please note that your official address will be used for shipping and billing address when you place your order'); ?></li>
                 <?php endif; ?>
 
+            <?php endif; ?>
+
+        <?php else: ?>
+
+            <?php if ($this->shippingSameAsBilling()): ?>
+                <li class="klarna_notification"><?php echo Mage::helper('klarna')->__('Please note that your official address will be used for shipping and billing address when you place your order'); ?></li>
+            <?php else: ?>
+                <li class="klarna_notification"><?php echo Mage::helper('klarna')->__('Please note that your official address will be used for shipping and billing address when you place your order'); ?></li>
             <?php endif; ?>
 
         <?php endif; ?>

@@ -24,10 +24,11 @@
  */
 
 $button_name = $this->getOthermethodButtonName();
+$changeId = $this->triggerChangedJSInputId();
 
 ?>
 
-<?php if ($this->isButtonEnabled()==false) return; ?>
+<?php if ($this->isButtonEnabled()): ?>
 
 <div id="klarna_methods" class="klarna_other-payment-methods klarna_block">
     <?php if ($this->isButtonNameUrl($button_name)): ?>
@@ -36,3 +37,12 @@ $button_name = $this->getOthermethodButtonName();
 	    <a href="#" class="button button-small button-action" onclick="klarnaCheckoutGo('<?php echo $this->getUrl('checkout/klarna/othermethod') ?>')"><?php echo $button_name?></a>
     <?php endif; ?>
 </div>
+
+<?php endif; ?>
+
+<?php if ($changeId): ?>
+
+    <input id="<?php echo $changeId ?>" type="hidden" value="<?php echo $this->getUrl('checkout/klarna/addressUpdate') ?>" />
+
+<?php endif; ?>
+

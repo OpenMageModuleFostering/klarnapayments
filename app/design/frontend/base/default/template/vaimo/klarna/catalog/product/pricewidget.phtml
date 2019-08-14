@@ -31,8 +31,7 @@ $_productPrice = $this->getProductPriceInclVat();
 
 <?php // Dynamically priced products is an issue ?>
 <?php if ($_widgetParameters): ?>
-     <div style="width:160px; height:64px"
-          class="klarna-widget klarna-part-payment"
+     <div class="klarna-widget klarna-part-payment"
           data-eid="<?php echo $_widgetParameters->getMerchantId(); ?>" 
           data-locale="<?php echo strtolower($_widgetParameters->getLocaleCode()); ?>"
           data-price="<?php echo $_productPrice ?>"

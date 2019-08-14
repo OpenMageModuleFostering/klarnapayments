@@ -177,11 +177,7 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
      */
     protected function _getDefaultCountry()
     {
-// Can't just use helpers like this, unit tests will fail... It's not important anyway, not right now.
-//        $res = Mage::helper('core')->getMerchantCountryCode($this->_getStoreId());
-//        if (!$res) {
-            $res = $this->_getConfigDataCall(Mage_Core_Model_Locale::XML_PATH_DEFAULT_COUNTRY, $this->_getStoreId());
-//        }
+        $res = $this->_getHelper()->getDefaultCountry($this->_getStoreId());
         return strtoupper($res);
     }
 
@@ -315,7 +311,9 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
      */
     protected function _setShippingAddress($address)
     {
-        $this->_shippingAddress = $address;
+        if ($address) {
+            $this->_shippingAddress = $address;
+        }
         $this->_updateCountry();
     }
 
@@ -329,6 +327,9 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
     protected function _setBillingAddress($address)
     {
         $this->_billingAddress = $address;
+        if ($this->_shippingAddress==NULL) {
+            $this->_shippingAddress = $address;
+        }
         $this->_updateCountry();
     }
 
@@ -538,6 +539,23 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
     }
     
     /**
+     * Some countries supports to get more details to create request
+     *
+     * @return boolean
+     */
+    public function moreDetailsToKCORequest()
+    {
+        switch ($this->_getCountryCode()) {
+//            case 'NL':
+            case 'DE':
+            case 'AT':
+                return true;
+            default:
+                return false;
+        }
+    }
+    
+    /**
      * Norway has special rules regarding the details of the payment plan you are selecting
      *
      * @return boolean
@@ -663,6 +681,7 @@ abstract class Vaimo_Klarna_Model_Transport_Abstract extends Varien_Object
     public function shouldDisplayAutofillWarning()
     {
         switch ($this->_getCountryCode()) {
+            case 'AT':
             case 'DE':
                 $this->setMethod(Vaimo_Klarna_Helper_Data::KLARNA_METHOD_CHECKOUT);
                 return $this->getConfigData('active');

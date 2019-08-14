@@ -174,7 +174,6 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
         $available = $this->_isAvailableParent($quote);
         if (!$available) return false;
 
-        $klarna = null;
         try {
             $active = $this->_getConfigData('active'); // Only call to this
 

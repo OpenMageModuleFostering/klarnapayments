@@ -113,10 +113,17 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     const KLARNA_DISPATCH_CAPTURED = 'vaimo_paymentmethod_order_captured';
     const KLARNA_DISPATCH_REFUNDED = 'vaimo_paymentmethod_order_refunded';
     const KLARNA_DISPATCH_CANCELED = 'vaimo_paymentmethod_order_canceled';
+    
+    const KLARNA_LOG_START_TAG = '---------------START---------------';
+    const KLARNA_LOG_END_TAG = '----------------END----------------';
 
     const KLARNA_EXTRA_VARIABLES_GUI_OPTIONS = 0;
     const KLARNA_EXTRA_VARIABLES_GUI_LAYOUT  = 1;
     const KLARNA_EXTRA_VARIABLES_OPTIONS     = 2;
+
+    const KLARNA_KCO_API_VERSION_STD = 2;
+    const KLARNA_KCO_API_VERSION_UK  = 3;
+    const KLARNA_KCO_API_VERSION_USA = 4;
 
 
     protected $_supportedMethods = array(
@@ -175,6 +182,9 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     const KLARNA_CHECKOUT_NEWSLETTER_DONT_SUBSCRIBE = 2;
 
     const KLARNA_CHECKOUT_ALLOW_ALL_GROUP_ID = 99;
+
+    const KLARNA_DISPATCH_VALIDATE = 'vaimo_klarna_validate_cart';
+    const KLARNA_VALIDATE_ERRORS = 'klarna_validate_errors';
 
     const ENCODING_MAGENTO = 'UTF-8';
     const ENCODING_KLARNA = 'ISO-8859-1';
@@ -260,6 +270,11 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     {
         if ($item->getParentItemId()>0 && $item->getPriceInclTax()==0) return false;
         return true;
+    }
+
+    public function isShippingInclTax($storeId)
+    {
+        return Mage::getSingleton('tax/config')->displaySalesShippingInclTax($storeId);
     }
 
     /**
@@ -711,6 +726,34 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
        return $res;
     }
     
+    public function getTermsUrlLink($url)
+    {
+        if ($url) {
+            if (stristr($url, 'http')) {
+                $_termsLink = '<a href="' . $url . '" target="_blank">' . $this->__('terms and conditions') . '</a>';
+            } else {
+                $_termsLink = '<a href="' . Mage::getSingleton('core/url')->getUrl($url) . '" target="_blank">' . $this->__('terms and conditions') . '</a>';
+            }
+        } else {
+            $_termsLink = '<a href="#" target="_blank">' . $this->__('terms and conditions') . '</a>';
+        }
+        return $_termsLink;
+    }
+
+    public function getTermsUrl($url)
+    {
+        if ($url) {
+            if (stristr($url, 'http')) {
+                $_termsLink = $url;
+            } else {
+                $_termsLink = Mage::getSingleton('core/url')->getUrl($url);
+            }
+        } else {
+            $_termsLink = '';
+        }
+        return $_termsLink;
+    }
+
     /**
      * Sets the function name, which is used in logs. This is set in each class construct
      *
@@ -787,6 +830,7 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
     public function logKlarnaApi($comment)
     {
         $this->_log('klarnaapi.log', $comment);
+        $this->logDebugInfo($comment);
     }
     
     /**
@@ -832,6 +876,23 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
         if ($e->getLine()) $errstr = $errstr . ' Row: ' . $e->getLine();
         if ($e->getFile()) $errstr = $errstr . ' File: ' . $e->getFile();
         $this->_logAlways('klarnaerror.log', $errstr);
+    }
+    
+    public function getDefaultCountry($store = NULL)
+    {
+/* For shipping this should be called...
+        $taxCalculationModel = Mage::getSingleton('tax/calculation');
+        $request = $taxCalculationModel->getRateRequest();
+        x = $request->getCountryId();
+        y = $request->getRegionId();
+        z = $request->getPostcode();
+*/
+        if (version_compare(Mage::getVersion(), '1.6.2', '>=')) {
+            $res = Mage::helper('core')->getDefaultCountry($store);
+        } else {
+            $res = Mage::getStoreConfig(Mage_Core_Model_Locale::XML_PATH_DEFAULT_COUNTRY, $store);
+        }
+        return $res;
     }
 
 }

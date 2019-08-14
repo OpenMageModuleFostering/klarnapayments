@@ -25,7 +25,7 @@
 ?>
 
 <div class="klarna_login">
-    <form id="klarna_form-login" action="<?php echo Mage::getUrl('klarna/login/loginPost'); ?>" method="post">
+    <form id="klarna_form-login" action="<?php echo Mage::getUrl('klarna/login/loginPost', array('_secure' => true)); ?>" method="post">
         <label for="login-username" class="klarna_input-label"><?php echo $this->__('E-mail'); ?></label>
         <input class="required-entry klarna_input-text validate-email" type="email" name="email" id="login-username" placeholder="<?php echo $this->__('E-mail'); ?>">
 
@@ -34,4 +34,7 @@
 
         <button class="button button-action" type="submit"><?php echo $this->__('Login'); ?></button>
     </form>
+    <div class="klarna_login_message">
+        <?php echo $this->getChildHtml('klarnacheckout.autofill') ?>
+    </div>
 </div>

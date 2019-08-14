@@ -23,6 +23,12 @@
  * @copyright   Copyright (c) 2009-2014 Vaimo AB
  */
 
+ /**
+  * This function is no longer used! It will not be removed, as it was once used as a frontend model
+  * If an attribute exists that has this as it's frontend model it will cause a crash if removed
+  *
+  */
+
 class Vaimo_Klarna_Block_System_Config_Form_Field_Position extends Mage_Core_Block_Html_Select
 {
     public function getOptions()

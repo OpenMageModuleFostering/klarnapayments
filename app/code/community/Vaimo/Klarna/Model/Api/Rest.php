@@ -31,14 +31,41 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
     protected $_klarnaOrder = null;
     protected $_useKlarnaOrderSessionCache = false;
     protected $_request = NULL;
+    protected $_apiVersion = NULL;
+
+    /**
+     * Would have been solved better with two separate files, inheriting Rest.php
+     * But, this works as well
+     *
+     * @param $apiVersion
+     * @return $this
+     */
+    public function setApiVersion($apiVersion)
+    {
+        $this->_apiVersion = $apiVersion;
+        return $this;
+    }
+
+    protected function _isUSA()
+    {
+        return $this->_apiVersion == Vaimo_Klarna_Helper_Data::KLARNA_KCO_API_VERSION_USA;
+    }
 
     public function init($klarnaSetup)
     {
         $this->_klarnaSetup = $klarnaSetup;
         if ($this->_klarnaSetup->getHost() == 'BETA') {
-            $this->_url = 'https://api.playground.klarna.com';
+            if ($this->_isUSA()) {
+                $this->_url = 'https://api-na.playground.klarna.com';
+            } else {
+                $this->_url = 'https://api.playground.klarna.com';
+            }
         } else {
-            $this->_url = 'https://api.klarna.com';
+            if ($this->_isUSA()) {
+                $this->_url = 'https://api-na.klarna.com';
+            } else {
+                $this->_url = 'https://api.klarna.com';
+            }
         }
     }
     
@@ -72,28 +99,83 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         return $res;
     }
     
-    protected function _getBillingAddressData()
+    protected function _getAddressData($useTransport = false, $type = Mage_Sales_Model_Quote_Address::TYPE_BILLING)
     {
         if (!$this->_getTransport()->getConfigData('auto_prefil')) return NULL;
+        $result = NULL;
+        $address = NULL;
 
+        /** @var $session Mage_Customer_Model_Session */
+        if ($useTransport) {
+            $result = array();
+            $result['email'] = $this->_getTransport()->getQuote()->getCustomerEmail();
+            if ($type==Mage_Sales_Model_Quote_Address::TYPE_BILLING) {
+                $address = $this->_getTransport()->getBillingAddress();
+            } else {
+                $address = $this->_getTransport()->getShippingAddress();
+            }
+        } else {
+            $session = Mage::getSingleton('customer/session');
+            if ($session->isLoggedIn()) {
+                if ($type==Mage_Sales_Model_Quote_Address::TYPE_BILLING) {
+                    $address = $session->getCustomer()->getPrimaryBillingAddress();
+                } else {
+                    $address = $session->getCustomer()->getPrimaryShippingAddress();
+                }
+                $result = array();
+                if ($session->getCustomer()->getEmail()) {
+                    $result['email'] = $session->getCustomer()->getEmail();
+                }
+            }
+        }
+        if ($address) {
+            if ($address->getPostcode()) {
+                $result['postal_code'] = $address->getPostcode();
+            }
+            if ($address->getFirstname()) {
+                $result['given_name'] = $address->getFirstname();
+            }
+            if ($address->getLastname()) {
+                $result['family_name'] = $address->getLastname();
+            }
+            if ($address->getStreet(1)) {
+                $result['street_address'] = $address->getStreet(1);
+            }
+            if ($address->getCity()) {
+                $result['city'] = $address->getCity();
+            }
+            if ($address->getTelephone()) {
+                $result['phone'] = $address->getTelephone();
+            }
+            if ($address->getCountryId()) {
+                $result['country'] = $address->getCountryId();
+            }
+            if ($address->getRegionCode()) {
+                $result['region'] = $address->getRegionCode();
+            }
+        }
+        return $result;
+    }
+
+    protected function _getCustomerData()
+    {
+        if (!$this->_getTransport()->getConfigData('auto_prefil')) return NULL;
+        
         /** @var $session Mage_Customer_Model_Session */
         $session = Mage::getSingleton('customer/session');
         if ($session->isLoggedIn()) {
-            $address = $session->getCustomer()->getPrimaryBillingAddress();
-            return array(
-                'email' => $session->getCustomer()->getEmail(),
-                'postal_code' => $address ? $address->getPostcode() : '',
-                'street_address' => $address ? $address->getStreet(1) : '',
-                'given_name' => $address ? $address->getFirstname() : '',
-                'family_name' => $address ? $address->getLastname() : '',
-                'city' => $address ? $address->getCity() : '',
-                'phone' => $address ? $address->getTelephone() : '',
-                'country' => $address ? $address->getCountryId() : '',
-            );
+            if ($this->_getTransport()->needDateOfBirth()) {
+                if ($session->getCustomer()->getDob()) {
+                    $result = array(
+                        'date_of_birth' => substr($session->getCustomer()->getDob(),0,10),
+                    );
+                    return $result;
+                }
+            }
         }
 
-        return array();
-    }
+        return NULL;
+    }    
 
     /**
      * Get active Klarna checkout id
@@ -114,7 +196,7 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
     {
         $quote = $this->_getQuote();
 
-        if ($quote->getKlarnaCheckoutId() != $checkoutId) {
+        if ($quote->getId() && $quote->getKlarnaCheckoutId() != $checkoutId) {
             Mage::helper('klarna')->logDebugInfo('SET checkout id rest: ' . $checkoutId);
             Mage::helper('klarna')->logDebugInfo('Quote Id rest: ' . $quote->getId());
             $quote->setKlarnaCheckoutId($checkoutId);
@@ -124,10 +206,15 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         Mage::getSingleton('checkout/session')->setKlarnaCheckoutId($checkoutId);
     }
 
-    protected function _getCartItems()
+    protected function _getCartItems($useTransport = false)
     {
-        $quote = $this->_getQuote();
+        if ($useTransport) {
+            $quote = $this->_getTransport()->getQuote();
+        } else {
+            $quote = $this->_getQuote();
+        }
         $items = array();
+        $taxes = array();
         $calculator = Mage::getSingleton('tax/calculation');
 
         foreach ($quote->getAllVisibleItems() as $quoteItem) {
@@ -136,17 +223,33 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
             } else {
                 $taxRate = $quoteItem->getTaxAmount() / $quoteItem->getRowTotal() * 100;
             }
-            $taxAmount = $calculator->calcTaxAmount($quoteItem->getRowTotalInclTax(), $taxRate, true, true);
+            $taxAmount = $calculator->calcTaxAmount($quoteItem->getRowTotalInclTax(), $taxRate, true);
+            if (isset($taxes[$taxRate])) {
+                $taxes[$taxRate] += $taxAmount;
+            } else {
+                $taxes[$taxRate] = $taxAmount;
+            }
+            if ($this->_isUSA()) {
+//                $unitPrice = $quoteItem->getPrice();
+                $totalAmount = $quoteItem->getRowTotalInclTax() - $taxAmount;
+                $unitPrice = $totalAmount / $quoteItem->getQty();
+                $taxRate = 0;
+                $taxAmount = 0;
+            } else {
+                $unitPrice = $quoteItem->getPriceInclTax();
+                $totalAmount = $quoteItem->getRowTotalInclTax();
+            }
             $items[] = array(
                 'type' => 'physical',
                 'reference' => $quoteItem->getSku(),
                 'name' => $quoteItem->getName(),
                 'quantity' => round($quoteItem->getQty()),
                 'quantity_unit' => 'pcs',
-                'unit_price' => round($quoteItem->getPriceInclTax() * 100),
+                'unit_price' => round($unitPrice * 100),
+                'discount_rate' => 0,
 //                'discount_rate' => round($quoteItem->getDiscountPercent() * 100),
                 'tax_rate' => round($taxRate * 100),
-                'total_amount' => round($quoteItem->getRowTotalInclTax() * 100),
+                'total_amount' => round($totalAmount * 100),
                 'total_tax_amount' => round($taxAmount * 100),
             );
         }
@@ -156,25 +259,33 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
                 case 'shipping':
                     if ($total->getValue() != 0) {
                         $amount_incl_tax = $total->getAddress()->getShippingInclTax();
-                        if (false && $amount_incl_tax) {
-                            $taxAmount = $total->getAddress()->getShippingTaxAmount();
-                            $amount = $amount_incl_tax - $taxAmount;
-                        } else {
-                            $amount = $total->getAddress()->getShippingAmount();
-                            $taxAmount = $total->getAddress()->getShippingTaxAmount();
-                        }
+                        $amount = $total->getAddress()->getShippingAmount();
+                        $taxAmount = $total->getAddress()->getShippingTaxAmount();
                         $hiddenTaxAmount = $total->getAddress()->getShippingHiddenTaxAmount();
+                        //if (Mage::helper('klarna')->isShippingInclTax($quote->getStoreId())) {
+                        if (($amount_incl_tax>0) && (round($amount_incl_tax,2) == round($amount,2))) {
+                            $amount = $amount - $taxAmount - $hiddenTaxAmount;
+                        }
                         $taxRate = ($taxAmount + $hiddenTaxAmount) / $amount * 100;
-                        $amount_incl_tax = $amount + $taxAmount + $hiddenTaxAmount;
+                        $taxes[$taxRate] += $taxAmount;
+                        if ($this->_isUSA()) {
+                            $unitPrice = $amount;
+                            $totalAmount = $amount;
+                            $taxRate = 0;
+                            $taxAmount = 0;
+                        } else {
+                            $unitPrice = $amount + $taxAmount + $hiddenTaxAmount;
+                            $totalAmount = $amount + $taxAmount + $hiddenTaxAmount;
+                        }
                         $items[] = array(
                             'type' => 'shipping_fee',
                             'reference' => $total->getCode(),
                             'name' => $total->getTitle(),
                             'quantity' => 1,
-                            'unit_price' => round(($amount_incl_tax) * 100),
+                            'unit_price' => round($unitPrice * 100),
                             'discount_rate' => 0,
                             'tax_rate' => round($taxRate * 100),
-                            'total_amount' => round(($amount_incl_tax) * 100),
+                            'total_amount' => round($totalAmount * 100),
                             'total_tax_amount' => round($taxAmount * 100),
                         );
                     }
@@ -188,15 +299,25 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
                         $taxAmount = $total->getAddress()->getHiddenTaxAmount();
                         $amount = -$total->getAddress()->getDiscountAmount() - $taxAmount;
                         $taxRate = $taxAmount / $amount * 100;
+                        $taxes[$taxRate] -= $taxAmount;
+                        if ($this->_isUSA()) {
+                            $unitPrice = $amount;
+                            $totalAmount = $amount;
+                            $taxRate = 0;
+                            $taxAmount = 0;
+                        } else {
+                            $unitPrice = $amount + $taxAmount;
+                            $totalAmount = $amount + $taxAmount;
+                        }
                         $items[] = array(
                             'type' => 'discount',
                             'reference' => $total->getCode(),
                             'name' => $total->getTitle(),
                             'quantity' => 1,
-                            'unit_price' => -round(($amount + $taxAmount) * 100),
+                            'unit_price' => -round($unitPrice * 100),
                             'discount_rate' => 0,
                             'tax_rate' => round($taxRate * 100),
-                            'total_amount' => -round(($amount + $taxAmount) * 100),
+                            'total_amount' => -round($totalAmount * 100),
                             'total_tax_amount' => -round($taxAmount * 100),
                         );
                     }
@@ -263,6 +384,30 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
                     break;
             }
         }
+        if ($this->_isUSA()) {
+            $totalAmount = 0;
+            foreach ($items as $item) {
+                $totalAmount += $item['total_amount'];
+            }
+            $totalTax = (($quote->getGrandTotal() * 100) - $totalAmount) / 100;
+/*
+            $totalTax = 0;
+            foreach ($taxes as $taxRate => $tax) {
+                $totalTax += $tax;
+            }
+*/
+            $items[] = array(
+                'type' => 'sales_tax',
+                'reference' => Mage::helper('klarna')->__('Sales Tax'),
+                'name' => Mage::helper('klarna')->__('Sales Tax'),
+                'quantity' => 1,
+                'unit_price' => round($totalTax * 100),
+                'discount_rate' => 0,
+                'tax_rate' => 0,
+                'total_amount' => round($totalTax * 100),
+                'total_tax_amount' => 0,
+            );
+        }
 
         return $items;
     }
@@ -270,11 +415,7 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
     protected function _getCreateRequest()
     {
         $create = array();
-        if (version_compare(Mage::getVersion(), '1.6.2', '>=')) {
-            $create['purchase_country'] = Mage::helper('core')->getDefaultCountry();
-        } else {
-            $create['purchase_country'] = Mage::getStoreConfig('general/country/default');
-        }
+        $create['purchase_country'] = Mage::helper('klarna')->getDefaultCountry();
         $create['purchase_currency'] = $this->_getQuote()->getQuoteCurrencyCode();
         $create['locale'] = str_replace('_', '-', Mage::app()->getLocale()->getLocaleCode());
 
@@ -294,16 +435,71 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
 
         $this->_addUserDefinedVariables($create);
 
-        if ($data = $this->_getBillingAddressData()) {
+        if ($data = $this->_getAddressData()) {
             $create['billing_address'] = $data;
         }
 
+        if ($data = $this->_getCustomerData()) {
+            $create['customer'] = $data;
+        }
+        
         $create['order_amount'] = round($this->_getQuote()->getGrandTotal() * 100);
         $create['order_tax_amount'] = 0;
         $create['order_lines'] = $this->_getCartItems();
 
         foreach ($create['order_lines'] as $line) {
-            $create['order_tax_amount'] += $line['total_tax_amount'];
+            if ($this->_isUSA()) {
+                if (isset($line['type']) && $line['type']=='sales_tax') {
+                    $create['order_tax_amount'] += $line['total_amount'];
+                }
+            } else {
+                $create['order_tax_amount'] += $line['total_tax_amount'];
+            }
+
+        }
+        if ($this->_isUSA()) {
+
+            $shippingCountries = $this->_getTransport()->getConfigData('shipping_countries');
+            if ($shippingCountries) {
+                $create['shipping_countries'] = explode(',', $shippingCountries);
+            }
+
+            if ($this->_getTransport()->getConfigData('shipping_options')) {
+                $shippingOptions = array();
+                $address = $this->_getQuote()->getShippingAddress();
+                $originalShippingMethod = $address->getShippingMethod();
+                $methods = Mage::getModel('checkout/cart_shipping_api')->getShippingMethodsList($this->_getQuote()->getId());
+                foreach ($methods as $method) {
+                    $address->setShippingMethod($method['code']);
+                    $this->_getQuote()->setTotalsCollectedFlag(false)->collectTotals();
+                    if ($address->getShippingAmount()>0) {
+                        $taxRate = ($address->getShippingAmount + $address->getShippingTaxAmount()) / $address->getShippingAmount() * 100;
+                    } else {
+                        $taxRate = 0;
+                    }
+                    if ($method['code']==$originalShippingMethod) {
+                        $preSelected = true;
+                    } else {
+                        $preSelected = false;
+                    }
+                    $shippingOptions[] = array(
+                        'id' => $method['code'],
+                        'name' => $method['method_title'],
+                        'description' => $method['carrier_title'],
+                        'price' => (int)($address->getShippingAmount() + $address->getShippingTaxAmount()) * 100,
+                        'tax_amount' => (int)$address->getShippingTaxAmount() * 100,
+                        'tax_rate' => (int)($taxRate * 100) * 100,
+                        'preselected' => $preSelected,
+                    );
+                }
+                $address->setShippingMethod($originalShippingMethod);
+                $this->_getQuote()->setTotalsCollectedFlag(false)->collectTotals();
+                $create['shipping_options'] = $shippingOptions;
+                $create['selected_shipping_option'] = array(
+                    'id' => $address->getShippingMethod(),
+                    'name' => $address->getShippingDescription(),
+                );
+            }
         }
 
         $pushUrl = Mage::getUrl('checkout/klarna/push?klarna_order={checkout.order.id}', array('_nosid' => true));
@@ -311,17 +507,28 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
             $pushUrl = substr($pushUrl, 0, strlen($pushUrl) - 1);
         }
 
-        $create['merchant_urls']['terms'] = Mage::getUrl(Mage::getStoreConfig('payment/vaimo_klarna_checkout/terms_url'));
+        $create['merchant_urls']['terms'] = Mage::helper('klarna')->getTermsUrl($this->_klarnaSetup->getTermsUrl());
         $create['merchant_urls']['checkout'] = Mage::getUrl('checkout/klarna');
         $create['merchant_urls']['confirmation'] = Mage::getUrl('checkout/klarna/success');
         $create['merchant_urls']['push'] = $pushUrl;
 
-        $validateUrl = Mage::getUrl('checkout/klarna/validate?klarna_order={checkout.order.id}', array('_nosid' => true));
-        if (substr($validateUrl, -1, 1) == '/') {
-            $validateUrl = substr($validateUrl, 0, strlen($validateUrl) - 1);
+        if ($this->_getTransport()->getConfigData('enable_validation')) {
+            $validateUrl = Mage::getUrl('checkout/klarna/validate?klarna_order={checkout.order.id}', array('_nosid' => true));
+            if (substr($validateUrl, -1, 1) == '/') {
+                $validateUrl = substr($validateUrl, 0, strlen($validateUrl) - 1);
+            }
+            if (substr($validateUrl, 0, 5) == 'https') {
+                $create['merchant_urls']['validation'] = $validateUrl;
+            }
         }
-        if (substr($validateUrl, 0, 5) == 'https') {
-            $create['merchant']['validation_uri'] = $validateUrl;
+        if ($this->_getTransport()->getConfigData('enable_postcode_update')) {
+            $validateUrl = Mage::getUrl('checkout/klarna/taxshippingupdate?klarna_order={checkout.order.id}', array('_nosid' => true));
+            if (substr($validateUrl, -1, 1) == '/') {
+                $validateUrl = substr($validateUrl, 0, strlen($validateUrl) - 1);
+            }
+            if (substr($validateUrl, 0, 5) == 'https') {
+                $create['merchant_urls']['shipping_address_update'] = $validateUrl;
+            }
         }
 
         Mage::helper('klarna')->logDebugInfo('_getCreateRequest rest', $create);
@@ -332,23 +539,27 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         return $request->getData();
     }
 
-    protected function _getUpdateRequest()
+    public function prepareTaxAndShippingReply()
     {
         $update = array();
 
-        if ($data = $this->_getBillingAddressData()) {
-            $update['billing_address'] = $data;
+        if ($data = $this->_getAddressData(true, Mage_Sales_Model_Quote_Address::TYPE_SHIPPING)) {
+            $update['shipping_address'] = $data;
         }
 
-        $update['order_amount'] = round($this->_getQuote()->getGrandTotal() * 100);
+        $update['order_amount'] = round($this->_getTransport()->getQuote()->getGrandTotal() * 100);
         $update['order_tax_amount'] = 0;
-        $update['order_lines'] = $this->_getCartItems();
+        $update['order_lines'] = $this->_getCartItems(true);
 
         foreach ($update['order_lines'] as $line) {
-            $update['order_tax_amount'] += $line['total_tax_amount'];
+            if ($this->_isUSA()) {
+                if (isset($line['type']) && $line['type']=='sales_tax') {
+                    $update['order_tax_amount'] += $line['total_amount'];
+                }
+            } else {
+                $update['order_tax_amount'] += $line['total_tax_amount'];
+            }
         }
-
-        Mage::helper('klarna')->logDebugInfo('_getUpdateRequest rest', $update);
 
         $request = new Varien_Object($update);
         Mage::dispatchEvent('klarnacheckout_get_update_request', array('request' => $request));
@@ -376,11 +587,11 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
+        Mage::helper('klarna')->logDebugInfo('_createOrder rest response = ' . $response . ' status = ' . $status);
+
         if ($status != 201) {
             Mage::throwException('Error creating order: ' . $status);
         }
-
-        Mage::helper('klarna')->logDebugInfo('_createOrder rest response = ' . $response . ' status = ' . $status);
 
         if (isset($this->_curlHeaders['Location'])) {
             return $this->_getLocationOrderId($this->_curlHeaders['Location']);
@@ -403,11 +614,11 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
+        Mage::helper('klarna')->logDebugInfo('_fetchOrder rest response = ' . $response . ' status = ' . $status);
+
         if ($status != 200) {
             Mage::throwException('Error fetching order: ' . $status);
         }
-
-        Mage::helper('klarna')->logDebugInfo('_fetchOrder rest response = ' . $response . ' status = ' . $status);
 
         $this->_klarnaOrder = new Varien_Object(json_decode($response, true));
         $this->_klarnaOrder->setLocation($location);
@@ -430,20 +641,21 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
+        Mage::helper('klarna')->logDebugInfo('_updateOrder rest response = ' . $response . ' status = ' . $status);
+
         if ($status != 200) {
             Mage::throwException('Error updating order: ' . $status);
         }
-
-        Mage::helper('klarna')->logDebugInfo('_updateOrder rest response = ' . $response . ' status = ' . $status);
 
         $this->_klarnaOrder = new Varien_Object(json_decode($response, true));
         $this->_klarnaOrder->setLocation($location);
     }
 
-    protected function _retrieveOrder($orderId)
+    protected function _fetchCreatedOrder($checkoutId)
     {
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->_getUrl() . '/ordermanagement/v1/orders/' . $orderId);
+        $location = $this->_getUrl() . '/ordermanagement/v1/orders/' . $checkoutId;
+        curl_setopt($ch, CURLOPT_URL, $location);
         curl_setopt($ch, CURLOPT_USERPWD, $this->_getTransport()->getConfigData('merchant_id') . ':' . $this->_getTransport()->getConfigData('shared_secret'));
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -453,9 +665,14 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        Mage::helper('klarna')->logDebugInfo('_retrieveOrder rest response = ' . $response . ' status = ' . $status);
+        Mage::helper('klarna')->logDebugInfo('_fetchCreatedOrder rest response = ' . $response . ' status = ' . $status);
 
-        return new Varien_Object(json_decode($response, true));
+        if ($status != 200) {
+            Mage::throwException('Error fetching order: ' . $status);
+        }
+
+        $this->_klarnaOrder = new Varien_Object(json_decode($response, true));
+        $this->_klarnaOrder->setLocation($location);
     }
 
     protected function _acknowledgeOrder($orderId)
@@ -536,7 +753,6 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
             Mage::throwException($message);
         }
         
-        $location = "";
         $capture_id = "";
         if (isset($this->_curlHeaders['Location'])) {
             $location = $this->_curlHeaders['Location'];
@@ -742,6 +958,7 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         }
 
         if ($createIfNotExists) {
+            Mage::helper('klarna')->logKlarnaApi('initKlarnaOrder create');
             if ($checkoutId = $this->_createOrder()) {
                 $this->_fetchOrder($checkoutId);
                 $res = $this->_klarnaOrder!=NULL;
@@ -750,13 +967,14 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
                         $this->_setKlarnaCheckoutId($this->_getLocationOrderId()); // $location
                     }
                 }
+                Mage::helper('klarna')->logKlarnaApi('initKlarnaOrder res: ' . $res);
                 return $res;
             }
         }
 
         return false;
     }
-
+    
     /*
      * Not happy with this, but I guess we can't solve it in other ways.
      *
@@ -799,23 +1017,29 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
         return NULL;
     }
 
-    public function initVarienOrder()
+    public function fetchCreatedOrder($checkoutId)
     {
+        $this->_fetchCreatedOrder($checkoutId);
         if ($this->_klarnaOrder) {
-            $order = $this->_retrieveOrder($this->_klarnaOrder->getOrderId());
-            $this->_klarnaOrder->setKlarnaReference($order->getKlarnaReference());
+            $this->_klarnaOrder->setStatus('created');
+            return $this->_klarnaOrder;
         }
-        return $this->_klarnaOrder;
+        return NULL;
     }
 
     /**
      * @param Mage_Sales_Model_Order $order
      * @return bool
      */
-    public function updateKlarnaOrder($order)
+    public function updateKlarnaOrder($order, $repeatCall = false)
     {
         if ($this->_klarnaOrder) {
-            Mage::helper('klarna')->logKlarnaApi('updateKlarnaOrder rest order no: ' . $order->getIncrementId());
+            if ($repeatCall) {
+                Mage::helper('klarna')->logKlarnaApi('updateKlarnaOrder AGAIN for rest order no: ' . $order->getIncrementId());
+            } else {
+                Mage::helper('klarna')->logKlarnaApi('updateKlarnaOrder rest order no: ' . $order->getIncrementId());
+            }
+            
             $this->_acknowledgeOrder($this->_klarnaOrder->getOrderId());
             $this->_updateMerchantReferences($this->_klarnaOrder->getOrderId(), $order->getIncrementId());
             Mage::helper('klarna')->logKlarnaApi('updateKlarnaOrder rest success');
@@ -900,5 +1124,25 @@ class Vaimo_Klarna_Model_Api_Rest extends Vaimo_Klarna_Model_Api_Abstract
 
     public function setAddresses($billingAddress, $shippingAddress, $data)
     {
+    }
+
+    public function setShippingDetails($shipmentDetails)
+    {
+        if ($shipmentDetails) {
+            $this->_request['shipping_info'] = $shipmentDetails;
+        }
+    }
+
+    /*
+     * Will return the klarna order or null, if it doesn't find it
+     * Not used by this module, but as a service for others.
+     *
+     */
+    public function getKlarnaOrderRaw($checkoutId)
+    {
+        if ($checkoutId) {
+            return $this->fetchCreatedOrder($checkoutId);
+        }
+        return NULL;
     }
 }

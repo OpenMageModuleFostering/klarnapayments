@@ -35,6 +35,7 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
     protected $_api = NULL;
 
     protected static $_session_key = 'klarna_address';
+    protected static $_pclasses_key = 'klarna_pclasses';
 
     public function __construct($setStoreInfo = true, $moduleHelper = NULL, $entGWHelper = NULL, $salesHelper = NULL, $taxCalculation = NULL)
     {
@@ -95,6 +96,7 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
     {
         try {
             $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_RESERVE);
+            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_START_TAG);
             $this->_setAdditionalInformation($this->getPayment()->getAdditionalInformation());
             $items = $this->getPayment()->getKlarnaItemList();
             $this->_createGoodsList($items);
@@ -115,6 +117,7 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
             $this->_getHelper()->dispatchMethodEvent($this->getOrder(), Vaimo_Klarna_Helper_Data::KLARNA_DISPATCH_RESERVED, $this->getOrder()->getTotalDue(), $this->getMethod());
 
             $this->_cleanAdditionalInfo();
+            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_END_TAG);
 
         } catch (KlarnaException $e) {
             Mage::throwException($e->getMessage());
@@ -126,6 +129,7 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
     {
         try {
             $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_CAPTURE);
+            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_START_TAG);
             $this->_setAdditionalInformation($this->getPayment()->getAdditionalInformation());
             $items = $this->getPayment()->getKlarnaItemList();
             $this->_createGoodsList($items);
@@ -135,6 +139,8 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
 
             $this->getApi()->setGoodsListCapture($amount);
             $this->getApi()->setAddresses($this->getBillingAddress(), $this->getShippingAddress(), $this->_getAdditionalInformation());
+            $this->getApi()->setShippingDetails($this->_createShippingDetails($this->getOrder(), $items));
+
             $res = $this->getApi()->capture($reservation_no, $amount, $this->getConfigData('send_klarna_email'));
 
             $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_FEE_CAPTURED] = $this->_feeAmountIncluded();
@@ -142,6 +148,9 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
             $this->_getHelper()->dispatchMethodEvent($this->getOrder(), Vaimo_Klarna_Helper_Data::KLARNA_DISPATCH_CAPTURED, $this->getOrder()->getTotalDue(), $this->getMethod());
 
             $this->_getHelper()->logKlarnaApi('Response ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_STATUS] . ' - ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_TRANSACTION_ID]);
+
+            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_END_TAG);
+
         } catch (KlarnaException $e) {
             Mage::throwException($e->getMessage());
         }
@@ -152,6 +161,7 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
     {
         try {
             $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_REFUND);
+            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_START_TAG);
             $invoice_no = $this->getInfoInstance()->getParentTransactionId();
             $this->_setAdditionalInformation($this->getInfoInstance()->getAdditionalInformation());
             $items = $this->getPayment()->getKlarnaItemList();
@@ -164,6 +174,9 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
             $this->_getHelper()->dispatchMethodEvent($this->getOrder(), Vaimo_Klarna_Helper_Data::KLARNA_DISPATCH_REFUNDED, $amount, $this->getMethod());
 
             $this->_getHelper()->logKlarnaApi('Response ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_STATUS] . ' - ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_TRANSACTION_ID]);
+
+            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_END_TAG);
+
         } catch (KlarnaException $e) {
             Mage::throwException($e->getMessage());
         }
@@ -174,6 +187,7 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
     {
         try {
             $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_CANCEL);
+            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_START_TAG);
             $this->_setAdditionalInformation($this->getPayment()->getAdditionalInformation());
 
             if ($direct_rno) {
@@ -192,6 +206,9 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
             $this->_getHelper()->dispatchMethodEvent($this->getOrder(), Vaimo_Klarna_Helper_Data::KLARNA_DISPATCH_CANCELED, $this->getOrder()->getTotalDue(), $this->getMethod());
 
             $this->_getHelper()->logKlarnaApi('Response ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_STATUS]);
+
+            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_END_TAG);
+
         } catch (KlarnaException $e) {
             Mage::throwException($e->getMessage());
         }
@@ -202,6 +219,7 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
     {
         try {
             $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_CHECKSTATUS);
+            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_START_TAG);
             $this->_setAdditionalInformation($this->getPayment()->getAdditionalInformation());
             
             $reservation_no = $this->_getReservationNo();
@@ -210,6 +228,9 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
             $res = $this->getApi()->checkStatus($reservation_no);
 
             $this->_getHelper()->logKlarnaApi('Response ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_STATUS]);
+
+            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_END_TAG);
+
         } catch (KlarnaException $e) {
             Mage::throwException($e->getMessage());
         }
@@ -234,6 +255,7 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
             }
 
             $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_ADDRESSES);
+            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_START_TAG);
             $this->_getHelper()->logKlarnaApi('Call with Personal ID ' . $personal_id);
 
             $res = $this->getApi()->getAddresses($personal_id);
@@ -242,6 +264,8 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
 
             $cache[$personal_id] = $res;
             $_SESSION[self::$_session_key] = base64_encode( serialize($cache) );
+
+            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_END_TAG);
 
         } catch (KlarnaException $e) {
             Mage::throwException($e->getMessage());
@@ -389,9 +413,23 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
     public function getValidCheckoutPClasses($method)
     {
         try {
-            $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_PCLASSES);
             $amount = $this->getQuote()->getGrandTotal();
+
+            $key = $method . ":" . round($amount,2);
+            $cache = array();
+
+            if (array_key_exists(self::$_pclasses_key, $_SESSION)) {
+                $cache = unserialize( base64_decode($_SESSION[self::$_pclasses_key]) );
+            }
+            if (array_key_exists($key, $cache)) {
+                return $cache[$key];
+            }
+            $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_PCLASSES);
             $res = $this->getApi()->getValidCheckoutPClasses($method, $amount);
+
+            $cache[$key] = $res;
+            $_SESSION[self::$_pclasses_key] = base64_encode( serialize($cache) );
+
         } catch (Mage_Core_Exception $e) {
             Mage::throwException($e->getMessage());
         }

@@ -183,7 +183,9 @@
                     </block>
                 </block>
 
-                <block type="core/template" name="klarna_login" template="vaimo/klarna/klarnacheckout/account-login.phtml"/>
+                <block type="core/template" name="klarna_login" template="vaimo/klarna/klarnacheckout/account-login.phtml">
+                    <block type="klarna/klarnacheckout_autofill" name="klarnacheckout.autofill" after="-" template="vaimo/klarna/klarnacheckout/autofill.phtml"/>
+                </block>
 
                 <block type="core/template" name="klarna_sidebar" as="klarna_sidebar" template="vaimo/klarna/klarnacheckout/sidebar.phtml">
                     <block type="klarna/klarnacheckout_othermethod" name="other.payment.methods" template="vaimo/klarna/klarnacheckout/othermethod.phtml"/>

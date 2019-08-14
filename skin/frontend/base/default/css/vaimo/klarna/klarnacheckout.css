@@ -29,7 +29,6 @@
 .klarna_shipping li {
     display: inline-block;
     zoom: 1;
-    *display: inline;
     margin: 5px 20px 5px 0;
     padding: 0;
 }
@@ -184,6 +183,11 @@
 
 .klarna_login .klarna_input-label {
     display: none;
+}
+
+.klarna_login .klarna_login_message {
+    font-size: 10px;
+    padding-left: 2px;
 }
 
 @media all and (max-width: 500px) {
