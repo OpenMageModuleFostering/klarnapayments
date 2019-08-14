@@ -171,10 +171,10 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
      *
      * @return bool
      */
-    public function isOneStepCheckout()
+    public function isOneStepCheckout($store = null)
     {
         $res = false;
-        if (Mage::getStoreConfig('onestepcheckout/general/rewrite_checkout_links')) {
+        if (Mage::getStoreConfig('onestepcheckout/general/rewrite_checkout_links', $store)) {
             $res = true;
             if (isset($_SERVER['REQUEST_URI'])) {
                 if (stristr($_SERVER['REQUEST_URI'],'checkout/onepage')) {
@@ -203,9 +203,7 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
      */
     public function isOneStepCheckoutTaxIncluded()
     {
-        return (bool) Mage::getStoreConfig(
-            'onestepcheckout/general/display_tax_included'
-        );
+        return (bool) Mage::getStoreConfig( 'onestepcheckout/general/display_tax_included' );
     }
 
     protected function _feePriceIncludesTax($store = null)
@@ -240,18 +238,18 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
      * @param $store
      * @return int
      */
-    protected function _getVaimoKlarnaFee($quote, $store, $force = false)
+    protected function _getVaimoKlarnaFee($quote, $store, $force = false, $inBaseCurrency = true)
     {
         $localFee = 0;
         $fee = $this->_getVaimoKlarnaFeeForMethod($quote, $store, $force);
         if ($fee) {
-            if ($store->getCurrentCurrency() != $store->getBaseCurrency()) {
+            if (!$inBaseCurrency && $store->getCurrentCurrency() != $store->getBaseCurrency()) {
                 $rate = $store->getBaseCurrency()->getRate($store->getCurrentCurrency());
-                $baseKlarnaFee = $fee / $rate;
+                $curKlarnaFee = $fee * $rate;
             } else {
-                $baseKlarnaFee = $fee;
+                $curKlarnaFee = $fee;
             }
-            $localFee = $store->roundPrice($baseKlarnaFee);
+            $localFee = $store->roundPrice($curKlarnaFee);
         }
         return $localFee;
     }
@@ -347,11 +345,11 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
      *
      * @return float
      */
-    public function getVaimoKlarnaFeeInclVat($quote)
+    public function getVaimoKlarnaFeeInclVat($quote, $inBaseCurrency = true)
     {
         $shippingAddress = $quote->getShippingAddress();
         $store = $quote->getStore();
-        $fee = $this->_getVaimoKlarnaFee($quote, $store, true);
+        $fee = $this->_getVaimoKlarnaFee($quote, $store, true, $inBaseCurrency);
         if ($fee && !$this->_feePriceIncludesTax($store)) {
             $custTaxClassId = $quote->getCustomerTaxClassId();
             $taxCalculationModel = Mage::getSingleton('tax/calculation');
@@ -367,5 +365,51 @@ class Vaimo_Klarna_Helper_Data extends Mage_Core_Helper_Abstract
         return $fee;
     }
 
-
+    /*
+     * The following functions shouldn't really need to exist...
+     * Either I have done something wrong or the versions have changed how they work...
+     *
+     */
+     
+    /*
+     * Add tax to grand total on invoice collect or not
+     */
+    public function collectInvoiceAddTaxToInvoice()
+    {
+        $currentVersion = Mage::getVersion();
+        if ((version_compare($currentVersion, '1.10.0')>=0) && (version_compare($currentVersion, '1.12.0')<0)) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+    
+    /*
+     * Call parent of quote collect or not
+     */
+    public function collectQuoteRunParentFunction()
+    {
+        return false; // Seems the code was wrong, this function is no longer required
+        $currentVersion = Mage::getVersion();
+        if (version_compare($currentVersion, '1.11.0')>=0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+    /*
+     * Use extra tax in quote instead of adding to Tax, I don't know why this has to be
+     * different in EE, but it clearly seems to be...
+     */
+    public function collectQuoteUseExtraTaxInCheckout()
+    {
+        return false; // Seems the code was wrong, this function is no longer required
+        $currentVersion = Mage::getVersion();
+        if (version_compare($currentVersion, '1.11.0')>=0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }

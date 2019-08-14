@@ -295,7 +295,7 @@ class Vaimo_Klarna_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abst
         }
 
         $payment->setTransactionId($transactionId)
-                ->setIsTransactionClosed(1);
+                ->setIsTransactionClosed(0);
         return $this;
     }
 

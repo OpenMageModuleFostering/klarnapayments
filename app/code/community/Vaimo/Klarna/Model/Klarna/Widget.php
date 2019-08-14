@@ -31,4 +31,12 @@ class Vaimo_Klarna_Model_Klarna_Widget extends Vaimo_Klarna_Model_Klarna_Tools_A
         $this->_setFunctionName('widget');
     }
 
+    public function getKlarnaSetup()
+    {
+        if (!$this->_getConfigData('disable_product_widget')) {
+            return parent::getKlarnaSetup();
+        } else {
+            return NULL;
+        }
+    }
 }

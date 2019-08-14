@@ -96,3 +96,6 @@
 "Month","Månad"
 "Day","Dag"
 "07xxxxxxxx","07xxxxxxxx"
+
+"Disable payment widget on product page","Deaktivera betal-widget på produkt sidan"
+"If set to yes, the payment information from Klarna will not appear on the product page","Om ja, så kommer inte betalinformation från Klarna att presenteras på produkt sidan"

@@ -157,8 +157,7 @@ class Vaimo_Klarna_Model_Klarna_Tools_Api extends Vaimo_Klarna_Model_Klarna_Tool
     protected function _getTaxRate($taxClass)
     {
         // Load the customer so we can retrevice the correct tax class id
-        $customer = Mage::getModel('customer/customer')
-            ->load($this->getOrder()->getCustomerId());
+        $customer = Mage::getModel('customer/customer')->load($this->getOrder()->getCustomerId());
         $calculation = Mage::getSingleton('tax/calculation');
         $request = $calculation->getRateRequest(
             $this->getShippingAddress(),

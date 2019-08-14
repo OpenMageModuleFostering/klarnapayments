@@ -841,7 +841,7 @@ class Vaimo_Klarna_Model_Klarna_Tools_Abstract extends Varien_Object
     {
         $res = Mage::helper('klarna')->__($this->_getConfigData('title'));
         if ($this->getQuote() && $this->getMethod()==Vaimo_Klarna_Helper_Data::KLARNA_METHOD_INVOICE) {
-            $fee = Mage::helper('klarna')->getVaimoKlarnaFeeInclVat($this->getQuote());
+            $fee = Mage::helper('klarna')->getVaimoKlarnaFeeInclVat($this->getQuote(), false);
             if ($fee) {
                 $res .= ' (' . Mage::app()->getStore($this->getQuote()->getStoreId())->formatPrice($fee, false) . ')';
             }
@@ -870,7 +870,7 @@ class Vaimo_Klarna_Model_Klarna_Tools_Abstract extends Varien_Object
     {
         try {
             if (!$this->_getConfigData("active")) {
-                Mage::throwException($this->helper('klarna')->__('Current payment method not available'));
+                Mage::throwException(Mage::helper('klarna')->__('Current payment method not available'));
             }
             $res = new Varien_Object(
                 array(

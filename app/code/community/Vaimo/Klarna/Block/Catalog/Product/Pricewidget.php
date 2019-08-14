@@ -60,16 +60,23 @@ class Vaimo_Klarna_Block_Catalog_Product_Pricewidget extends Mage_Core_Block_Tem
         $klarnaWidget = Mage::getModel('klarna/klarna_widget');
         $klarnaWidget->setQuote($this->getQuote(), Vaimo_Klarna_Helper_Data::KLARNA_METHOD_ACCOUNT);
         $klarnaSetup = $klarnaWidget->getKlarnaSetup();
-        if($klarnaSetup->getCountryCode() != 'NL' && $klarnaSetup->getCountryCode() != 'AT') {
-            return $klarnaSetup;
-        } else {
-            return NULL;
+        if ($klarnaSetup) {
+            if($klarnaSetup->getCountryCode() != 'NL' && $klarnaSetup->getCountryCode() != 'AT') {
+                return $klarnaSetup;
+            }
         }
+        return NULL;
     }
     
     public function getKlarnaInvoiceFeeInfo()
     {
-        return Mage::helper('klarna')->getVaimoKlarnaFeeInclVat($this->getQuote());
+        return Mage::helper('klarna')->getVaimoKlarnaFeeInclVat($this->getQuote(), false);
     }
-    
+
+    public function getProductPriceInclVat()
+    {
+        // @TODO This only returns Incl TAX if settings are set to Display prices including TAX... Needs to be Incl VAT, always
+        return Mage::helper('tax')->getPrice($this->getProduct(), $this->getProduct()->getFinalPrice(), true);
+    }
+
 }

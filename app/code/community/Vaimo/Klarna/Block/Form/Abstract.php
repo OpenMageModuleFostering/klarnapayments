@@ -322,7 +322,7 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
 
     public function getKlarnaInvoiceFeeInfo()
     {
-        return Mage::helper('klarna')->getVaimoKlarnaFeeInclVat($this->getQuote());
+        return Mage::helper('klarna')->getVaimoKlarnaFeeInclVat($this->getQuote(), false);
     }
 
     public function getTermsUrlLink()
@@ -342,6 +342,7 @@ class Vaimo_Klarna_Block_Form_Abstract extends Mage_Payment_Block_Form
      */
     public function getMethodLabelAfterHtml()
     {
+        $str = "";
         $method = $this->getMethod()->getCode();
         $klarnaForm = Mage::getModel('klarna/klarna_form');
         $klarnaForm->setQuote($this->getQuote(), $method);

@@ -32,11 +32,8 @@ class Vaimo_Klarna_Model_Quote_Tax extends Mage_Sales_Model_Quote_Address_Total_
 
     public function collect(Mage_Sales_Model_Quote_Address $address)
     {
-
-        $currentVersion = Mage::getVersion();
-        if (version_compare($currentVersion, '1.13.0')>0) {
-            // This line is for some wierd reason required when running in EE 1.13... It shouldn't be... or?
-            parent::collect($address);
+        if (Mage::helper('klarna')->collectQuoteRunParentFunction()) {
+//            parent::collect($address);
         }
 
         if ($address->getQuote()->getId() == NULL) {
@@ -76,19 +73,16 @@ class Vaimo_Klarna_Model_Quote_Tax extends Mage_Sales_Model_Quote_Address_Total_
                 $klarnaFeeTax = $taxCalculationModel->calcTaxAmount($address->getVaimoKlarnaFee(), $rate, false, true);
                 $klarnaFeeBaseTax = $taxCalculationModel->calcTaxAmount($address->getVaimoKlarnaBaseFee(), $rate, false, true);
                 
-                $address->setTaxAmount($address->getTaxAmount() + $klarnaFeeTax);
-                $address->setBaseTaxAmount($address->getBaseTaxAmount() + $klarnaFeeBaseTax);
-                
-                $address->setGrandTotal($address->getGrandTotal() + $klarnaFeeTax);
-                $address->setBaseGrandTotal($address->getBaseGrandTotal() + $klarnaFeeBaseTax);
+                if (Mage::helper('klarna')->collectQuoteUseExtraTaxInCheckout()) {
+                    $address->setExtraTaxAmount($address->getExtraTaxAmount() + $klarnaFeeTax);
+                    $address->setBaseExtraTaxAmount($address->getBaseExtraTaxAmount() + $klarnaFeeBaseTax);
+                } else {
+                    $address->setTaxAmount($address->getTaxAmount() + $klarnaFeeTax);
+                    $address->setBaseTaxAmount($address->getBaseTaxAmount() + $klarnaFeeBaseTax);
 
-                $this->_saveAppliedTaxes(
-                    $address,
-                    $taxCalculationModel->getAppliedRates($request),
-                    $klarnaFeeTax,
-                    $klarnaFeeBaseTax,
-                    $rate
-                );
+                    $address->setGrandTotal($address->getGrandTotal() + $klarnaFeeTax);
+                    $address->setBaseGrandTotal($address->getBaseGrandTotal() + $klarnaFeeBaseTax);
+                }
             }
         }
         

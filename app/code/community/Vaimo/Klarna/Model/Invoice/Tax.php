@@ -49,6 +49,10 @@ class Vaimo_Klarna_Model_Invoice_Tax extends Mage_Sales_Model_Order_Invoice_Tota
           return $this;
         }
 
+        if (!Mage::helper('klarna')->collectInvoiceAddTaxToInvoice()) {
+            return $this;
+        }
+
         $klarnaFeeTax =  $info->getAdditionalInformation(Vaimo_Klarna_Helper_Data::KLARNA_INFO_FIELD_FEE_TAX);
 
         if (!$klarnaFeeTax){

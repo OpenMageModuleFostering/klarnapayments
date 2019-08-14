@@ -62,8 +62,13 @@ class Vaimo_Klarna_Model_Invoice_Total extends Mage_Sales_Model_Order_Invoice_To
         $baseInvoiceTotal = $invoice->getBaseGrandTotal();
         $invoiceTotal = $invoice->getGrandTotal();
 
-        $baseInvoiceTotal = $baseInvoiceTotal + $baseKlarnaFee + $baseKlarnaFeeTax;
-        $invoiceTotal = $invoiceTotal + $klarnaFee + $klarnaFeeTax;
+        if (Mage::helper('klarna')->collectInvoiceAddTaxToInvoice()) {
+            $baseInvoiceTotal = $baseInvoiceTotal + $baseKlarnaFee + $baseKlarnaFeeTax;
+            $invoiceTotal = $invoiceTotal + $klarnaFee + $klarnaFeeTax;
+        } else {
+            $baseInvoiceTotal = $baseInvoiceTotal + $baseKlarnaFee ;
+            $invoiceTotal = $invoiceTotal + $klarnaFee;
+        }
 
         $invoice->setBaseGrandTotal($baseInvoiceTotal);
         $invoice->setGrandTotal($invoiceTotal);

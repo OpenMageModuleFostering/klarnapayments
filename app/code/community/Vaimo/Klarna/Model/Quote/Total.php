@@ -32,9 +32,7 @@ class Vaimo_Klarna_Model_Quote_Total extends Mage_Sales_Model_Quote_Address_Tota
 
     public function collect(Mage_Sales_Model_Quote_Address $address)
     {
-        $currentVersion = Mage::getVersion();
-        if (version_compare($currentVersion, '1.13.0')>0) {
-            // This line is for some wierd reason required when running in EE 1.13... It shouldn't be... or?
+        if (Mage::helper('klarna')->collectQuoteRunParentFunction()) {
             parent::collect($address);
         }
 
@@ -65,16 +63,16 @@ class Vaimo_Klarna_Model_Quote_Total extends Mage_Sales_Model_Quote_Address_Tota
             return $this;
         }
 
-        $klarnaFee = Mage::helper('klarna')->getVaimoKlarnaFeeExclVat($address);
+        $baseKlarnaFee = Mage::helper('klarna')->getVaimoKlarnaFeeExclVat($address);
 
-        if (!$klarnaFee > 0 ) {
+        if (!$baseKlarnaFee > 0 ) {
             return $this;
         }
 
         $quote = $address->getQuote();
         $store = $quote->getStore();
         
-        $baseKlarnaFee = $store->convertPrice($klarnaFee, false);
+        $klarnaFee = $store->convertPrice($baseKlarnaFee, false);
 
         $address->setVaimoKlarnaBaseFee($baseKlarnaFee);
         $address->setVaimoKlarnaFee($klarnaFee);
@@ -91,6 +89,12 @@ class Vaimo_Klarna_Model_Quote_Total extends Mage_Sales_Model_Quote_Address_Tota
     public function fetch(Mage_Sales_Model_Quote_Address $address)
     {
         $amount = $address->getVaimoKlarnaFee();
+        
+        if (Mage::helper('klarna')->isOneStepCheckout()) {
+            if (Mage::helper('klarna')->isOneStepCheckoutTaxIncluded()) {
+                $amount = $amount + $address->getVaimoKlarnaFeeTax();
+            }
+        }
 
         if ($amount!=0) {
             $quote = $address->getQuote();

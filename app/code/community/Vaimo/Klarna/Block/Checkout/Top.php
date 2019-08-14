@@ -34,7 +34,7 @@ class Vaimo_Klarna_Block_Checkout_Top extends Mage_Checkout_Block_Cart_Abstract
 
     public function getKlarnaInvoiceFeeInfo()
     {
-        return Mage::helper('klarna')->getVaimoKlarnaFeeInclVat($this->getQuote());
+        return Mage::helper('klarna')->getVaimoKlarnaFeeInclVat($this->getQuote(), false);
     }
 
 }
