@@ -301,7 +301,7 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
             $values["discount"],
             $values["flags"]
         );
-        Mage::helper('klarna')->logDebugInfo('addArticle', $values);
+        $this->_getTransport()->logDebugInfo('addArticle', $values);
     }
 
     /*
@@ -327,7 +327,7 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
             intval($values["qty"]),
             strval(Mage::helper('klarna')->encode($values["sku"]))
             );
-        Mage::helper('klarna')->logDebugInfo('addArticle', $values);
+        $this->_getTransport()->logDebugInfo('addArticle', $values);
     }
 
     /**
@@ -518,7 +518,6 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
         } else {
             $mode = Klarna::BETA;
         }
-        $this->_klarnaApi->clear();
         $this->_klarnaApi->config(
             $this->_klarnaSetup->getMerchantId(),
             $this->_klarnaSetup->getSharedSecret(),
@@ -574,8 +573,8 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
                     $msg .= ' Please check country, language and currency combination. They must match.';
                     break;
             }
-            Mage::helper('klarna')->logKlarnaApi($msg);
-            Mage::helper('klarna')->logKlarnaException($e);
+            $this->_getTransport()->logKlarnaApi($msg);
+            $this->_getTransport()->logKlarnaException($e);
             Mage::throwException(Mage::helper('klarna')->decode($e->getMessage()));
         }
         return $res;
@@ -597,8 +596,8 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
                 Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_TRANSACTION_ID => $result[1]
             );
         } catch (KlarnaException $e) {
-            Mage::helper('klarna')->logKlarnaApi('Response Error Code = ' . $e->getCode());
-            Mage::helper('klarna')->logKlarnaException($e);
+            $this->_getTransport()->logKlarnaApi('Response Error Code = ' . $e->getCode());
+            $this->_getTransport()->logKlarnaException($e);
             Mage::throwException(Mage::helper('klarna')->decode($e->getMessage()));
         }
         return $res;
@@ -610,7 +609,7 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
 
             switch ($this->_decideRefundMethod($this->_getTransport(), $amount)) {
                 case Vaimo_Klarna_Helper_Data::KLARNA_REFUND_METHOD_FULL:
-                    Mage::helper('klarna')->logKlarnaApi('Full with invoice ID ' . $invoice_no);
+                    $this->_getTransport()->logKlarnaApi('Full with invoice ID ' . $invoice_no);
                     $result = $this->_klarnaApi->creditInvoice($invoice_no);
                     break;
                 case Vaimo_Klarna_Helper_Data::KLARNA_REFUND_METHOD_AMOUNT:
@@ -622,11 +621,11 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
                         }
                     }
 //                    $amountExclDiscount = $amount - $this->_getTransport()->getCreditmemo()->getDiscountAmount();
-                    Mage::helper('klarna')->logKlarnaApi('Amount with invoice ID ' . $invoice_no);
+                    $this->_getTransport()->logKlarnaApi('Amount with invoice ID ' . $invoice_no);
                     $result = $this->_klarnaApi->returnAmount($invoice_no, $amount, $taxRate, KlarnaFlags::INC_VAT, Mage::helper('klarna')->__('Refund amount'));
                     break;
                 default: // Vaimo_Klarna_Helper_Data::KLARNA_REFUND_METHOD_PART
-                    Mage::helper('klarna')->logKlarnaApi('Part with invoice ID ' . $invoice_no);
+                    $this->_getTransport()->logKlarnaApi('Part with invoice ID ' . $invoice_no);
                     $this->_setGoodsListRefund($amount);
                     $result = $this->_klarnaApi->creditPart($invoice_no);
                     break;
@@ -638,8 +637,8 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
             );
 
         } catch (KlarnaException $e) {
-            Mage::helper('klarna')->logKlarnaApi('Response Error Code = ' . $e->getCode());
-            Mage::helper('klarna')->logKlarnaException($e);
+            $this->_getTransport()->logKlarnaApi('Response Error Code = ' . $e->getCode());
+            $this->_getTransport()->logKlarnaException($e);
             Mage::throwException(Mage::helper('klarna')->decode($e->getMessage()));
         }
         return $res;
@@ -655,8 +654,8 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
             );
 
         } catch (KlarnaException $e) {
-            Mage::helper('klarna')->logKlarnaApi('Response Error Code = ' . $e->getCode());
-            Mage::helper('klarna')->logKlarnaException($e);
+            $this->_getTransport()->logKlarnaApi('Response Error Code = ' . $e->getCode());
+            $this->_getTransport()->logKlarnaException($e);
             Mage::throwException(Mage::helper('klarna')->decode($e->getMessage()));
         }
         return $res;
@@ -678,8 +677,8 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
             );
 
         } catch (KlarnaException $e) {
-            Mage::helper('klarna')->logKlarnaApi('Response Error Code = ' . $e->getCode());
-            Mage::helper('klarna')->logKlarnaException($e);
+            $this->_getTransport()->logKlarnaApi('Response Error Code = ' . $e->getCode());
+            $this->_getTransport()->logKlarnaException($e);
             Mage::throwException(Mage::helper('klarna')->decode($e->getMessage()));
         }
         return $res;
@@ -706,8 +705,8 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
             }
 
         } catch (KlarnaException $e) {
-            Mage::helper('klarna')->logKlarnaApi('Response Error Code = ' . $e->getCode());
-            Mage::helper('klarna')->logKlarnaException($e);
+            $this->_getTransport()->logKlarnaApi('Response Error Code = ' . $e->getCode());
+            $this->_getTransport()->logKlarnaException($e);
             Mage::throwException(Mage::helper('klarna')->decode($e->getMessage()));
         }
         return $res;
@@ -733,8 +732,8 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
 
             
         } catch (KlarnaException $e) {
-            Mage::helper('klarna')->logKlarnaApi('Response Error Code = ' . $e->getCode());
-            Mage::helper('klarna')->logKlarnaException($e);
+            $this->_getTransport()->logKlarnaApi('Response Error Code = ' . $e->getCode());
+            $this->_getTransport()->logKlarnaException($e);
             Mage::throwException(Mage::helper('klarna')->decode($e->getMessage()));
         }
         return $res;
@@ -746,8 +745,8 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
             $this->_klarnaApi->clearPClasses();
 
         } catch (KlarnaException $e) {
-            Mage::helper('klarna')->logKlarnaApi('Response Error Code = ' . $e->getCode());
-            Mage::helper('klarna')->logKlarnaException($e);
+            $this->_getTransport()->logKlarnaApi('Response Error Code = ' . $e->getCode());
+            $this->_getTransport()->logKlarnaException($e);
             Mage::throwException(Mage::helper('klarna')->decode($e->getMessage()));
         }
     }
@@ -758,8 +757,8 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
             $this->_klarnaApi->fetchPClasses($this->_klarnaSetup->getCountryCode(), $this->_klarnaSetup->getLanguageCode(), $this->_klarnaSetup->getCurrencyCode());
 
         } catch (KlarnaException $e) {
-            Mage::helper('klarna')->logKlarnaApi('Response Error Code = ' . $e->getCode());
-            Mage::helper('klarna')->logKlarnaException($e);
+            $this->_getTransport()->logKlarnaApi('Response Error Code = ' . $e->getCode());
+            $this->_getTransport()->logKlarnaException($e);
 // Should not be in API file, but I require all details from $e
             Mage::getSingleton('adminhtml/session')->addError(
                 Mage::helper('klarna')->__('Fetching PClasses failed for store %s. Error: %s - %s', Mage::app()->getStore($storeId)->getName(), $e->getCode(), $e->getMessage())
@@ -780,8 +779,8 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
             }
 
         } catch (KlarnaException $e) {
-            Mage::helper('klarna')->logKlarnaApi('Response Error Code = ' . $e->getCode());
-            Mage::helper('klarna')->logKlarnaException($e);
+            $this->_getTransport()->logKlarnaApi('Response Error Code = ' . $e->getCode());
+            $this->_getTransport()->logKlarnaException($e);
             Mage::throwException(Mage::helper('klarna')->decode($e->getMessage()));
         }
         return $res;
@@ -804,7 +803,7 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
                 $res = NULL;
             }
         } catch (Mage_Core_Exception $e) {
-            Mage::helper('klarna')->logKlarnaException($e);
+            $this->logKlarnaException($e);
             Mage::throwException(Mage::helper('klarna')->decode($e->getMessage()));
         }
         return $res;
@@ -852,8 +851,8 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
                 $this->_checkoutServiceResult = $this->_klarnaApi->checkoutService($amount, $currency, $this->_klarnaSetup->getLocaleCode(), $this->_klarnaSetup->getCountryCode());
                 if ($this->_checkoutServiceResult) {
                     if ($this->_checkoutServiceResult->getStatus()==200) {
-                        Mage::helper('klarna')->logDebugInfo('checkoutService amount',array('amount' => $amount));
-                        Mage::helper('klarna')->logDebugInfo('checkoutService',$this->_checkoutServiceResult->getData());
+                        $this->_getTransport()->logDebugInfo('checkoutService amount',array('amount' => $amount));
+                        $this->_getTransport()->logDebugInfo('checkoutService',$this->_checkoutServiceResult->getData());
                     }
                 }
             }
@@ -947,8 +946,8 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
         $this->_klarnaApi->setAddress(KlarnaFlags::IS_SHIPPING, $shipping);
         $this->_klarnaApi->setAddress(KlarnaFlags::IS_BILLING, $billing);
 
-        Mage::helper('klarna')->logDebugInfo('shippingAddress', $shipping->toArray());
-        Mage::helper('klarna')->logDebugInfo('billingAddress', $billing->toArray());
+        $this->_getTransport()->logDebugInfo('shippingAddress', $shipping->toArray());
+        $this->_getTransport()->logDebugInfo('billingAddress', $billing->toArray());
 
     }
 
@@ -996,13 +995,6 @@ class Vaimo_Klarna_Model_Api_Xmlrpc extends Vaimo_Klarna_Model_Api_Abstract
 
         foreach ($this->_getTransport()->getExtras() as $extra) {
             $this->_addArtNo($extra);
-        }
-    }
-
-    public function setShippingDetails($shipmentDetails)
-    {
-        if ($shipmentDetails) {
-            $this->_klarnaApi->setShipmentInfo('shipment_details', $shipmentDetails);
         }
     }
 

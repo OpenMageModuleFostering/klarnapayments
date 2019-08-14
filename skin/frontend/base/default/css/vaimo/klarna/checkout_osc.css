@@ -59,22 +59,22 @@ ul#payment_form_vaimo_klarna_special {
     border: 1px solid #B6B6B6;
 }
 
-.payment_plan_details dt {
+.payment-method .form-list li.payment_plan_info_wrapper .payment_plan_details dt {
     float: left;
     clear: both;
     margin: 0px 10px 3px 0px;
     min-width: 100px;
     font-weight: normal;
-    font-size: 11px;
+    font-size: 10px;
 }
 
-.payment_plan_details dd {
+.payment-method .form-list li.payment_plan_info_wrapper .payment_plan_details dd {
     float: right;
     font-weight: normal;
-    font-size: 11px;
+    font-size: 10px;
 }
 
-.payment_plan_details dd .price {
+.payment-method .form-list li.payment_plan_info_wrapper .payment_plan_details dd .price {
     font-weight: normal;
 }
 

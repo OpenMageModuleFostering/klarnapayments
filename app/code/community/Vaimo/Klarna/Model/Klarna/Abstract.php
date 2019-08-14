@@ -56,12 +56,8 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
 
         $this->_entGWHelper = $entGWHelper;
         if ($this->_entGWHelper==NULL) {
-            $this->_entGWHelper = $moduleHelper; // entGWHelper only used as a transaltor, if different GW is used than Magento, it will just not translate it
-            try {
-                if (class_exists("Enterprise_GiftWrapping_Helper_Data", true)) {
-                    $this->_entGWHelper = Mage::helper('enterprise_giftwrapping');
-                }
-            } catch (Exception $e) {
+            if (class_exists("Enterprise_GiftWrapping_Helper_Data", false)) {
+                $this->_entGWHelper = Mage::helper('enterprise_giftwrapping');
             }
         }
         $this->_salesHelper = $salesHelper;
@@ -286,7 +282,7 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
     protected function _createRefundGoodsList($items = null)
     {
         if ($items === null) {
-            $this->_getHelper()->logKlarnaApi('_createRefundGoodsList got no items. Order: ' . $this->getOrder()->getIncrementId());
+            $this->logKlarnaApi('_createRefundGoodsList got no items. Order: ' . $this->getOrder()->getIncrementId());
         }
 
         $taxRate = NULL;
@@ -707,18 +703,13 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
      * Update a Magento address with an array containing address information
      *
      * @param array $addr  The addr to use
-     * @param string $updateWhichAddress address type to update
      *
      * @return void
      */
-    protected function _updateWithSelectedAddress($addr, $updateWhichAddress = Mage_Sales_Model_Quote_Address::TYPE_SHIPPING)
+    protected function _updateShippingWithSelectedAddress($addr)
     {
         $selAddr = new Varien_Object($addr);
-        if ($updateWhichAddress==Mage_Sales_Model_Quote_Address::TYPE_SHIPPING) {
-            $address = $this->getShippingAddress();
-        } else {
-            $address = $this->getBillingAddress();
-        }
+        $address = $this->getShippingAddress();
         $street = $selAddr->getStreet();
 
         if ($selAddr->getHouseNumber()) {
@@ -759,24 +750,6 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
             ->setTelephone($this->getShippingAddress()->getTelephone())
             ->setCountry($this->getShippingAddress()->getCountry())
             ->setCompany($this->getShippingAddress()->getCompany())
-            ->save();
-    }
-
-    /**
-     * Update a Magento address with another Magento address and save it.
-     *
-     * @return void
-     */
-    public function updateShippingAddress()
-    {
-        $this->getShippingAddress()->setFirstname($this->getBillingAddress()->getFirstname())
-            ->setLastname($this->getBillingAddress()->getLastname())
-            ->setPostcode($this->getBillingAddress()->getPostcode())
-            ->setStreet($this->getBillingAddress()->getStreet())
-            ->setCity($this->getBillingAddress()->getCity())
-            ->setTelephone($this->getBillingAddress()->getTelephone())
-            ->setCountry($this->getBillingAddress()->getCountry())
-            ->setCompany($this->getBillingAddress()->getCompany())
             ->save();
     }
 
@@ -827,7 +800,7 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
                 return false;
             }
         } catch (Mage_Core_Exception $e) {
-            $this->_getHelper()->logKlarnaException($e);
+            $this->logKlarnaException($e);
             return false;
         }
         return true;
@@ -841,7 +814,7 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
                 return false;
             }
         } catch (Mage_Core_Exception $e) {
-            $this->_getHelper()->logKlarnaException($e);
+            $this->logKlarnaException($e);
             return false;
         }
         return true;
@@ -861,7 +834,7 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
                 return false;
             }
         } catch (Mage_Core_Exception $e) {
-            $this->_getHelper()->logKlarnaException($e);
+            $this->logKlarnaException($e);
             return false;
         }
         return true;
@@ -881,7 +854,7 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
                 return false;
             }
         } catch (Mage_Core_Exception $e) {
-            $this->_getHelper()->logKlarnaException($e);
+            $this->logKlarnaException($e);
             return false;
         }
         return true;
@@ -935,7 +908,7 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
             if ($this->_getHelper()->isKlarnaField($key)) {
                 $this->_postValues[$key] = $value;
             } else {
-                $this->_getHelper()->logDebugInfo('Field ignored: ' . $key);
+                $this->logDebugInfo('Field ignored: ' . $key);
             }
         }
     }
@@ -1119,71 +1092,5 @@ abstract class Vaimo_Klarna_Model_Klarna_Abstract extends Vaimo_Klarna_Model_Tra
         }
     }
 
-    protected function _createShippingDetails($order, $invoiceItems)
-    {
-        $res = NULL;
-        /**
-         * If customer selects to create shipment directly from invoice, it will generate the
-         * shipment AFTER the invoice. So I check the post here, in order to use that information.
-         */
-        if (isset($_POST)) {
-            $usePostShipment = false;
-            if (isset($_POST['invoice'])) {
-                if (isset($_POST['invoice']['do_shipment'])) {
-                    if ($_POST['invoice']['do_shipment']=="1") {
-                        $usePostShipment = true;
-                    }
-                }
-            }
-            if ($usePostShipment) {
-                if (isset($_POST['tracking'])) {
-                    foreach ($_POST['tracking'] as $tracking) {
-                        $title = Mage::helper('klarna')->__("Unknown");
-                        $number = "";
-                        if (isset($tracking['title'])) {
-                            $title = $tracking['title'];
-                        }
-                        if (isset($tracking['number'])) {
-                            $number = $tracking['number'];
-                        }
-                        $shippingDetail = array(
-                            'tracking_number' => $number,
-                            'shipping_company' => $title,
-                        );
-                        if (!$res) {
-                            $res = array();
-                        }
-                        $res[] = $shippingDetail;
-                    }
-                }
-            }
-        }
-        foreach ($order->getShipmentsCollection() as $_shipment) {
-            $shippingDetail = NULL;
-            foreach ($_shipment->getItemsCollection() as $item) {
-                foreach ($invoiceItems as $invoiceItem) {
-                    if ($item->getOrderItemId()==$invoiceItem->getOrderItemId()) {
-                        foreach ($_shipment->getTracksCollection() as $tracking) {
-                            $shippingDetail = array(
-                                'tracking_number' => $tracking->getTrackNumber(),
-                                //'tracking_url' => $this->helper('shipping')->getTrackingPopupUrlBySalesModel($order), //Mage::getModel('core/url')->getUrl('sales/order/track', array('order_id' => $order->getId())),
-                                'shipping_company' => $tracking->getTitle(),
-                            );
-                            if (!$res) {
-                                $res = array();
-                            }
-                            $res[] = $shippingDetail;
-                        }
-                    }
-                    if ($shippingDetail) {
-                        break;
-                    }
-                }
-                if ($shippingDetail) {
-                    break;
-                }
-            }
-        }
-        return $res;
-    }
+
 }

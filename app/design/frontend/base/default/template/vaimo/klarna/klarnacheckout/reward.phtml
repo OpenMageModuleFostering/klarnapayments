@@ -27,10 +27,10 @@
 <?php if (Mage::helper('klarna')->excludeCartInKlarnaCheckout()) return; ?>
 
 <?php if ($this->getCanUseRewardPoints()): ?>
-<div id="klarna-checkout-reward-container" class="klarna-checkout-reward-container">
+<div id="klarna-checkout-reward-container">
     <h3><?php echo $this->__('Reward Points') ?></h3>
     <form id="klarna-checkout-reward" action="<?php echo $this->getUrl('checkout/klarna/rewardPost') ?>" method="post">
-        <input type="checkbox" name="use_reward_points" value="1" id="use-reward-points"<?php echo $this->useRewardPoints()?' checked="checked"':'' ?> class="checkbox use-reward-points" />
+        <input type="checkbox" name="use_reward_points" value="1" id="use-reward-points"<?php echo $this->useRewardPoints()?' checked="checked"':'' ?> class="checkbox" />
         <label for="use-reward-points"><?php echo Mage::helper('enterprise_reward')->__('Use my reward points, %s available', Mage::helper('enterprise_reward')->formatReward($this->getPointsBalance(), $this->getCurrencyAmount())); ?></label>
     </form>
 </div>

@@ -24,8 +24,8 @@
  */
 ?>
 
-<form id="klarna_shipping" class="klarna_block klarna_shipping" action="<?php echo $this->getUrl('checkout/klarna/saveShippingMethod') ?>" method="post">
-   	<h3 class="klarna_block-title"><?php echo $this->__('Choose shipping method') ?></h3>
+<form id="klarna_shipping" action="<?php echo $this->getUrl('checkout/klarna/saveShippingMethod') ?>" method="post">
+   	<h3><?php echo $this->__('Choose shipping method') ?></h3>
    	<?php echo $this->getChildHtml('available') ?>
     <input type="hidden" name="test" value="testvalue" />
 </form>

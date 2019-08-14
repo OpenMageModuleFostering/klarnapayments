@@ -35,12 +35,11 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
     protected $_api = NULL;
 
     protected static $_session_key = 'klarna_address';
-    protected static $_pclasses_key = 'klarna_pclasses';
 
     public function __construct($setStoreInfo = true, $moduleHelper = NULL, $entGWHelper = NULL, $salesHelper = NULL, $taxCalculation = NULL)
     {
         parent::__construct($setStoreInfo, $moduleHelper, $entGWHelper, $salesHelper, $taxCalculation);
-        $this->_getHelper()->setFunctionNameForLog('klarna');
+        $this->_setFunctionName('klarna');
     }
     
     /**
@@ -86,7 +85,7 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
      */
     protected function _init($functionName)
     {
-        $this->_getHelper()->setFunctionNameForLog($this->_getHelper()->getFunctionNameForLog() . '-' . $functionName);
+        $this->_setFunctionName($this->_getFunctionName() . '-' . $functionName);
         $this->_initApi($this->_getStoreId(), $this->getMethod(), $functionName);
         $this->getApi()->init($this->getKlarnaSetup());
         $this->getApi()->setTransport($this->_getTransport());
@@ -96,19 +95,18 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
     {
         try {
             $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_RESERVE);
-            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_START_TAG);
             $this->_setAdditionalInformation($this->getPayment()->getAdditionalInformation());
             $items = $this->getPayment()->getKlarnaItemList();
             $this->_createGoodsList($items);
-            $this->_getHelper()->logKlarnaApi('Call with personal ID ' . $this->getPNO());
+            $this->logKlarnaApi('Call with personal ID ' . $this->getPNO());
             
             $this->getApi()->setGoodsListReserve();
             $this->getApi()->setAddresses($this->getBillingAddress(), $this->getShippingAddress(), $this->_getAdditionalInformation());
             $res = $this->getApi()->reserve();
 
-            $this->_getHelper()->logKlarnaApi('Response ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_STATUS] . ' - ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_TRANSACTION_ID]);
+            $this->logKlarnaApi('Response ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_STATUS] . ' - ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_TRANSACTION_ID]);
             if ($res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_STATUS]==Vaimo_Klarna_Helper_Data::KLARNA_STATUS_PENDING) {
-                if ($this->getConfigData('pending_status_action')) {
+                if ($this->getConfigData("pending_status_action")) {
                     $this->cancel($res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_TRANSACTION_ID]);
                     Mage::throwException($this->_getHelper()->__('Unable to pay with Klarna, please choose another payment method'));
                 }
@@ -117,7 +115,6 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
             $this->_getHelper()->dispatchMethodEvent($this->getOrder(), Vaimo_Klarna_Helper_Data::KLARNA_DISPATCH_RESERVED, $this->getOrder()->getTotalDue(), $this->getMethod());
 
             $this->_cleanAdditionalInfo();
-            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_END_TAG);
 
         } catch (KlarnaException $e) {
             Mage::throwException($e->getMessage());
@@ -129,28 +126,22 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
     {
         try {
             $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_CAPTURE);
-            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_START_TAG);
             $this->_setAdditionalInformation($this->getPayment()->getAdditionalInformation());
             $items = $this->getPayment()->getKlarnaItemList();
             $this->_createGoodsList($items);
 
             $reservation_no = $this->_getReservationNo();
-            $this->_getHelper()->logKlarnaApi('Call with reservation ID ' . $reservation_no);
+            $this->logKlarnaApi('Call with reservation ID ' . $reservation_no);
 
             $this->getApi()->setGoodsListCapture($amount);
             $this->getApi()->setAddresses($this->getBillingAddress(), $this->getShippingAddress(), $this->_getAdditionalInformation());
-            $this->getApi()->setShippingDetails($this->_createShippingDetails($this->getOrder(), $items));
-
-            $res = $this->getApi()->capture($reservation_no, $amount, $this->getConfigData('send_klarna_email'));
+            $res = $this->getApi()->capture($reservation_no, $amount, $this->getConfigData("send_klarna_email"));
 
             $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_FEE_CAPTURED] = $this->_feeAmountIncluded();
 
             $this->_getHelper()->dispatchMethodEvent($this->getOrder(), Vaimo_Klarna_Helper_Data::KLARNA_DISPATCH_CAPTURED, $this->getOrder()->getTotalDue(), $this->getMethod());
 
-            $this->_getHelper()->logKlarnaApi('Response ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_STATUS] . ' - ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_TRANSACTION_ID]);
-
-            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_END_TAG);
-
+            $this->logKlarnaApi('Response ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_STATUS] . ' - ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_TRANSACTION_ID]);
         } catch (KlarnaException $e) {
             Mage::throwException($e->getMessage());
         }
@@ -161,7 +152,6 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
     {
         try {
             $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_REFUND);
-            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_START_TAG);
             $invoice_no = $this->getInfoInstance()->getParentTransactionId();
             $this->_setAdditionalInformation($this->getInfoInstance()->getAdditionalInformation());
             $items = $this->getPayment()->getKlarnaItemList();
@@ -173,10 +163,7 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
 
             $this->_getHelper()->dispatchMethodEvent($this->getOrder(), Vaimo_Klarna_Helper_Data::KLARNA_DISPATCH_REFUNDED, $amount, $this->getMethod());
 
-            $this->_getHelper()->logKlarnaApi('Response ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_STATUS] . ' - ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_TRANSACTION_ID]);
-
-            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_END_TAG);
-
+            $this->logKlarnaApi('Response ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_STATUS] . ' - ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_TRANSACTION_ID]);
         } catch (KlarnaException $e) {
             Mage::throwException($e->getMessage());
         }
@@ -187,7 +174,6 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
     {
         try {
             $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_CANCEL);
-            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_START_TAG);
             $this->_setAdditionalInformation($this->getPayment()->getAdditionalInformation());
 
             if ($direct_rno) {
@@ -195,7 +181,7 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
             } else {
                 $reservation_no = $this->_getReservationNo();
             }
-            $this->_getHelper()->logKlarnaApi('Call with reservation ID ' . $reservation_no);
+            $this->logKlarnaApi('Call with reservation ID ' . $reservation_no);
             
             if ($this->getOrder()->getTotalPaid()>0) {
                 $res = $this->getApi()->release($reservation_no);
@@ -205,10 +191,7 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
 
             $this->_getHelper()->dispatchMethodEvent($this->getOrder(), Vaimo_Klarna_Helper_Data::KLARNA_DISPATCH_CANCELED, $this->getOrder()->getTotalDue(), $this->getMethod());
 
-            $this->_getHelper()->logKlarnaApi('Response ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_STATUS]);
-
-            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_END_TAG);
-
+            $this->logKlarnaApi('Response ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_STATUS]);
         } catch (KlarnaException $e) {
             Mage::throwException($e->getMessage());
         }
@@ -219,18 +202,14 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
     {
         try {
             $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_CHECKSTATUS);
-            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_START_TAG);
             $this->_setAdditionalInformation($this->getPayment()->getAdditionalInformation());
             
             $reservation_no = $this->_getReservationNo();
-            $this->_getHelper()->logKlarnaApi('Call with reservation ID ' . $reservation_no);
+            $this->logKlarnaApi('Call with reservation ID ' . $reservation_no);
 
             $res = $this->getApi()->checkStatus($reservation_no);
 
-            $this->_getHelper()->logKlarnaApi('Response ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_STATUS]);
-
-            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_END_TAG);
-
+            $this->logKlarnaApi('Response ' . $res[Vaimo_Klarna_Helper_Data::KLARNA_API_RESPONSE_STATUS]);
         } catch (KlarnaException $e) {
             Mage::throwException($e->getMessage());
         }
@@ -255,17 +234,14 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
             }
 
             $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_ADDRESSES);
-            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_START_TAG);
-            $this->_getHelper()->logKlarnaApi('Call with Personal ID ' . $personal_id);
+            $this->logKlarnaApi('Call with Personal ID ' . $personal_id);
 
             $res = $this->getApi()->getAddresses($personal_id);
 
-            $this->_getHelper()->logKlarnaApi('Response ' .'OK');
+            $this->logKlarnaApi('Response ' .'OK');
 
             $cache[$personal_id] = $res;
             $_SESSION[self::$_session_key] = base64_encode( serialize($cache) );
-
-            $this->_getHelper()->logKlarnaApi(Vaimo_Klarna_Helper_Data::KLARNA_LOG_END_TAG);
 
         } catch (KlarnaException $e) {
             Mage::throwException($e->getMessage());
@@ -303,7 +279,7 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
                     /*
                      * This is not approved by Klarna, so address will be updated only when order is placed. This is NOT a bug.
                      */
-                    // $this->_updateWithSelectedAddress($addr);
+                    // $this->_updateShippingWithSelectedAddress($addr);
                 } else {
                     /*
                      * No error message here if using OneStepCheckout
@@ -337,17 +313,16 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
         if ($this->useGetAddresses()) {
             $addr = $this->_getSelectedAddress($this->getPayment()->getAdditionalInformation('pno'), $this->getPayment()->getAdditionalInformation('address_id'));
             if ($addr!=NULL) {
-                $this->_updateWithSelectedAddress($addr);
+                $this->_updateShippingWithSelectedAddress($addr);
             } else {
                 Mage::throwException($this->_getHelper()->__('Unknown address, please specify correct personal id in the payment selection and press Fetch again, or use another payment method'));
             }
         }
 
-        //Check to see if the addresses must be same. If so overwrite shipping
-        //address with the billing address.
+        //Check to see if the addresses must be same. If so overwrite billing
+        //address with the shipping address.
         if ($this->shippingSameAsBilling()) {
             $this->updateBillingAddress();
-//            $this->updateShippingAddress();
         }
     }
 
@@ -366,7 +341,7 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
                 }
             }
         } catch (Mage_Core_Exception $e) {
-            $this->_getHelper()->logKlarnaException($e);
+            $this->logKlarnaException($e);
             return NULL;
         }
         return NULL;
@@ -383,9 +358,9 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
 
             $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_PCLASSES);
 
-            $this->_getHelper()->logKlarnaApi('Call clear');
+            $this->logKlarnaApi('Call clear');
             $this->getApi()->clearPClasses();
-            $this->_getHelper()->logKlarnaApi('Call clear OK');
+            $this->logKlarnaApi('Call clear OK');
 
         } catch (KlarnaException $e) {
             Mage::throwException($e->getMessage());
@@ -396,9 +371,9 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
                 $this->setStoreInformation($storeId);
                 $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_PCLASSES); // Need to call it again because we now have new storeId
 
-                $this->_getHelper()->logKlarnaApi('Call fetch all');
+                $this->logKlarnaApi('Call fetch all');
                 $this->getApi()->fetchPClasses($storeId);
-                $this->_getHelper()->logKlarnaApi('Call fetch all OK');
+                $this->logKlarnaApi('Call fetch all OK');
 
             } catch (KlarnaException $e) {
                 Mage::throwException($e->getMessage());
@@ -413,23 +388,9 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
     public function getValidCheckoutPClasses($method)
     {
         try {
-            $amount = $this->getQuote()->getGrandTotal();
-
-            $key = $method . ":" . round($amount,2);
-            $cache = array();
-
-            if (array_key_exists(self::$_pclasses_key, $_SESSION)) {
-                $cache = unserialize( base64_decode($_SESSION[self::$_pclasses_key]) );
-            }
-            if (array_key_exists($key, $cache)) {
-                return $cache[$key];
-            }
             $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_PCLASSES);
+            $amount = $this->getQuote()->getGrandTotal();
             $res = $this->getApi()->getValidCheckoutPClasses($method, $amount);
-
-            $cache[$key] = $res;
-            $_SESSION[self::$_pclasses_key] = base64_encode( serialize($cache) );
-
         } catch (Mage_Core_Exception $e) {
             Mage::throwException($e->getMessage());
         }
@@ -445,13 +406,13 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
         try {
             $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_PCLASSES);
             $amount = $this->getQuote()->getGrandTotal();
-            $this->_getHelper()->logKlarnaApi('Call get specific');
+            $this->logKlarnaApi('Call get specific');
 
             $res = $this->getApi()->getSpecificPClass($id, $amount);
 
-            $this->_getHelper()->logKlarnaApi('Response OK');
+            $this->logKlarnaApi('Response OK');
         } catch (Mage_Core_Exception $e) {
-            $this->_getHelper()->logKlarnaException($e);
+            $this->logKlarnaException($e);
         }
         return $res;
     }
@@ -464,11 +425,11 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
     {
         try {
             $this->_init(Vaimo_Klarna_Helper_Data::KLARNA_API_CALL_PCLASSES);
-            $this->_getHelper()->logKlarnaApi('Call get display all');
+            $this->logKlarnaApi('Call get display all');
 
             $res = $this->getApi()->getDisplayAllPClasses();
 
-            $this->_getHelper()->logKlarnaApi('Response OK');
+            $this->logKlarnaApi('Response OK');
         } catch (Mage_Core_Exception $e) {
             Mage::throwException($e->getMessage());
         }
@@ -544,7 +505,7 @@ class Vaimo_Klarna_Model_Klarna extends Vaimo_Klarna_Model_Klarna_Abstract
             if (sizeof($paymentMethodsFilteredGroupd)>0) {
                 $res = $paymentMethodsFilteredGroupd;
             }
-        } catch (Exception $e) {
+        } catch (Mage_Core_Exception $e) {
             $res = NULL;
         }
         return $res;

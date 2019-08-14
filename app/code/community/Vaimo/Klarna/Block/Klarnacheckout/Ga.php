@@ -36,59 +36,36 @@ class Vaimo_Klarna_Block_Klarnacheckout_Ga extends Mage_GoogleAnalytics_Block_Ga
         $result = parent::_getOrdersTrackingCode();
 
         /** @var Klarna_Checkout_Order $klarnaOrder */
-        // Not happy with this, but I guess we can't solve it in other ways.
+        // This call should not exist! We need to prepare the data, so this function
         // can use it without getting hold of and use the actual KlarnaOrder
         if ($klarnaOrder = $this->getKlarnaCheckoutOrder()) {
             $klarnaCode = array();
 
-            if ($klarnaOrder->offsetExists('order_id')) { // KCO UK
+            $transactionId = $klarnaOrder->offsetExists('reservation') ? $klarnaOrder->offsetGet('reservation') : '';
+            $cart = $klarnaOrder->offsetExists('cart') ? $klarnaOrder->offsetGet('cart') : array();
+            $items = (isset($cart['items']) && is_array($cart['items'])) ? $cart['items'] : array();
+            $grandTotal = isset($cart['total_price_excluding_tax']) ? $cart['total_price_excluding_tax'] / 100 : 0;
+            $taxAmount = isset($cart['total_tax_amount']) ? $cart['total_tax_amount'] / 100 : 0;
+            $shippingAmount = 0;
 
-                $transactionId = $klarnaOrder['order_id'];
-                $grandTotal = $klarnaOrder->offsetExists('order_amount') ? $klarnaOrder['order_amount'] / 100 : 0;
-                $taxAmount = $klarnaOrder->offsetExists('order_tax_amount') ? $klarnaOrder['order_tax_amount'] / 100 : 0;
-                $items = $klarnaOrder->offsetExists('order_lines') ? $klarnaOrder->offsetGet('order_lines') : array();
-                $shippingAmount = 0;
-
-                foreach ($items as $item) {
-                    if (isset($item['type']) && $item['type'] == 'shipping_fee' && isset($item['total_amount'])) {
-                        $shippingAmount += $item['total_amount'] / 100;
-                        $grandTotal -= $item['total_amount'] / 100;
-                    }
+            foreach ($items as $item) {
+                if (isset($item['type']) && $item['type'] == 'shipping_fee' && isset($item['total_price_including_tax'])) {
+                    $shippingAmount += $item['total_price_including_tax'] / 100;
+                    $grandTotal -= $item['total_price_including_tax'] / 100;
                 }
-
-                $address = $klarnaOrder->offsetExists('shipping_address') ? $klarnaOrder->offsetGet('shipping_address') : array();
-                $city = isset($address['city']) ? $address['city'] : '';
-                $region = '';
-                $country = isset($address['country']) ? strtoupper($address['country']) : '';
-
-            } else {
-
-                $transactionId = $klarnaOrder->offsetExists('reservation') ? $klarnaOrder->offsetGet('reservation') : '';
-                $cart = $klarnaOrder->offsetExists('cart') ? $klarnaOrder->offsetGet('cart') : array();
-                $items = (isset($cart['items']) && is_array($cart['items'])) ? $cart['items'] : array();
-                $grandTotal = isset($cart['total_price_excluding_tax']) ? $cart['total_price_excluding_tax'] / 100 : 0;
-                $taxAmount = isset($cart['total_tax_amount']) ? $cart['total_tax_amount'] / 100 : 0;
-                $shippingAmount = 0;
-
-                foreach ($items as $item) {
-                    if (isset($item['type']) && $item['type'] == 'shipping_fee' && isset($item['total_price_including_tax'])) {
-                        $shippingAmount += $item['total_price_including_tax'] / 100;
-                        $grandTotal -= $item['total_price_including_tax'] / 100;
-                    }
-                }
-
-                $address = $klarnaOrder->offsetExists('shipping_address') ? $klarnaOrder->offsetGet('shipping_address') : array();
-                $city = isset($address['city']) ? $address['city'] : '';
-                $region = '';
-                $country = isset($address['country']) ? strtoupper($address['country']) : '';
             }
+
+            $address = $klarnaOrder->offsetExists('shipping_address') ? $klarnaOrder->offsetGet('shipping_address') : array();
+            $city = isset($address['city']) ? $address['city'] : '';
+            $region = '';
+            $country = isset($address['country']) ? $address['country'] : '';
 
             $klarnaCode[] = sprintf("_gaq.push(['_addTrans', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s']);",
                 $transactionId,
                 Mage::app()->getStore()->getFrontendName(),
-                number_format($grandTotal, 2, '.', ''),
-                number_format($taxAmount, 2, '.', ''),
-                number_format($shippingAmount, 2, '.', ''),
+                $grandTotal,
+                $taxAmount,
+                $shippingAmount,
                 $this->jsQuoteEscape($city),
                 $this->jsQuoteEscape($region),
                 $this->jsQuoteEscape($country)
@@ -106,8 +83,8 @@ class Vaimo_Klarna_Block_Klarnacheckout_Ga extends Mage_GoogleAnalytics_Block_Ga
                         $this->jsQuoteEscape($sku),
                         $this->jsQuoteEscape($name),
                         null, // there is no "category" defined for the order item
-                        number_format($price, 2, '.', ''),
-                        number_format($quantity, 2, '.', '')
+                        $price,
+                        $quantity
                     );
                 }
             }

@@ -27,21 +27,12 @@ $button_name = $this->getOthermethodButtonName();
 
 ?>
 
-<?php if ($this->isButtonEnabled()): ?>
+<?php if ($this->isButtonEnabled()==false) return; ?>
 
-<div id="klarna_methods" class="klarna_other-payment-methods klarna_block">
+<div id="klarna_methods">
     <?php if ($this->isButtonNameUrl($button_name)): ?>
 	    <a href="#" onclick="klarnaCheckoutGo('<?php echo $this->getUrl('checkout/klarna/othermethod') ?>')"><span><span><img src="<?php echo $button_name?>"/></span></span></a>
     <?php else: ?>
-	    <a href="#" class="button button-small button-action" onclick="klarnaCheckoutGo('<?php echo $this->getUrl('checkout/klarna/othermethod') ?>')"><?php echo $button_name?></a>
+	    <a href="#" class="button" onclick="klarnaCheckoutGo('<?php echo $this->getUrl('checkout/klarna/othermethod') ?>')"><span><span><?php echo $button_name?></span></span></a>
     <?php endif; ?>
 </div>
-
-<?php endif; ?>
-
-<?php if ($this->updateWhenPostcodeChanges()): ?>
-
-    <input id="klarna-checkout-shipping-update" type="hidden" value="<?php echo $this->getUrl('checkout/klarna/addressUpdate') ?>" />
-
-<?php endif; ?>
-

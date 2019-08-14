@@ -33,7 +33,7 @@
 
 <?php if (Mage::helper('klarna')->excludeCartInKlarnaCheckout()) return; ?>
 
-<div id="klarna_totals" class="klarna_totals">
+<div id="klarna_totals">
 <?php
     if (version_compare(Mage::getVersion(), '1.7.0', '<') || ((version_compare(Mage::getVersion(), '1.10.0')>=0) && (version_compare(Mage::getVersion(), '1.11.0')<0))) {
         $canApplyMsrp = false;
@@ -44,20 +44,14 @@
 <?php if ($canApplyMsrp): ?>
     <div class="cart-msrp-totals"><?php echo $this->__('ORDER TOTAL WILL BE DISPLAYED BEFORE YOU SUBMIT THE ORDER'); ?></div>
 <?php else: ?>
-	<table class="klarna_price-totals">
-        <tfoot class="klarna_grand-total">
-            <?php echo $this->renderTotals('footer'); ?>
-        </tfoot>
+	<table>
+		<tfoot>
+			<?php echo $this->renderTotals('footer'); ?>
+		</tfoot>
 		<tbody>
 			<?php echo $this->renderTotals(); ?>
 		</tbody>
 	</table>
-    <!--<div class="klarna_price-totals">
-        <?php echo $this->getChildHtml('klarna_tax_subtotal'); ?>
-    </div>
-    <div class="klarna_grand-total">
-        <?php echo $this->getChildHtml('klarna_tax_grandtotal'); ?>
-    </div>-->
 <?php endif; ?>
 
 </div>

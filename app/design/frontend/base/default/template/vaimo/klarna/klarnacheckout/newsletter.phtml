@@ -25,12 +25,12 @@
 ?>
 
 <?php if ($this->isEnabled()): ?>
-<div id="klarna-checkout-newsletter-container" class="klarna-checkout-newsletter-container">
+<div id="klarna-checkout-newsletter-container">
     <h3><?php echo $this->__('Newsletter') ?></h3>
     <input id="klarna-checkout-newsletter-url" type="hidden" value="<?php echo $this->getUrl('checkout/klarna/subscribeToNewsletter') ?>" />
     <input id="klarna-checkout-newsletter-type" type="hidden" value="<?php echo $this->getType() ?>" />
     <?php $checked = $this->isChecked() ? 'checked ' : '' ?>
-    <input id="klarna-checkout-newsletter" class="klarna-checkout-newsletter" type="checkbox" name="klarna_checkout_newsletter" <?php echo $checked ?>/>
+    <input id="klarna-checkout-newsletter" type="checkbox" name="klarna_checkout_newsletter" <?php echo $checked ?>/>
     <label for="klarna-checkout-newsletter"><?php echo $this->getLabel() ?></label>
 </div>
 <?php endif; ?>

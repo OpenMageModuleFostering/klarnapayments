@@ -59,15 +59,24 @@ abstract class Vaimo_Klarna_Model_Api_Abstract extends Varien_Object
         return false;
     }
 
-    protected function _addUserDefinedVariables(&$create)
+    protected function _addUserDefinedVariables($create)
     {
-        $json = $this->_getTransport()->getConfigData('user_defined_json');
-        if ($json && $json != " ") {
-            $extras = Mage::helper('klarna')->JsonDecode($json);
-            if (is_array($extras)) {
-                $create = array_merge_recursive($create, $extras);
-            } else {
-                Mage::helper('klarna')->logDebugInfo($extras . ": " . $json);
+        return;
+        $extras = unserialize($this->_getTransport()->getConfigData("extra_parameters"));
+        if (is_array($extras)) {
+            foreach ($extras as $extra) {
+                if (!$extra['key'] || !$extra['value']) continue;
+                switch ($extra['position']) {
+                    case Vaimo_Klarna_Helper_Data::KLARNA_EXTRA_VARIABLES_GUI_OPTIONS:
+                        $create['gui']['options'][$extra['key']] = $extra['value'];
+                        break;
+                    case Vaimo_Klarna_Helper_Data::KLARNA_EXTRA_VARIABLES_GUI_LAYOUT:
+                        $create['gui']['layout'][$extra['key']] = $extra['value'];
+                        break;
+                    case Vaimo_Klarna_Helper_Data::KLARNA_EXTRA_VARIABLES_OPTIONS:
+                        $create['options'][$extra['key']] = $extra['value'];
+                        break;
+                }
             }
         }
     }

@@ -41,7 +41,7 @@ class Vaimo_Klarna_Model_Payment_Invoice extends Vaimo_Klarna_Model_Payment_Abst
 
             if ($this->_roundPrice($grandTotal) < $allowedMin) return false;
         } catch (Mage_Core_Exception $e) {
-            $this->_getHelper()->logKlarnaException($e);
+            if ($klarna) $klarna->logKlarnaException($e);
             return false;
         }
         return true;

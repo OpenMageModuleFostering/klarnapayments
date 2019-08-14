@@ -35,16 +35,8 @@ class Vaimo_Klarna_Model_Payment_Checkout extends Vaimo_Klarna_Model_Payment_Abs
         return '';
     }
 
-    /**
-     * Klarna Checkout Payment method should always show up if activated, no matter what
-     * This shows only the "Back to Klarna Checkout" button, that's why there is no reason
-     * to test for various things, except the setting
-     */
     public function isAvailable($quote = NULL)
     {
-        $available = $this->_isAvailableParent($quote);
-        if (!$available) return false;
-/*
         if (parent::isAvailable($quote) == false) return false;
         try {
             $klarna = $this->_getKlarnaModel();
@@ -55,16 +47,15 @@ class Vaimo_Klarna_Model_Payment_Checkout extends Vaimo_Klarna_Model_Payment_Abs
 
             if ($this->_roundPrice($grandTotal) < $allowedMin) return false;
         } catch (Mage_Core_Exception $e) {
-            $this->_getHelper()->logKlarnaException($e);
+            if ($klarna) $klarna->logKlarnaException($e);
             return false;
         }
-*/
         return true;
     }
 
     public function assignData($data)
     {
-        Mage::throwException($this->_getHelper()->__('Please click the button to go to Klarna Checkout'));
+        Mage::throwException(Mage::helper('klarna')->__('Please click the button to go to Klarna Checkout'));
     }
 
     public function validate()

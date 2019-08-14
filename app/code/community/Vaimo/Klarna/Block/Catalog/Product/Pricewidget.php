@@ -70,19 +70,15 @@ class Vaimo_Klarna_Block_Catalog_Product_Pricewidget extends Mage_Core_Block_Tem
         } else {
             $klarna = Mage::getModel('klarna/klarna');
             $klarna->setQuote($this->getQuote(), Vaimo_Klarna_Helper_Data::KLARNA_METHOD_ACCOUNT);
-            if (!$this->getConfigData('active')) {
+            if ($klarna->getConfigData('disable_product_widget')) {
                 $activef = false;
             } else {
-                if ($klarna->getConfigData('disable_product_widget')) {
-                    $activef = false;
-                } else {
-                    $klarnaSetup = $klarna->getKlarnaSetup();
-                }
+                $klarnaSetup = $klarna->getKlarnaSetup();
             }
         }
         if ($activef) {
             if ($klarnaSetup) {
-                if ($klarnaSetup->getCountryCode() != 'NL' && $klarnaSetup->getCountryCode() != 'AT') {
+                if($klarnaSetup->getCountryCode() != 'NL' && $klarnaSetup->getCountryCode() != 'AT') {
                     return $klarnaSetup;
                 }
             }
@@ -95,22 +91,10 @@ class Vaimo_Klarna_Block_Catalog_Product_Pricewidget extends Mage_Core_Block_Tem
         return Mage::helper('klarna')->getVaimoKlarnaFeeInclVat($this->getQuote(), false);
     }
 
-    public function getProductPriceInclVat($store = NULL)
+    public function getProductPriceInclVat()
     {
         // @TODO This only returns Incl TAX if settings are set to Display prices including TAX... Needs to be Incl VAT, always
-//        return Mage::helper('tax')->getPrice($this->getProduct(), $this->getProduct()->getFinalPrice(), true);
-        $product = $this->getProduct();
-        $res = $product->getFinalPrice();
-        $inclTax = Mage::getSingleton('tax/config')->priceIncludesTax($store);
-        if (!$inclTax) {
-            $taxClassId = $product->getTaxClassId();
-            $request = Mage::getSingleton('tax/calculation')
-                ->getRateRequest(false, false, false, $store);
-            $includingPercent = Mage::getSingleton('tax/calculation')
-                ->getRate($request->setProductClassId($taxClassId));
-            $res = Mage::app()->getStore()->roundPrice($res * (1 + ($includingPercent / 100)));
-        }
-        return $res;
+        return Mage::helper('tax')->getPrice($this->getProduct(), $this->getProduct()->getFinalPrice(), true);
     }
 
 }

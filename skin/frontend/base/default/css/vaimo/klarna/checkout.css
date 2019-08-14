@@ -55,32 +55,30 @@ ul#payment_form_vaimo_klarna_special {
 }
 
 .sp-methods .form-list li.payment_plan_info_wrapper {
+    margin: 5px 10px 10px 30px;
     float: left;
     padding: 10px;
     border: 1px solid #B6B6B6;
+//    background-color: #FFF;
 }
 
-.payment_plan_details dt {
+.sp-methods .form-list li.payment_plan_info_wrapper .payment_plan_details dt {
     float: left;
     clear: both;
-    margin: 0;
-    padding: 0 0 3px 0;
-    width: 50%;
+    margin: 0px 10px 3px 0px;
+    min-width: 200px;
+    max-width: 400px;
     font-weight: normal;
+//    font-size: 10px;
 }
 
-.payment_plan_details dt:last-of-type {
-    width: 100%;
-    padding: 0;
-}
-
-.payment_plan_details dd {
+.sp-methods .form-list li.payment_plan_info_wrapper .payment_plan_details dd {
     float: right;
-    width: 50%;
     font-weight: normal;
+//    font-size: 10px;
 }
 
-.payment_plan_details dd .price {
+.sp-methods .form-list li.payment_plan_info_wrapper .payment_plan_details dd .price {
     font-weight: normal;
 }
 
