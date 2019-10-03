@@ -1,7 +1,7 @@
 {
-    "name": "OpenMageModuleFostering\/klarnapayments",
+    "name": "openmage-module-fostering\/klarnapayments",
     "type": "magento-module",
-    "license": "Open-Software-License-(OSL)",
+    "license": "OSL-3.0",
     "homepage": "",
     "description": "Klarna's module for Klarna Checkout, invoice and part payment.",
     "authors": [
