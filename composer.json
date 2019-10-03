@@ -1,16 +1,19 @@
 {
-    "name": "OpenMageModuleFostering/klarnapayments",
+    "name": "OpenMageModuleFostering\/klarnapayments",
     "type": "magento-module",
     "license": "Open-Software-License-(OSL)",
     "homepage": "",
     "description": "Klarna's module for Klarna Checkout, invoice and part payment.",
     "authors": [
-    {
-        "name": "Klarna",
-        "email": "magento@klarna.com"
-    }
-],
+        {
+            "name": "Klarna",
+            "email": "magento@klarna.com"
+        }
+    ],
     "suggest": {
-        "magento-hackathon/magento-composer-installer": "*"
-    }
+        "magento-hackathon\/magento-composer-installer": "*"
+    },
+    "keywords": [
+        "openmage-module"
+    ]
 }
